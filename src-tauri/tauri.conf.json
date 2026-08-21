@@ -22,7 +22,9 @@
         "resizable": true,
         "decorations": true,
         "transparent": true,
-        "center": true
+        "center": true,
+        "visible": false,
+        "backgroundColor": "#131317"
       }
 
     ],
