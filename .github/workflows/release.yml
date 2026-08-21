@@ -71,13 +71,50 @@ jobs:
             ## 0rhxPlayer v__VERSION__
             
             ### ✨ Features
-            - **Audiophile Hi-Res Engine**: WASAPI / DirectSound bit-perfect playback with non-blocking stream scheduler.
-            - **DSP Processing**: 10-Band Biquad Equalizer with hardware-level clarity.
-            - **Material You 3.0 Motion**: Complete M3 fluid transition curves and responsive layouts.
-            - **Cross-Platform Delivery**: Native Windows (x64 / arm64) and Linux AppImage packages.
+            - **Audio Pipeline**: WASAPI / DirectSound basic stream scheduler with low latency.
+            - **DSP Processing**: 10-Band Biquad Equalizer with presets.
+            - **Material You 3.0**: M3 motion system with teal theme (#39C5BB).
+            - **Cross-Platform**: Windows (Installer `.exe` & Portable `.zip`) and Linux (`.AppImage` & Portable `.tar.gz`).
             
-            ### 🌐 Official Website & Documentation
-            Visit [0rhxPlayer.rincynar.top](https://0rhxPlayer.rincynar.top) for online docs and VSCode extensions.
+            ### 🌐 Links
+            - Website: [0rhxplayer.rincynar.top](https://0rhxplayer.rincynar.top)
+            - VSCode Extension: [0rhxPlayer for VSCode](https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer)
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Package Portable Windows Archive (.zip)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ver = "1.0.0"
+          $target = "${{ matrix.target }}"
+          $exe = Get-ChildItem -Path "src-tauri/target" -Recurse -File | Where-Object { ($_.Name -eq "0rhxPlayer.exe" -or $_.Name -eq "app.exe") -and $_.FullName -like "*release*" -and $_.FullName -notlike "*deps*" -and $_.FullName -notlike "*build*" } | Select-Object -First 1
+          if ($exe) {
+            New-Item -ItemType Directory -Force -Path "dist-portable"
+            Copy-Item $exe.FullName -Destination "dist-portable/0rhxPlayer.exe"
+            Compress-Archive -Path "dist-portable/*" -DestinationPath "0rhxPlayer_${ver}_${target}_portable.zip" -Force
+          }
+
+      - name: Package Portable Linux Archive (.tar.gz)
+        if: runner.os == 'Linux'
+        run: |
+          ver="1.0.0"
+          target="${{ matrix.target }}"
+          bin_path=$(find src-tauri/target -type f \( -name "0rhxPlayer" -o -name "app" \) | grep "release" | grep -v "deps" | grep -v "build" | head -n 1)
+          if [ -n "$bin_path" ]; then
+            mkdir -p dist-portable
+            cp "$bin_path" dist-portable/0rhxPlayer
+            chmod +x dist-portable/0rhxPlayer
+            tar -czvf "0rhxPlayer_${ver}_${target}.tar.gz" -C dist-portable 0rhxPlayer
+          fi
+
+      - name: Upload Portable Archives to Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            0rhxPlayer_*.zip
+            0rhxPlayer_*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

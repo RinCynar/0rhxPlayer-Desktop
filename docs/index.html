@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>0rhxPlayer - 全格式无损高解析音乐播放器 (Desktop & VSCode)</title>
-  <meta name="description" content="0rhxPlayer 是专为发烧友与极客打造的下一代全格式无损本地音乐播放器，支持 Windows 桌面端与 VSCode 插件双端协同，提供 WASAPI 独占、SoX 重采样与 Material You 动态主题。" />
-  <meta name="keywords" content="0rhxPlayer, 音乐播放器, 无损播放器, WASAPI, Material You, Foobar2000, VSCode 插件, RinCynar" />
-  
+  <title>0rhxPlayer - 轻量本地音乐播放器 (Desktop & VSCode)</title>
+  <meta name="description" content="0rhxPlayer 是一个遵循 Material 3 设计的轻量本地音乐播放器，支持 Windows / Linux 桌面端与 VSCode 插件端。" />
+  <meta name="keywords" content="0rhxPlayer, 音乐播放器, 本地音乐, Material You, Tauri, Rust, VSCode 插件, RinCynar" />
+
   <!-- Favicon -->
   <link rel="icon" href="https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Desktop/main/src-tauri/icons/icon.png" type="image/png" />
 
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
   <!-- Tailwind CSS CDN -->
@@ -42,10 +42,6 @@
           fontFamily: {
             sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
             mono: ['JetBrains Mono', 'monospace'],
-          },
-          animation: {
-            'spin-slow': 'spin 16s linear infinite',
-            'pulse-subtle': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           }
         }
       }
@@ -53,54 +49,65 @@
   </script>
 
   <style>
-    /* Custom Scrollbar */
+    /* Robust Fallback Styles */
+    :root {
+      --bg-color: #F6F2F8;
+      --text-color: #1D1B20;
+      --card-bg: #FFFFFF;
+      --miku-color: #39C5BB;
+    }
+    html.dark {
+      --bg-color: #131317;
+      --text-color: #E6E1E5;
+      --card-bg: #1C1B20;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(57, 197, 187, 0.25); border-radius: 9999px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(57, 197, 187, 0.5); }
-    
-    .glow-effect {
-      box-shadow: 0 0 40px -10px rgba(57, 197, 187, 0.35);
-    }
+    ::-webkit-scrollbar-thumb { background: rgba(57, 197, 187, 0.3); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(57, 197, 187, 0.6); }
     .glass-card {
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
   </style>
 </head>
 
-<body class="bg-[#F6F2F8] dark:bg-[#131317] text-[#1D1B20] dark:text-[#E6E1E5] font-sans antialiased transition-colors duration-300 min-h-screen flex flex-col selection:bg-[#39C5BB]/30">
+<body class="min-h-screen flex flex-col transition-colors duration-300 selection:bg-[#39C5BB]/30">
 
   <!-- Navigation Bar -->
-  <header class="sticky top-0 z-50 bg-[#F6F2F8]/80 dark:bg-[#131317]/80 backdrop-blur-md border-b border-black/5 dark:border-white/5 transition-colors">
-    <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+  <header class="sticky top-0 z-50 bg-[#F6F2F8]/85 dark:bg-[#131317]/85 backdrop-blur-md border-b border-black/5 dark:border-white/5 transition-colors">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
       <!-- Brand Logo -->
-      <a href="#" class="flex items-center gap-3.5 group">
-        <div class="w-11 h-11 rounded-2xl bg-miku/15 dark:bg-miku/20 text-miku flex items-center justify-center shadow-inner group-hover:scale-105 transition">
-          <i class="fa-solid fa-compact-disc text-2xl animate-spin-slow"></i>
+      <a href="#" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 rounded-xl bg-miku/15 dark:bg-miku/20 text-miku flex items-center justify-center shadow-inner group-hover:scale-105 transition">
+          <i class="fa-solid fa-compact-disc text-xl"></i>
         </div>
         <div>
-          <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-[#006A6B] to-[#39C5BB] dark:from-[#39C5BB] dark:to-[#83F5ED] bg-clip-text text-transparent">
+          <span class="text-lg font-bold tracking-tight bg-gradient-to-r from-[#006A6B] to-[#39C5BB] dark:from-[#39C5BB] dark:to-[#83F5ED] bg-clip-text text-transparent">
             0rhxPlayer
           </span>
-          <span class="text-[10px] font-mono block text-gray-500 dark:text-gray-400 font-semibold tracking-wider">
-            AUDIOPHILE SUITE
+          <span class="text-[9px] font-mono block text-gray-500 dark:text-gray-400 font-semibold">
+            DESKTOP & VSCODE
           </span>
         </div>
       </a>
 
       <!-- Navigation Links & Theme Switcher -->
       <nav class="flex items-center gap-4 sm:gap-6 text-sm font-medium">
-        <a href="#desktop" class="hover:text-miku transition hidden sm:inline">桌面端 (Desktop)</a>
-        <a href="#vscode" class="hover:text-miku transition hidden sm:inline">VSCode 插件</a>
-        <a href="#features" class="hover:text-miku transition hidden md:inline">特性矩阵</a>
+        <a href="#downloads" class="hover:text-miku transition hidden sm:inline">下载中心</a>
+        <a href="#features" class="hover:text-miku transition hidden sm:inline">功能介绍</a>
         <a href="https://github.com/RinCynar/0rhxPlayer-Desktop" target="_blank" class="hover:text-miku transition flex items-center gap-1.5">
           <i class="fa-brands fa-github text-base"></i>
           <span class="hidden sm:inline">GitHub</span>
         </a>
 
         <!-- Dark/Light Theme Switcher -->
-        <button id="themeToggle" class="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition" title="切换深浅主题">
+        <button id="themeToggle" class="w-9 h-9 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition" title="切换深浅主题">
           <i id="themeIcon" class="fa-solid fa-moon text-sm"></i>
         </button>
       </nav>
@@ -109,245 +116,186 @@
 
   <!-- Hero Section -->
   <main class="flex-1">
-    <section class="relative pt-16 pb-24 px-6 overflow-hidden">
-      <!-- Background Ambient Glow -->
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-miku/10 dark:bg-miku/15 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+    <section class="relative pt-12 pb-16 px-6 text-center">
+      <!-- Ambient Glow -->
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] bg-miku/10 dark:bg-miku/15 rounded-full blur-[120px] pointer-events-none -z-10"></div>
 
-      <div class="max-w-4xl mx-auto text-center space-y-8">
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-miku/15 dark:bg-miku/20 text-miku text-xs font-bold tracking-wide shadow-sm">
-          <i class="fa-solid fa-sparkles text-xs"></i>
-          <span>Material You 3.0 设计语言与发烧级音频架构</span>
+      <div class="max-w-3xl mx-auto space-y-6">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-miku/15 dark:bg-miku/20 text-miku text-xs font-semibold">
+          <i class="fa-solid fa-music text-xs"></i>
+          <span>遵循 Material 3 设计的轻量本地播放器</span>
         </div>
 
-        <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight leading-[1.15]">
-          全格式无损高解析<br class="hidden sm:inline" />
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+          简洁清爽的<br class="hidden sm:inline" />
           <span class="bg-gradient-to-r from-[#006A6B] via-[#39C5BB] to-[#83F5ED] bg-clip-text text-transparent">
-            下一代本地音乐播放器
+            本地音乐播放体验
           </span>
         </h1>
 
-        <p class="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
-          专为音乐发烧友与开发者构建。支持 <b>WASAPI 独占驱动</b>、<b>64-bit 浮点重采样</b> 与 <b>Material You 动态封面取色</b>。提供 Windows 桌面客户端与 VSCode 插件双端协同。
+        <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-xl mx-auto leading-relaxed">
+          基于 Tauri 2 + Rust + React 19 开发，初音绿（#39C5BB）主题风格。提供基础音频解码、10 段均衡器与双语动态歌词，致力于为日常听歌带来流畅轻便的体验。
         </p>
 
         <!-- Main Action Buttons -->
-        <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
-          <a href="#desktop" class="px-7 py-3.5 rounded-full bg-miku text-[#003738] font-bold text-sm hover:scale-105 active:scale-95 transition shadow-lg hover:shadow-miku/30 flex items-center gap-2.5">
-            <i class="fa-brands fa-windows text-base"></i>
-            <span>下载桌面版 (Windows)</span>
+        <div class="flex flex-wrap items-center justify-center gap-3.5 pt-2">
+          <a href="#downloads" class="px-6 py-3 rounded-full bg-miku text-[#003738] font-bold text-sm hover:scale-105 active:scale-95 transition shadow flex items-center gap-2">
+            <i class="fa-solid fa-download"></i>
+            <span>获取客户端 (Windows / Linux)</span>
           </a>
-          <a href="#vscode" class="px-7 py-3.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 font-bold text-sm active:scale-95 transition flex items-center gap-2.5">
-            <i class="fa-solid fa-code text-base text-miku"></i>
-            <span>安装 VSCode 插件</span>
+          <a href="https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer" target="_blank" class="px-6 py-3 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 font-semibold text-sm active:scale-95 transition flex items-center gap-2">
+            <i class="fa-solid fa-code text-miku"></i>
+            <span>VSCode 插件版</span>
           </a>
         </div>
       </div>
     </section>
 
-    <!-- Double-Platform Dynamic Release Showcase -->
-    <section class="max-w-6xl mx-auto px-6 py-12 space-y-12">
-      <div class="text-center space-y-2">
-        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">双端协同发行通道</h2>
-        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">实时拉取 GitHub 最新 Release 发行包，畅享极速部署</p>
+    <!-- Downloads Section -->
+    <section id="downloads" class="max-w-5xl mx-auto px-6 py-10 space-y-8">
+      <div class="text-center space-y-1.5">
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight">客户端与插件获取</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400">选择适合您系统的安装包或免安装便携版本</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- 1. Desktop Card -->
-        <div id="desktop" class="bg-white/80 dark:bg-[#1C1B20]/90 border border-black/5 dark:border-white/10 rounded-3xl p-8 shadow-xl flex flex-col justify-between relative overflow-hidden glass-card">
-          <div class="space-y-6">
-            <div class="flex items-start justify-between">
-              <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-2xl bg-miku/20 text-miku flex items-center justify-center text-2xl shadow-sm">
-                  <i class="fa-brands fa-windows"></i>
+        <div class="bg-white/80 dark:bg-[#1C1B20]/90 border border-black/5 dark:border-white/10 rounded-3xl p-6 shadow-lg flex flex-col justify-between glass-card space-y-5">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-miku/20 text-miku flex items-center justify-center text-xl">
+                  <i class="fa-solid fa-desktop"></i>
                 </div>
                 <div>
-                  <h3 class="text-xl font-bold">0rhxPlayer Desktop</h3>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Windows 桌面客户端 (Tauri 2 + Rust + React)</p>
+                  <h3 class="text-lg font-bold">0rhxPlayer 桌面端</h3>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Windows / Linux 客户端</p>
                 </div>
               </div>
-              <span id="desktopTag" class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-miku/20 text-miku">
-                <i class="fa-solid fa-spinner animate-spin mr-1"></i>获取中...
+              <span id="desktopTag" class="px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-miku/20 text-miku">
+                v1.0.0
               </span>
             </div>
 
-            <!-- Specs Grid -->
-            <div class="grid grid-cols-2 gap-3 text-xs">
-              <div class="bg-black/5 dark:bg-white/5 p-3 rounded-2xl">
-                <span class="text-gray-400 block text-[10px]">音频引擎</span>
-                <span class="font-bold text-miku">WASAPI / DirectSound</span>
-              </div>
-              <div class="bg-black/5 dark:bg-white/5 p-3 rounded-2xl">
-                <span class="text-gray-400 block text-[10px]">支持格式</span>
-                <span class="font-bold text-amber-400">FLAC / DSD / APE / WAV</span>
-              </div>
-              <div class="bg-black/5 dark:bg-white/5 p-3 rounded-2xl">
-                <span class="text-gray-400 block text-[10px]">DSP 处理器</span>
-                <span class="font-bold text-cyan-400">10-Band Biquad EQ</span>
-              </div>
-              <div class="bg-black/5 dark:bg-white/5 p-3 rounded-2xl">
-                <span class="text-gray-400 block text-[10px]">发布日期</span>
-                <span id="desktopDate" class="font-mono text-gray-300">--</span>
-              </div>
-            </div>
-
-            <!-- Changelog Preview -->
-            <div class="space-y-2">
-              <span class="text-xs font-bold text-gray-400">最新更新说明：</span>
-              <div id="desktopNotes" class="text-xs text-gray-500 dark:text-gray-300 bg-black/5 dark:bg-white/5 p-3.5 rounded-2xl max-h-28 overflow-y-auto leading-relaxed whitespace-pre-line font-mono">
-                正在同步 GitHub Release 更新日志...
-              </div>
+            <!-- Notes -->
+            <div class="text-xs text-gray-500 dark:text-gray-300 bg-black/5 dark:bg-white/5 p-3.5 rounded-2xl leading-relaxed whitespace-pre-line font-mono">
+• 支持 FLAC / WAV / APE / MP3 / AAC / OGG / Opus 本地播放
+• 10 段均衡器调节与中日双语动态歌词同步
+• 提供安装包与免安装便携压缩包
             </div>
           </div>
 
-          <!-- Download Action -->
-          <div class="pt-6 mt-6 border-t border-black/5 dark:border-white/10 flex items-center gap-3">
-            <a id="desktopDownloadBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="flex-1 py-3.5 px-6 rounded-full bg-miku text-[#003738] font-bold text-sm hover:scale-[1.02] active:scale-95 transition shadow text-center flex items-center justify-center gap-2">
-              <i class="fa-solid fa-download"></i>
-              <span>立即下载 Windows 安装包</span>
-            </a>
-            <a href="https://github.com/RinCynar/0rhxPlayer-Desktop" target="_blank" class="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center text-base transition" title="GitHub 仓库">
-              <i class="fa-brands fa-github"></i>
-            </a>
+          <!-- Download Buttons Grid -->
+          <div class="space-y-2.5 pt-2 border-t border-black/5 dark:border-white/10">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <a id="winExeBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="py-2.5 px-4 rounded-xl bg-miku text-[#003738] font-bold text-xs hover:opacity-90 transition text-center flex items-center justify-center gap-1.5 shadow-sm">
+                <i class="fa-brands fa-windows"></i>
+                <span>Windows 安装包 (.exe)</span>
+              </a>
+              <a id="winZipBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="py-2.5 px-4 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 font-semibold text-xs transition text-center flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-file-zipper"></i>
+                <span>Windows 便携版 (.zip)</span>
+              </a>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <a id="linuxAppImageBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="py-2 px-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/15 text-xs text-gray-400 hover:text-white transition text-center flex items-center justify-center gap-1.5">
+                <i class="fa-brands fa-linux"></i>
+                <span>Linux AppImage</span>
+              </a>
+              <a id="linuxTarBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="py-2 px-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/15 text-xs text-gray-400 hover:text-white transition text-center flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-file-arrow-down"></i>
+                <span>Linux .tar.gz</span>
+              </a>
+            </div>
           </div>
         </div>
 
         <!-- 2. VSCode Extension Card -->
-        <div id="vscode" class="bg-white/80 dark:bg-[#1C1B20]/90 border border-black/5 dark:border-white/10 rounded-3xl p-8 shadow-xl flex flex-col justify-between relative overflow-hidden glass-card">
-          <div class="space-y-6">
-            <div class="flex items-start justify-between">
-              <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-2xl shadow-sm">
+        <div class="bg-white/80 dark:bg-[#1C1B20]/90 border border-black/5 dark:border-white/10 rounded-3xl p-6 shadow-lg flex flex-col justify-between glass-card space-y-5">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xl">
                   <i class="fa-solid fa-code"></i>
                 </div>
                 <div>
-                  <h3 class="text-xl font-bold">0rhxPlayer for VSCode</h3>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">VSCode 沉浸式轻量音乐插件</p>
+                  <h3 class="text-lg font-bold">0rhxPlayer for VSCode</h3>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">VSCode 沉浸式轻量插件</p>
                 </div>
               </div>
-              <span id="vscodeTag" class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-cyan-500/20 text-cyan-400">
-                <i class="fa-solid fa-spinner animate-spin mr-1"></i>获取中...
+              <span id="vscodeTag" class="px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-cyan-500/20 text-cyan-400">
+                v0.5.0
               </span>
             </div>
 
-            <!-- Specs Grid -->
-            <div class="grid grid-cols-2 gap-3 text-xs">
-              <div class="bg-black/5 dark:bg-white/5 p-3 rounded-2xl">
-                <span class="text-gray-400 block text-[10px]">运行环境</span>
-                <span class="font-bold text-cyan-400">VSCode Extension API</span>
-              </div>
-              <div class="bg-black/5 dark:bg-white/5 p-3 rounded-2xl">
-                <span class="text-gray-400 block text-[10px]">资源开销</span>
-                <span class="font-bold text-green-400">极低内存占用 (< 30MB)</span>
-              </div>
-              <div class="bg-black/5 dark:bg-white/5 p-3 rounded-2xl">
-                <span class="text-gray-400 block text-[10px]">歌词呈现</span>
-                <span class="font-bold text-miku">状态栏 / 侧边栏歌词</span>
-              </div>
-              <div class="bg-black/5 dark:bg-white/5 p-3 rounded-2xl">
-                <span class="text-gray-400 block text-[10px]">发布日期</span>
-                <span id="vscodeDate" class="font-mono text-gray-300">--</span>
-              </div>
-            </div>
-
-            <!-- Quick Description -->
-            <div class="space-y-2">
-              <span class="text-xs font-bold text-gray-400">插件端特性：</span>
-              <div class="text-xs text-gray-500 dark:text-gray-300 bg-black/5 dark:bg-white/5 p-3.5 rounded-2xl max-h-28 overflow-y-auto leading-relaxed font-mono">
-                • 状态栏极简常驻控制器，敲代码绝不分心<br />
-                • 侧栏无缝挂载本地曲库与歌单播放队列<br />
-                • 与桌面端相同的多语言与快捷键规范
-              </div>
+            <!-- Notes -->
+            <div class="text-xs text-gray-500 dark:text-gray-300 bg-black/5 dark:bg-white/5 p-3.5 rounded-2xl leading-relaxed font-mono">
+• 状态栏极简常驻控制器，敲代码不分心<br />
+• 侧边栏挂载本地曲库与歌单播放列表<br />
+• 低内存开销，开箱即用
             </div>
           </div>
 
-          <!-- Marketplace & Download Action -->
-          <div class="pt-6 mt-6 border-t border-black/5 dark:border-white/10 flex items-center gap-3">
-            <a href="https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer" target="_blank" class="flex-1 py-3.5 px-6 rounded-full bg-cyan-400 text-[#003738] font-bold text-sm hover:scale-[1.02] active:scale-95 transition shadow text-center flex items-center justify-center gap-2">
-              <i class="fa-solid fa-store"></i>
-              <span>VSCode 市场一键安装</span>
-            </a>
-            <a id="vscodeVsixBtn" href="https://github.com/RinCynar/0rhxPlayer/releases/latest" target="_blank" class="px-4 py-3.5 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-xs font-semibold transition" title="下载离线 VSIX 包">
-              <i class="fa-solid fa-file-arrow-down mr-1"></i>VSIX
-            </a>
-            <a href="https://github.com/RinCynar/0rhxPlayer" target="_blank" class="w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center text-base transition" title="GitHub 仓库">
-              <i class="fa-brands fa-github"></i>
-            </a>
+          <!-- Marketplace & VSIX Buttons -->
+          <div class="space-y-2.5 pt-2 border-t border-black/5 dark:border-white/10">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <a href="https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer" target="_blank" class="py-2.5 px-4 rounded-xl bg-cyan-400 text-[#003738] font-bold text-xs hover:opacity-90 transition text-center flex items-center justify-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-store"></i>
+                <span>VSCode 市场安装</span>
+              </a>
+              <a id="vscodeVsixBtn" href="https://github.com/RinCynar/0rhxPlayer/releases/latest" target="_blank" class="py-2.5 px-4 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 font-semibold text-xs transition text-center flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-file-arrow-down"></i>
+                <span>下载 VSIX 离线包</span>
+              </a>
+            </div>
+            <div class="text-center">
+              <a href="https://github.com/RinCynar/0rhxPlayer" target="_blank" class="text-xs text-gray-400 hover:text-miku transition">
+                <i class="fa-brands fa-github mr-1"></i>查看 VSCode 插件源码
+              </a>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Core Features Matrix -->
-    <section id="features" class="max-w-6xl mx-auto px-6 py-16 space-y-12">
-      <div class="text-center space-y-2">
-        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">硬核发烧级架构特性</h2>
-        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">拒绝妥协的音频管线设计，重塑桌面听音体验</p>
+    <!-- Features Section -->
+    <section id="features" class="max-w-5xl mx-auto px-6 py-12 space-y-8">
+      <div class="text-center space-y-1.5">
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight">主要特性</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400">实用功能与基础架构介绍</p>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <!-- Feature 1 -->
-        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-3xl p-6 space-y-3 hover:-translate-y-1 transition shadow-sm">
-          <div class="w-12 h-12 rounded-2xl bg-miku/20 text-miku flex items-center justify-center text-xl">
-            <i class="fa-solid fa-wave-square"></i>
+        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-2xl p-5 space-y-2.5">
+          <div class="w-10 h-10 rounded-xl bg-miku/20 text-miku flex items-center justify-center text-lg">
+            <i class="fa-solid fa-sliders"></i>
           </div>
-          <h3 class="font-bold text-base">WASAPI 独占硬件直通</h3>
+          <h3 class="font-bold text-sm">本地解码与均衡器</h3>
           <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            绕过 Windows 系统音效混音层，Bit-Perfect 逐比特还原原始采样流，延迟低至 46ms。
+            支持常见无损与有损格式，提供 10 段参数化均衡器与常见声学预设。
           </p>
         </div>
 
         <!-- Feature 2 -->
-        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-3xl p-6 space-y-3 hover:-translate-y-1 transition shadow-sm">
-          <div class="w-12 h-12 rounded-2xl bg-amber-400/20 text-amber-400 flex items-center justify-center text-xl">
-            <i class="fa-solid fa-sliders"></i>
+        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-2xl p-5 space-y-2.5">
+          <div class="w-10 h-10 rounded-xl bg-miku/20 text-miku flex items-center justify-center text-lg">
+            <i class="fa-solid fa-align-left"></i>
           </div>
-          <h3 class="font-bold text-base">10 段专业图示 EQ & DSP</h3>
+          <h3 class="font-bold text-sm">双语歌词平滑滚动</h3>
           <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            基于精准双二阶滤波器，配备前级增益调节与过载防削波算法，多款声音风格一键切换。
+            解析内置与外置 LRC 歌词，支持中日双语对齐、字体调节与平滑定位。
           </p>
         </div>
 
         <!-- Feature 3 -->
-        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-3xl p-6 space-y-3 hover:-translate-y-1 transition shadow-sm">
-          <div class="w-12 h-12 rounded-2xl bg-pink-400/20 text-pink-400 flex items-center justify-center text-xl">
-            <i class="fa-solid fa-palette"></i>
+        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-2xl p-5 space-y-2.5">
+          <div class="w-10 h-10 rounded-xl bg-miku/20 text-miku flex items-center justify-center text-lg">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
           </div>
-          <h3 class="font-bold text-base">Material You 动态封面配色</h3>
+          <h3 class="font-bold text-sm">Material 3 动效与性能</h3>
           <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            实时提取当前正在播放的专辑封面主色，动态生成 Material 3 调色板，打造沉浸式视听空间。
-          </p>
-        </div>
-
-        <!-- Feature 4 -->
-        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-3xl p-6 space-y-3 hover:-translate-y-1 transition shadow-sm">
-          <div class="w-12 h-12 rounded-2xl bg-cyan-400/20 text-cyan-400 flex items-center justify-center text-xl">
-            <i class="fa-solid fa-circle-info"></i>
-          </div>
-          <h3 class="font-bold text-base">Foobar2000 级音频流参数卡片</h3>
-          <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            完整呈现采样率、位深、声道、比特率、驱动引擎延迟与 ReplayGain 增益，数据一目了然。
-          </p>
-        </div>
-
-        <!-- Feature 5 -->
-        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-3xl p-6 space-y-3 hover:-translate-y-1 transition shadow-sm">
-          <div class="w-12 h-12 rounded-2xl bg-purple-400/20 text-purple-400 flex items-center justify-center text-xl">
-            <i class="fa-solid fa-align-right"></i>
-          </div>
-          <h3 class="font-bold text-base">居右歌词 & 自由纯粹翻阅</h3>
-          <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            滚动翻阅与音频进度完全解耦，点击任意单句精准 Seek 起播，双语翻译行随心切换。
-          </p>
-        </div>
-
-        <!-- Feature 6 -->
-        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-3xl p-6 space-y-3 hover:-translate-y-1 transition shadow-sm">
-          <div class="w-12 h-12 rounded-2xl bg-green-400/20 text-green-400 flex items-center justify-center text-xl">
-            <i class="fa-solid fa-globe"></i>
-          </div>
-          <h3 class="font-bold text-base">中/英/日 三国语言全量覆盖</h3>
-          <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            全应用 100% 零硬编码中文字符残留，多国语言顺滑切换，满足全球用户的听音习惯。
+            采用 M3 强调缓动曲线，配合虚拟滚动与图片懒加载，保障长列表滑动顺畅。
           </p>
         </div>
       </div>
@@ -355,27 +303,12 @@
   </main>
 
   <!-- Footer -->
-  <footer class="bg-white/50 dark:bg-[#1C1B20]/60 border-t border-black/5 dark:border-white/5 py-10 px-6 transition-colors">
-    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-gray-500 dark:text-gray-400">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-xl bg-miku/20 text-miku flex items-center justify-center text-base">
-          <i class="fa-solid fa-compact-disc"></i>
-        </div>
-        <div>
-          <span class="font-bold text-[#1D1B20] dark:text-white">0rhxPlayer</span>
-          <span class="ml-2">© 2026 RinCynar. GPL-3.0 Licensed.</span>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-6">
-        <a href="https://github.com/RinCynar/0rhxPlayer-Desktop" target="_blank" class="hover:text-miku transition">Desktop 源码</a>
-        <a href="https://github.com/RinCynar/0rhxPlayer" target="_blank" class="hover:text-miku transition">VSCode 插件源码</a>
-        <a href="https://0rhxPlayer.rincynar.top" class="hover:text-miku transition">官方网站</a>
-      </div>
-    </div>
+  <footer class="border-t border-black/5 dark:border-white/5 py-8 text-center text-xs text-gray-500 dark:text-gray-400 space-y-2">
+    <p>0rhxPlayer Desktop is open source under the GPL-3.0 License.</p>
+    <p>Copyright © 2026 <a href="https://github.com/RinCynar" target="_blank" class="hover:text-miku transition">RinCynar</a>. All rights reserved.</p>
   </footer>
 
-  <!-- Scripts: Theme Toggle & GitHub Release Engine -->
+  <!-- Script for Theme and Static Data Fetching -->
   <script>
     // 1. Theme Toggle
     const html = document.documentElement;
@@ -399,45 +332,27 @@
     }
     updateThemeUI();
 
-    // 2. Fetch Release Data via Static latest.json (No 403 API Limit)
+    // 2. Fetch Release Data from latest.json
     async function loadReleaseData() {
       try {
         const res = await fetch('./latest.json');
         if (res.ok) {
           const data = await res.json();
-          if (data.tag) {
-            document.getElementById('desktopTag').textContent = data.tag;
-          }
-          if (data.releaseDate) {
-            document.getElementById('desktopDate').textContent = data.releaseDate;
-          }
-          if (data.notes) {
-            document.getElementById('desktopNotes').textContent = data.notes;
-          }
-          if (data.downloads && data.downloads.windows_x64_exe) {
-            const btn = document.getElementById('desktopDownloadBtn');
-            btn.href = data.downloads.windows_x64_exe;
-            btn.innerHTML = `<i class="fa-solid fa-download"></i><span>下载 Windows 安装包 (.exe)</span>`;
+          if (data.tag) document.getElementById('desktopTag').textContent = data.tag;
+          if (data.downloads) {
+            if (data.downloads.windows_x64_exe) document.getElementById('winExeBtn').href = data.downloads.windows_x64_exe;
+            if (data.downloads.windows_x64_zip) document.getElementById('winZipBtn').href = data.downloads.windows_x64_zip;
+            if (data.downloads.linux_x64_appimage) document.getElementById('linuxAppImageBtn').href = data.downloads.linux_x64_appimage;
+            if (data.downloads.linux_x64_tar) document.getElementById('linuxTarBtn').href = data.downloads.linux_x64_tar;
           }
           if (data.vscode) {
             if (data.vscode.tag) document.getElementById('vscodeTag').textContent = data.vscode.tag;
-            if (data.vscode.vsix) {
-              const vsixBtn = document.getElementById('vscodeVsixBtn');
-              if (vsixBtn) vsixBtn.href = data.vscode.vsix;
-            }
+            if (data.vscode.vsix) document.getElementById('vscodeVsixBtn').href = data.vscode.vsix;
           }
-          return;
         }
       } catch (e) {
-        console.log('Using fallback release info');
+        console.log('Using default links');
       }
-
-      // Fallback
-      document.getElementById('desktopTag').textContent = 'v1.0.0 (Latest)';
-      document.getElementById('desktopDate').textContent = '2026-08-21';
-      document.getElementById('desktopNotes').textContent = '• 0rhxPlayer Desktop 1.0.0 正式版首发\n• WASAPI / DirectSound 硬件直通与无锁流式推流\n• 10 段专业级参数化均衡器 (Biquad EQ)\n• Material You 3.0 动效体系与初音绿 (#39C5BB) 种子色设计';
-      document.getElementById('vscodeTag').textContent = 'v0.5.0 (Latest)';
-      document.getElementById('vscodeDate').textContent = '2026-08-21';
     }
 
     loadReleaseData();

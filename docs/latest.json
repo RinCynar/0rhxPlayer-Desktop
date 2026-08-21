@@ -2,14 +2,15 @@
   "version": "1.0.0",
   "tag": "v1.0.0",
   "releaseDate": "2026-08-21",
-  "name": "0rhxPlayer v1.0.0 - Initial Official Release",
-  "notes": "• 全格式无损高解析音频播放器 1.0.0 正式版首发\n• WASAPI / DirectSound 硬件直通与无锁流式推流\n• 10 段专业级参数化均衡器 (10-Band Biquad EQ)\n• Material You 3.0 动效体系与初音绿 (#39C5BB) 种子色设计\n• 单例起播调度器与极速虚拟化滚动曲库\n• Windows (x64 / arm64) 与 Linux (x64) 多平台原生支持",
+  "name": "0rhxPlayer v1.0.0",
+  "notes": "• 0rhxPlayer Desktop 1.0.0 初始版本\n• 基于 Tauri 2 + Rust + React 19 构建的轻量本地播放器\n• Material 3 界面风格与初音绿 (#39C5BB) 主题\n• 支持常见无损与有损音频格式本地播放\n• 10 段基础均衡器调节与中/日双语歌词同步显示",
   "downloads": {
     "windows_x64_exe": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.0/0rhxPlayer_1.0.0_x64-setup.exe",
-    "windows_x64_zip": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.0/0rhxPlayer_1.0.0_x64_portable.zip",
+    "windows_x64_zip": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.0/0rhxPlayer_1.0.0_x86_64-pc-windows-msvc_portable.zip",
     "windows_arm64_exe": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.0/0rhxPlayer_1.0.0_arm64-setup.exe",
+    "windows_arm64_zip": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.0/0rhxPlayer_1.0.0_aarch64-pc-windows-msvc_portable.zip",
     "linux_x64_appimage": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.0/0rhxPlayer_1.0.0_amd64.AppImage",
-    "linux_x64_tar": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.0/0rhxPlayer_1.0.0_x86_64.tar.gz"
+    "linux_x64_tar": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.0/0rhxPlayer_1.0.0_x86_64-unknown-linux-gnu.tar.gz"
   },
   "vscode": {
     "version": "0.5.0",
