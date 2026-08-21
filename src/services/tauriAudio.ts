@@ -126,8 +126,13 @@ export async function setEqPreamp(preampDb: number): Promise<void> {
   }
 }
 
-
-
+export async function setMinimizeToTray(enabled: boolean): Promise<void> {
+  try {
+    await invoke<void>('set_minimize_to_tray', { enabled });
+  } catch (e) {
+    console.warn('Failed to set minimize to tray:', e);
+  }
+}
 
 export async function scanDirectory(dirPath: string): Promise<void> {
   return await invoke<void>('scan_directory', { dirPath });
@@ -174,5 +179,21 @@ export async function subscribeScanFinished(
 ): Promise<UnlistenFn> {
   return await listen<ScanFinishPayload>('library-scan-finished', (event) => {
     callback(event.payload);
+  });
+}
+
+export async function subscribeTrayPlayPause(
+  callback: () => void
+): Promise<UnlistenFn> {
+  return await listen<void>('tray-play-pause', () => {
+    callback();
+  });
+}
+
+export async function subscribeTrayPlayNext(
+  callback: () => void
+): Promise<UnlistenFn> {
+  return await listen<void>('tray-play-next', () => {
+    callback();
   });
 }

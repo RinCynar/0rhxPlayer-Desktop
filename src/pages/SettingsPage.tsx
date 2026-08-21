@@ -405,7 +405,7 @@ export const SettingsPage: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <h3 className="font-bold text-base tracking-tight">{t.aboutTitle}</h3>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-[#39C5BB]/20 text-[#39C5BB]">
-                  v1.0.0
+                  v1.0.1
                 </span>
               </div>
               <p className="text-gray-500 dark:text-gray-400 text-[11px] mt-0.5 truncate">

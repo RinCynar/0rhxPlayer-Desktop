@@ -26,7 +26,7 @@
 项目初衷是为日常听歌提供一个视觉清爽、交互流畅、内存开销适中且专注本地播放体验的客户端。界面设计遵循 **Google Material Design 3** 规范并采用初音绿（`#39C5BB`）为主色调，支持主流无损与有损音频格式解码、动态歌词展示与基础均衡器调节。
 
 > [!NOTE]
-> 本项目当前版本为 `v1.0.0`，仍处于持续迭代与优化阶段。如有遇到 Bug 或有改进建议，非常欢迎提交 [Issues](https://github.com/RinCynar/0rhxPlayer-Desktop/issues) 一起探讨交流！
+> 本项目当前版本为 `v1.0.1`，仍处于持续迭代与优化阶段。如有遇到 Bug 或有改进建议，非常欢迎提交 [Issues](https://github.com/RinCynar/0rhxPlayer-Desktop/issues) 一起探讨交流！
 
 ---
 

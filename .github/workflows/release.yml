@@ -71,7 +71,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $ver = "1.0.0"
+          $ref = "${{ github.ref_name }}"
+          $ver = if ($ref.StartsWith("v")) { $ref.Substring(1) } else { "1.0.1" }
           $target = "${{ matrix.target }}"
           New-Item -ItemType Directory -Force -Path "build-artifacts"
 
@@ -91,7 +92,9 @@ jobs:
       - name: Prepare Artifacts (Linux)
         if: runner.os == 'Linux'
         run: |
-          ver="1.0.0"
+          ref="${{ github.ref_name }}"
+          ver="${ref#v}"
+          [ -z "$ver" ] && ver="1.0.1"
           target="${{ matrix.target }}"
           mkdir -p build-artifacts
 
@@ -140,7 +143,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ github.ref_name }}
-          name: '0rhxPlayer v1.0.0'
+          name: '0rhxPlayer ${{ github.ref_name }}'
           body: |
             ## 0rhxPlayer v1.0.0
             

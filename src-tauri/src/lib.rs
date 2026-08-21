@@ -7,12 +7,18 @@ use metadata::{
     get_lyrics_for_track, parse_metadata, scan_directory_async, scan_files_async, LyricLine,
     TrackMetadata,
 };
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{
+    menu::{Menu, MenuItem, PredefinedMenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    AppHandle, Emitter, Manager, State, WindowEvent,
+};
 
 pub struct AppState {
     pub audio_engine: Arc<AudioEngine>,
+    pub minimize_to_tray: Arc<AtomicBool>,
 }
 
 #[tauri::command]
@@ -108,6 +114,12 @@ fn set_eq_preamp(state: State<'_, AppState>, preamp_db: f32) -> Result<(), Strin
     state.audio_engine.set_eq_preamp(preamp_db)
 }
 
+#[tauri::command]
+fn set_minimize_to_tray(state: State<'_, AppState>, enabled: bool) -> Result<(), String> {
+    state.minimize_to_tray.store(enabled, Ordering::SeqCst);
+    Ok(())
+}
+
 #[derive(serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct PositionUpdatePayload {
@@ -118,6 +130,9 @@ struct PositionUpdatePayload {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let minimize_to_tray_flag = Arc::new(AtomicBool::new(true));
+    let minimize_to_tray_for_state = minimize_to_tray_flag.clone();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -133,7 +148,70 @@ pub fn run() {
                 }
             }
 
+            // System Tray Setup
+            let show_item = MenuItem::with_id(app, "show", "显示主界面 (Show 0rhxPlayer)", true, None::<&str>)?;
+            let play_pause_item = MenuItem::with_id(app, "play_pause", "播放 / 暂停 (Play/Pause)", true, None::<&str>)?;
+            let next_item = MenuItem::with_id(app, "next", "下一首 (Next Track)", true, None::<&str>)?;
+            let separator = PredefinedMenuItem::separator(app)?;
+            let quit_item = MenuItem::with_id(app, "quit", "退出应用 (Quit)", true, None::<&str>)?;
 
+            let tray_menu = Menu::with_items(
+                app,
+                &[&show_item, &play_pause_item, &next_item, &separator, &quit_item],
+            )?;
+
+            let mut tray_builder = TrayIconBuilder::new()
+                .menu(&tray_menu)
+                .show_menu_on_left_click(false)
+                .tooltip("0rhxPlayer Desktop")
+                .on_menu_event(|app, event| {
+                    match event.id.as_ref() {
+                        "show" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.unminimize();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "play_pause" => {
+                            let _ = app.emit("tray-play-pause", ());
+                        }
+                        "next" => {
+                            let _ = app.emit("tray-play-next", ());
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    match event {
+                        TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            button_state: MouseButtonState::Up,
+                            ..
+                        }
+                        | TrayIconEvent::DoubleClick {
+                            button: MouseButton::Left,
+                            ..
+                        } => {
+                            let app = tray.app_handle();
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.unminimize();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        _ => {}
+                    }
+                });
+
+            if let Some(icon) = app.default_window_icon() {
+                tray_builder = tray_builder.icon(icon.clone());
+            }
+
+            let _ = tray_builder.build(app)?;
 
             let audio_engine = match AudioEngine::new(handle.clone()) {
                 Ok(engine) => Arc::new(engine),
@@ -145,6 +223,7 @@ pub fn run() {
 
             let app_state = AppState {
                 audio_engine: audio_engine.clone(),
+                minimize_to_tray: minimize_to_tray_for_state,
             };
             app.manage(app_state);
 
@@ -174,6 +253,18 @@ pub fn run() {
 
             Ok(())
         })
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                let app = window.app_handle();
+                if let Some(state) = app.try_state::<AppState>() {
+                    let minimize_to_tray = state.minimize_to_tray.load(Ordering::SeqCst);
+                    if minimize_to_tray {
+                        api.prevent_close();
+                        let _ = window.hide();
+                    }
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             load_track,
             play,
@@ -190,6 +281,7 @@ pub fn run() {
             set_eq_enabled,
             set_eq_bands,
             set_eq_preamp,
+            set_minimize_to_tray,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

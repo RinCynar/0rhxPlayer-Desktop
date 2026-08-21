@@ -497,6 +497,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       localStorage.setItem('0rhx_audio_settings', JSON.stringify(audioSettings));
     } catch { /* ignore */ }
+    audioService.setMinimizeToTray(audioSettings.systemTray);
   }, [audioSettings]);
 
   useEffect(() => {
@@ -798,6 +799,35 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.error('Error toggling play/pause:', err);
     }
   }, [playbackStatus, currentTrack, playTrackAtIndex]);
+
+  // Subscribe to tray menu events
+  useEffect(() => {
+    let unlistenPlayPause: (() => void) | undefined;
+    let unlistenPlayNext: (() => void) | undefined;
+
+    audioService
+      .subscribeTrayPlayPause(() => {
+        togglePlayPause();
+      })
+      .then((fn) => {
+        unlistenPlayPause = fn;
+      })
+      .catch((e) => console.warn('Tray play/pause listener error:', e));
+
+    audioService
+      .subscribeTrayPlayNext(() => {
+        playNext();
+      })
+      .then((fn) => {
+        unlistenPlayNext = fn;
+      })
+      .catch((e) => console.warn('Tray play next listener error:', e));
+
+    return () => {
+      if (unlistenPlayPause) unlistenPlayPause();
+      if (unlistenPlayNext) unlistenPlayNext();
+    };
+  }, [togglePlayPause, playNext]);
 
   const seekTo = useCallback(async (ms: number) => {
     try {
