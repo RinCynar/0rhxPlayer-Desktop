@@ -80,12 +80,26 @@
       text-decoration: none;
     }
 
-    /* Container */
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 32px;
+    /* Container & Main Centering */
+    main {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      box-sizing: border-box;
     }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin-left: auto !important;
+      margin-right: auto !important;
+      padding-left: 32px;
+      padding-right: 32px;
+      box-sizing: border-box;
+    }
+
 
     /* Header */
     header {
@@ -332,10 +346,15 @@
       transform: translateY(-2px);
     }
 
-    /* Downloads Matrix - Equal Height & 2x2 Clean Grid */
+    /* Section Title Standard Centering */
     .section-title {
       text-align: center;
       margin-bottom: 36px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
     .section-title h2 {
@@ -343,12 +362,17 @@
       font-weight: 700;
       letter-spacing: -0.02em;
       margin-bottom: 6px;
+      text-align: center;
+      width: 100%;
     }
 
     .section-title p {
       font-size: 0.875rem;
       color: var(--text-muted);
+      text-align: center;
+      width: 100%;
     }
+
 
     .card-grid {
       display: grid;
@@ -486,17 +510,32 @@
       white-space: nowrap;
     }
 
-    /* Screenshots Showcase - Breathing M3 Layout */
-    .screenshots-section {
-      margin: 56px 0 72px;
+    /* Screenshots Showcase - Global Centering & Breathing M3 Layout */
+    #screenshots, .screenshots-section {
+      width: 100%;
+      max-width: 1200px;
+      margin-left: auto !important;
+      margin-right: auto !important;
+      padding-left: 32px;
+      padding-right: 32px;
+      margin-top: 56px;
+      margin-bottom: 72px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
     }
 
     .screenshots-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, 1fr);
       gap: 32px;
+      width: 100%;
       align-items: stretch;
+      box-sizing: border-box;
     }
+
 
     .screenshot-card {
       background: var(--surface);
