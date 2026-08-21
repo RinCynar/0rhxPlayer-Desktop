@@ -10,292 +10,818 @@
   <!-- Favicon -->
   <link rel="icon" href="https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Desktop/main/src-tauri/icons/icon.png" type="image/png" />
 
-  <!-- Fonts & Icons -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            miku: {
-              DEFAULT: '#39C5BB',
-              50: '#E6F9F8',
-              100: '#C2F2EF',
-              200: '#99EAE5',
-              300: '#6FE1DA',
-              400: '#4DD9CF',
-              500: '#39C5BB',
-              600: '#2EAEA5',
-              700: '#229088',
-              800: '#17736D',
-              900: '#0E5551',
-              dark: '#003738',
-            },
-          },
-          fontFamily: {
-            sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          }
-        }
-      }
-    }
-  </script>
-
   <style>
-    /* Robust Fallback Styles */
+    /* ==========================================================
+       0rhxPlayer Official Landing Page - Self-Contained Styles
+       Zero external CSS/Icon dependencies for 100% reliable rendering
+       ========================================================== */
     :root {
-      --bg-color: #F6F2F8;
-      --text-color: #1D1B20;
-      --card-bg: #FFFFFF;
-      --miku-color: #39C5BB;
+      --bg: #F6F2F8;
+      --bg-elevated: #EDE7F0;
+      --surface: #FFFFFF;
+      --surface-border: rgba(0, 0, 0, 0.08);
+      --surface-hover: rgba(0, 0, 0, 0.04);
+      --text-main: #1D1B20;
+      --text-muted: #65636D;
+      --text-sub: #8B8794;
+      --primary: #006A6B;
+      --primary-hover: #005657;
+      --primary-on: #FFFFFF;
+      --primary-container: rgba(0, 106, 107, 0.12);
+      --miku: #39C5BB;
+      --accent-blue: #0284C7;
+      --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
+
     html.dark {
-      --bg-color: #131317;
-      --text-color: #E6E1E5;
-      --card-bg: #1C1B20;
+      --bg: #131317;
+      --bg-elevated: #18171D;
+      --surface: #1E1D24;
+      --surface-border: rgba(255, 255, 255, 0.08);
+      --surface-hover: rgba(255, 255, 255, 0.05);
+      --text-main: #E6E1E5;
+      --text-muted: #A19DA8;
+      --text-sub: #75717E;
+      --primary: #39C5BB;
+      --primary-hover: #4FE1D7;
+      --primary-on: #003738;
+      --primary-container: rgba(57, 197, 187, 0.15);
+      --miku: #39C5BB;
+      --accent-blue: #38BDF8;
+      --card-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.45), 0 4px 16px -2px rgba(0, 0, 0, 0.3);
     }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.25s ease, color 0.25s ease;
+      overflow-x: hidden;
     }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(57, 197, 187, 0.3); border-radius: 9999px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(57, 197, 187, 0.6); }
-    .glass-card {
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background-color: var(--bg);
+      border-bottom: 1px solid var(--surface-border);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--primary-container);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-tag {
+      font-size: 0.65rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-sub);
+      display: block;
+      letter-spacing: 0.06em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      transition: color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-link:hover {
+      color: var(--primary);
+    }
+
+    .theme-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--surface-border);
+      background: var(--surface);
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .theme-btn:hover {
+      background: var(--surface-hover);
+      border-color: var(--primary);
+    }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      padding: 60px 0 40px;
+      text-align: center;
+    }
+
+    .hero-glow {
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 460px;
+      height: 460px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(57, 197, 187, 0.16) 0%, rgba(57, 197, 187, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--primary-container);
+      color: var(--primary);
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    .highlight-text {
+      background: linear-gradient(135deg, #006A6B 0%, #39C5BB 50%, #83F5ED 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    html.dark .highlight-text {
+      background: linear-gradient(135deg, #39C5BB 0%, #70F7EC 60%, #B6FAF4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 620px;
+      margin: 0 auto 28px;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--primary-on);
+      box-shadow: 0 4px 14px rgba(57, 197, 187, 0.25);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: var(--surface);
+      color: var(--text-main);
+      border-color: var(--surface-border);
+    }
+
+    .btn-outline:hover {
+      background: var(--surface-hover);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    /* Grid Layouts */
+    .section-title {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .section-title h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .section-title p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-col: column;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .card:hover {
+      border-color: rgba(57, 197, 187, 0.4);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .card-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      background: var(--primary-container);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-brand h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .card-brand p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .tag-badge {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: var(--primary-container);
+      color: var(--primary);
+    }
+
+    .card-body {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      padding: 16px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      line-height: 1.7;
+    }
+
+    .card-body ul {
+      list-style: none;
+    }
+
+    .card-body li {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .card-body li::before {
+      content: "•";
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .download-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btn-sm {
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      border-radius: 12px;
+      width: 100%;
+    }
+
+    /* Screenshots Showcase */
+    .screenshots-section {
+      margin: 40px 0 60px;
+    }
+
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .screenshot-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 24px;
+      padding: 16px;
+      box-shadow: var(--card-shadow);
+      text-align: center;
+    }
+
+    .screenshot-frame {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--surface-border);
+      background: #000;
+      margin-bottom: 14px;
+    }
+
+    .screenshot-frame img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .screenshot-card:hover .screenshot-frame img {
+      transform: scale(1.02);
+    }
+
+    .screenshot-caption h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .screenshot-caption p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Features 3-Cols */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 60px;
+    }
+
+    .feature-box {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .feature-icon-wrapper {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: var(--primary-container);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .feature-box h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feature-box p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--surface-border);
+      padding: 36px 0;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+
+    footer a {
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+
+    footer a:hover {
+      color: var(--primary);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.1rem;
+      }
+      .screenshots-grid {
+        grid-template-columns: 1fr;
+      }
+      .download-grid {
+        grid-template-columns: 1fr;
+      }
+      .nav-links .hide-sm {
+        display: none;
+      }
     }
   </style>
 </head>
 
-<body class="min-h-screen flex flex-col transition-colors duration-300 selection:bg-[#39C5BB]/30">
+<body>
 
-  <!-- Navigation Bar -->
-  <header class="sticky top-0 z-50 bg-[#F6F2F8]/85 dark:bg-[#131317]/85 backdrop-blur-md border-b border-black/5 dark:border-white/5 transition-colors">
-    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-      <!-- Brand Logo -->
-      <a href="#" class="flex items-center gap-3 group">
-        <div class="w-9 h-9 rounded-xl bg-miku/15 dark:bg-miku/20 text-miku flex items-center justify-center shadow-inner group-hover:scale-105 transition">
-          <i class="fa-solid fa-compact-disc text-xl"></i>
-        </div>
-        <div>
-          <span class="text-lg font-bold tracking-tight bg-gradient-to-r from-[#006A6B] to-[#39C5BB] dark:from-[#39C5BB] dark:to-[#83F5ED] bg-clip-text text-transparent">
-            0rhxPlayer
-          </span>
-          <span class="text-[9px] font-mono block text-gray-500 dark:text-gray-400 font-semibold">
-            DESKTOP & VSCODE
-          </span>
-        </div>
-      </a>
-
-      <!-- Navigation Links & Theme Switcher -->
-      <nav class="flex items-center gap-4 sm:gap-6 text-sm font-medium">
-        <a href="#downloads" class="hover:text-miku transition hidden sm:inline">下载中心</a>
-        <a href="#features" class="hover:text-miku transition hidden sm:inline">功能介绍</a>
-        <a href="https://github.com/RinCynar/0rhxPlayer-Desktop" target="_blank" class="hover:text-miku transition flex items-center gap-1.5">
-          <i class="fa-brands fa-github text-base"></i>
-          <span class="hidden sm:inline">GitHub</span>
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <div class="header-inner">
+        <!-- Logo -->
+        <a href="#" class="brand">
+          <div class="brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-title">0rhxPlayer</div>
+            <span class="brand-tag">DESKTOP & VSCODE</span>
+          </div>
         </a>
 
-        <!-- Dark/Light Theme Switcher -->
-        <button id="themeToggle" class="w-9 h-9 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition" title="切换深浅主题">
-          <i id="themeIcon" class="fa-solid fa-moon text-sm"></i>
-        </button>
-      </nav>
+        <!-- Nav -->
+        <nav class="nav-links">
+          <a href="#downloads" class="nav-link hide-sm">下载中心</a>
+          <a href="#screenshots" class="nav-link hide-sm">界面预览</a>
+          <a href="#features" class="nav-link hide-sm">特性</a>
+          <a href="https://github.com/RinCynar/0rhxPlayer-Desktop" target="_blank" class="nav-link">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+            </svg>
+            <span class="hide-sm">GitHub</span>
+          </a>
+
+          <!-- Theme Toggle -->
+          <button id="themeToggle" class="theme-btn" title="切换深浅主题" aria-label="Toggle Theme">
+            <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </button>
+        </nav>
+      </div>
     </div>
   </header>
 
-  <!-- Hero Section -->
-  <main class="flex-1">
-    <section class="relative pt-12 pb-16 px-6 text-center">
-      <!-- Ambient Glow -->
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] bg-miku/10 dark:bg-miku/15 rounded-full blur-[120px] pointer-events-none -z-10"></div>
-
-      <div class="max-w-3xl mx-auto space-y-6">
-        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-miku/15 dark:bg-miku/20 text-miku text-xs font-semibold">
-          <i class="fa-solid fa-music text-xs"></i>
-          <span>遵循 Material 3 设计的轻量本地播放器</span>
+  <!-- Hero -->
+  <main>
+    <section class="hero">
+      <div class="hero-glow"></div>
+      <div class="container hero-content">
+        <div class="badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
+          </svg>
+          Material 3 规范 • 轻量本地音乐播放器
         </div>
 
-        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-          简洁清爽的<br class="hidden sm:inline" />
-          <span class="bg-gradient-to-r from-[#006A6B] via-[#39C5BB] to-[#83F5ED] bg-clip-text text-transparent">
-            本地音乐播放体验
-          </span>
+        <h1>
+          简洁清爽的<br />
+          <span class="highlight-text">本地音乐播放体验</span>
         </h1>
 
-        <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-xl mx-auto leading-relaxed">
-          基于 Tauri 2 + Rust + React 19 开发，初音绿（#39C5BB）主题风格。提供基础音频解码、10 段均衡器与双语动态歌词，致力于为日常听歌带来流畅轻便的体验。
+        <p>
+          采用 Tauri 2 + Rust + React 19 技术栈构建，以初音绿（#39C5BB）为主色调。提供基础本地音频解码、10 段均衡器与双语动态歌词同步显示。
         </p>
 
-        <!-- Main Action Buttons -->
-        <div class="flex flex-wrap items-center justify-center gap-3.5 pt-2">
-          <a href="#downloads" class="px-6 py-3 rounded-full bg-miku text-[#003738] font-bold text-sm hover:scale-105 active:scale-95 transition shadow flex items-center gap-2">
-            <i class="fa-solid fa-download"></i>
-            <span>获取客户端 (Windows / Linux)</span>
+        <div class="hero-actions">
+          <a href="#downloads" class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            获取客户端 (Windows / Linux)
           </a>
-          <a href="https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer" target="_blank" class="px-6 py-3 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 font-semibold text-sm active:scale-95 transition flex items-center gap-2">
-            <i class="fa-solid fa-code text-miku"></i>
-            <span>VSCode 插件版</span>
+          <a href="https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer" target="_blank" class="btn btn-outline">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            VSCode 插件版
           </a>
         </div>
       </div>
     </section>
 
-    <!-- Downloads Section -->
-    <section id="downloads" class="max-w-5xl mx-auto px-6 py-10 space-y-8">
-      <div class="text-center space-y-1.5">
-        <h2 class="text-xl sm:text-2xl font-bold tracking-tight">客户端与插件获取</h2>
-        <p class="text-xs text-gray-500 dark:text-gray-400">选择适合您系统的安装包或免安装便携版本</p>
+    <!-- Downloads Matrix -->
+    <section id="downloads" class="container" style="padding-top: 40px;">
+      <div class="section-title">
+        <h2>客户端与插件获取</h2>
+        <p>选择适合您系统的安装程序或免安装便携版本</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card-grid">
         <!-- 1. Desktop Card -->
-        <div class="bg-white/80 dark:bg-[#1C1B20]/90 border border-black/5 dark:border-white/10 rounded-3xl p-6 shadow-lg flex flex-col justify-between glass-card space-y-5">
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-2xl bg-miku/20 text-miku flex items-center justify-center text-xl">
-                  <i class="fa-solid fa-desktop"></i>
+        <div class="card">
+          <div>
+            <div class="card-header">
+              <div class="card-brand">
+                <div class="card-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="20" height="14" x="2" y="3" rx="2"></rect>
+                    <line x1="8" x2="16" y1="21" y2="21"></line>
+                    <line x1="12" x2="12" y1="17" y2="21"></line>
+                  </svg>
                 </div>
                 <div>
-                  <h3 class="text-lg font-bold">0rhxPlayer 桌面端</h3>
-                  <p class="text-xs text-gray-500 dark:text-gray-400">Windows / Linux 客户端</p>
+                  <h3>0rhxPlayer 桌面端</h3>
+                  <p>Windows & Linux 本地客户端</p>
                 </div>
               </div>
-              <span id="desktopTag" class="px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-miku/20 text-miku">
-                v1.0.0
-              </span>
+              <span id="desktopTag" class="tag-badge">v1.0.0</span>
             </div>
 
-            <!-- Notes -->
-            <div class="text-xs text-gray-500 dark:text-gray-300 bg-black/5 dark:bg-white/5 p-3.5 rounded-2xl leading-relaxed whitespace-pre-line font-mono">
-• 支持 FLAC / WAV / APE / MP3 / AAC / OGG / Opus 本地播放
-• 10 段均衡器调节与中日双语动态歌词同步
-• 提供安装包与免安装便携压缩包
+            <div class="card-body">
+              <ul>
+                <li>支持 FLAC / WAV / APE / MP3 / AAC / OGG / Opus 等常见格式</li>
+                <li>10 段均衡器调节与声学预设</li>
+                <li>中/日双语动态歌词同步显示与平滑居中滚动</li>
+                <li>提供官方安装包与免安装便携绿色归档</li>
+              </ul>
             </div>
           </div>
 
-          <!-- Download Buttons Grid -->
-          <div class="space-y-2.5 pt-2 border-t border-black/5 dark:border-white/10">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <a id="winExeBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="py-2.5 px-4 rounded-xl bg-miku text-[#003738] font-bold text-xs hover:opacity-90 transition text-center flex items-center justify-center gap-1.5 shadow-sm">
-                <i class="fa-brands fa-windows"></i>
-                <span>Windows 安装包 (.exe)</span>
-              </a>
-              <a id="winZipBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="py-2.5 px-4 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 font-semibold text-xs transition text-center flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-file-zipper"></i>
-                <span>Windows 便携版 (.zip)</span>
-              </a>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <a id="linuxAppImageBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="py-2 px-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/15 text-xs text-gray-400 hover:text-white transition text-center flex items-center justify-center gap-1.5">
-                <i class="fa-brands fa-linux"></i>
-                <span>Linux AppImage</span>
-              </a>
-              <a id="linuxTarBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="py-2 px-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/15 text-xs text-gray-400 hover:text-white transition text-center flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-file-arrow-down"></i>
-                <span>Linux .tar.gz</span>
-              </a>
-            </div>
+          <!-- Download Buttons -->
+          <div class="download-grid">
+            <a id="winExeBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-primary btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Windows 安装包 (.exe)
+            </a>
+            <a id="winZipBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-outline btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              </svg>
+              Windows 便携版 (.zip)
+            </a>
+            <a id="linuxAppImageBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-outline btn-sm">
+              Linux .AppImage
+            </a>
+            <a id="linuxTarBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-outline btn-sm">
+              Linux .tar.gz
+            </a>
           </div>
         </div>
 
         <!-- 2. VSCode Extension Card -->
-        <div class="bg-white/80 dark:bg-[#1C1B20]/90 border border-black/5 dark:border-white/10 rounded-3xl p-6 shadow-lg flex flex-col justify-between glass-card space-y-5">
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xl">
-                  <i class="fa-solid fa-code"></i>
+        <div class="card">
+          <div>
+            <div class="card-header">
+              <div class="card-brand">
+                <div class="card-icon" style="background: rgba(2, 132, 199, 0.15); color: var(--accent-blue);">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                  </svg>
                 </div>
                 <div>
-                  <h3 class="text-lg font-bold">0rhxPlayer for VSCode</h3>
-                  <p class="text-xs text-gray-500 dark:text-gray-400">VSCode 沉浸式轻量插件</p>
+                  <h3>0rhxPlayer for VSCode</h3>
+                  <p>VSCode 沉浸式轻量插件</p>
                 </div>
               </div>
-              <span id="vscodeTag" class="px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-cyan-500/20 text-cyan-400">
-                v0.5.0
-              </span>
+              <span class="tag-badge" style="background: rgba(2, 132, 199, 0.15); color: var(--accent-blue);">v0.5.0</span>
             </div>
 
-            <!-- Notes -->
-            <div class="text-xs text-gray-500 dark:text-gray-300 bg-black/5 dark:bg-white/5 p-3.5 rounded-2xl leading-relaxed font-mono">
-• 状态栏极简常驻控制器，敲代码不分心<br />
-• 侧边栏挂载本地曲库与歌单播放列表<br />
-• 低内存开销，开箱即用
+            <div class="card-body">
+              <ul>
+                <li>状态栏极简常驻控制器，敲代码不分心</li>
+                <li>侧边栏挂载本地曲库与播放队列</li>
+                <li>低内存占用，开箱即用体验</li>
+                <li>支持快捷键全局控制与歌词展示</li>
+              </ul>
             </div>
           </div>
 
-          <!-- Marketplace & VSIX Buttons -->
-          <div class="space-y-2.5 pt-2 border-t border-black/5 dark:border-white/10">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <a href="https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer" target="_blank" class="py-2.5 px-4 rounded-xl bg-cyan-400 text-[#003738] font-bold text-xs hover:opacity-90 transition text-center flex items-center justify-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-store"></i>
-                <span>VSCode 市场安装</span>
-              </a>
-              <a id="vscodeVsixBtn" href="https://github.com/RinCynar/0rhxPlayer/releases/latest" target="_blank" class="py-2.5 px-4 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 font-semibold text-xs transition text-center flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-file-arrow-down"></i>
-                <span>下载 VSIX 离线包</span>
-              </a>
-            </div>
-            <div class="text-center">
-              <a href="https://github.com/RinCynar/0rhxPlayer" target="_blank" class="text-xs text-gray-400 hover:text-miku transition">
-                <i class="fa-brands fa-github mr-1"></i>查看 VSCode 插件源码
-              </a>
-            </div>
+          <!-- Extension Buttons -->
+          <div class="download-grid">
+            <a href="https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer" target="_blank" class="btn btn-primary btn-sm" style="background: var(--accent-blue); color: #fff;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+              VSCode 市场安装
+            </a>
+            <a id="vscodeVsixBtn" href="https://github.com/RinCynar/0rhxPlayer/releases/latest" target="_blank" class="btn btn-outline btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              下载 VSIX 离线包
+            </a>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Features Section -->
-    <section id="features" class="max-w-5xl mx-auto px-6 py-12 space-y-8">
-      <div class="text-center space-y-1.5">
-        <h2 class="text-xl sm:text-2xl font-bold tracking-tight">主要特性</h2>
-        <p class="text-xs text-gray-500 dark:text-gray-400">实用功能与基础架构介绍</p>
+    <!-- Screenshots Showcase -->
+    <section id="screenshots" class="container screenshots-section">
+      <div class="section-title">
+        <h2>应用实机预览</h2>
+        <p>遵循 Material Design 3 规范的清爽界面设计</p>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <!-- Feature 1 -->
-        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-2xl p-5 space-y-2.5">
-          <div class="w-10 h-10 rounded-xl bg-miku/20 text-miku flex items-center justify-center text-lg">
-            <i class="fa-solid fa-sliders"></i>
+      <div class="screenshots-grid">
+        <!-- Screenshot 1 -->
+        <div class="screenshot-card">
+          <div class="screenshot-frame">
+            <img src="https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Desktop/main/info-pic/Screenshot%202026-08-21%20120003.png" alt="主页与曲库" loading="lazy" decoding="async" />
           </div>
-          <h3 class="font-bold text-sm">本地解码与均衡器</h3>
-          <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            支持常见无损与有损格式，提供 10 段参数化均衡器与常见声学预设。
+          <div class="screenshot-caption">
+            <h4>主页与曲库视图</h4>
+            <p>个性化问候、随机推荐单曲与专辑、自适应分类侧栏</p>
+          </div>
+        </div>
+
+        <!-- Screenshot 2 -->
+        <div class="screenshot-card">
+          <div class="screenshot-frame">
+            <img src="https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Desktop/main/info-pic/Screenshot%202026-08-21%20120150.png" alt="播放详情与双语歌词" loading="lazy" decoding="async" />
+          </div>
+          <div class="screenshot-caption">
+            <h4>播放详情与双语歌词</h4>
+            <p>音频流参数卡片、逐行双语歌词平滑同步滚动</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="container">
+      <div class="section-title">
+        <h2>主要功能特性</h2>
+        <p>专注于本地音频收听的实用功能</p>
+      </div>
+
+      <div class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-box">
+          <div class="feature-icon-wrapper">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" x2="20" y1="21" y2="21"></line>
+              <line x1="4" x2="20" y1="3" y2="3"></line>
+              <line x1="4" x2="20" y1="12" y2="12"></line>
+            </svg>
+          </div>
+          <h3>本地音频解码与 EQ</h3>
+          <p>
+            基于 cpal + symphonia 后端，支持主流音频格式本地播放，提供 10 段参数化均衡器与常见声学预设。
           </p>
         </div>
 
         <!-- Feature 2 -->
-        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-2xl p-5 space-y-2.5">
-          <div class="w-10 h-10 rounded-xl bg-miku/20 text-miku flex items-center justify-center text-lg">
-            <i class="fa-solid fa-align-left"></i>
+        <div class="feature-box">
+          <div class="feature-icon-wrapper">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="21" x2="3" y1="6" y2="6"></line>
+              <line x1="15" x2="3" y1="12" y2="12"></line>
+              <line x1="17" x2="3" y1="18" y2="18"></line>
+            </svg>
           </div>
-          <h3 class="font-bold text-sm">双语歌词平滑滚动</h3>
-          <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            解析内置与外置 LRC 歌词，支持中日双语对齐、字体调节与平滑定位。
+          <h3>双语歌词同步呈现</h3>
+          <p>
+            支持内嵌与外部 LRC 歌词，提供中/日双语翻译歌词同步显示，支持居中平滑高亮与字号调整。
           </p>
         </div>
 
         <!-- Feature 3 -->
-        <div class="bg-white/60 dark:bg-[#1C1B20]/60 border border-black/5 dark:border-white/5 rounded-2xl p-5 space-y-2.5">
-          <div class="w-10 h-10 rounded-xl bg-miku/20 text-miku flex items-center justify-center text-lg">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <div class="feature-box">
+          <div class="feature-icon-wrapper">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
           </div>
-          <h3 class="font-bold text-sm">Material 3 动效与性能</h3>
-          <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            采用 M3 强调缓动曲线，配合虚拟滚动与图片懒加载，保障长列表滑动顺畅。
+          <h3>Material 3 动效与性能</h3>
+          <p>
+            遵循 M3 强调缓动曲线，结合虚拟化列表（@tanstack/react-virtual）与异步懒加载，确保大曲库滑动流畅。
           </p>
         </div>
       </div>
@@ -303,21 +829,33 @@
   </main>
 
   <!-- Footer -->
-  <footer class="border-t border-black/5 dark:border-white/5 py-8 text-center text-xs text-gray-500 dark:text-gray-400 space-y-2">
-    <p>0rhxPlayer Desktop is open source under the GPL-3.0 License.</p>
-    <p>Copyright © 2026 <a href="https://github.com/RinCynar" target="_blank" class="hover:text-miku transition">RinCynar</a>. All rights reserved.</p>
+  <footer>
+    <div class="container">
+      <p style="margin-bottom: 6px;">
+        0rhxPlayer Desktop is open source under the <a href="https://github.com/RinCynar/0rhxPlayer-Desktop/blob/main/LICENSE" target="_blank">GPL-3.0 License</a>.
+      </p>
+      <p>
+        Copyright © 2026 <a href="https://github.com/RinCynar" target="_blank">RinCynar</a>. All rights reserved.
+      </p>
+    </div>
   </footer>
 
-  <!-- Script for Theme and Static Data Fetching -->
+  <!-- Script (Zero External Dependencies) -->
   <script>
-    // 1. Theme Toggle
+    // 1. Theme Switcher Logic
     const html = document.documentElement;
     const themeToggle = document.getElementById('themeToggle');
     const themeIcon = document.getElementById('themeIcon');
 
     function updateThemeUI() {
       const isDark = html.classList.contains('dark');
-      themeIcon.className = isDark ? 'fa-solid fa-sun text-sm text-amber-300' : 'fa-solid fa-moon text-sm text-gray-700';
+      if (isDark) {
+        // Render Sun icon
+        themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+      } else {
+        // Render Moon icon
+        themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+      }
     }
 
     themeToggle.addEventListener('click', () => {
@@ -332,7 +870,7 @@
     }
     updateThemeUI();
 
-    // 2. Fetch Release Data from latest.json
+    // 2. Fetch Release Data
     async function loadReleaseData() {
       try {
         const res = await fetch('./latest.json');
@@ -346,12 +884,11 @@
             if (data.downloads.linux_x64_tar) document.getElementById('linuxTarBtn').href = data.downloads.linux_x64_tar;
           }
           if (data.vscode) {
-            if (data.vscode.tag) document.getElementById('vscodeTag').textContent = data.vscode.tag;
             if (data.vscode.vsix) document.getElementById('vscodeVsixBtn').href = data.vscode.vsix;
           }
         }
       } catch (e) {
-        console.log('Using default links');
+        // Default links already present
       }
     }
 
