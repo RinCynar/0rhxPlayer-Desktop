@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>0rhxPlayer - 轻量本地音乐播放器 (Desktop & VSCode)</title>
+  <title id="pageTitle">0rhxPlayer - 轻量本地音乐播放器 (Desktop & VSCode)</title>
   <meta name="description" content="0rhxPlayer 是一个遵循 Material 3 设计的轻量本地音乐播放器，支持 Windows / Linux 桌面端与 VSCode 插件端。" />
   <meta name="keywords" content="0rhxPlayer, 音乐播放器, 本地音乐, Material You, Tauri, Rust, VSCode 插件, RinCynar" />
 
@@ -135,7 +135,7 @@
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 16px;
       font-size: 0.875rem;
       font-weight: 500;
     }
@@ -152,9 +152,38 @@
       color: var(--primary);
     }
 
+    /* Controls: Lang Selector & Theme Switcher */
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .select-btn {
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 9999px;
+      border: 1px solid var(--surface-border);
+      background: var(--surface);
+      color: var(--text-main);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      outline: none;
+    }
+
+    .select-btn:hover {
+      border-color: var(--primary);
+      background: var(--surface-hover);
+    }
+
     .theme-btn {
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       border: 1px solid var(--surface-border);
       background: var(--surface);
@@ -174,7 +203,7 @@
     /* Hero */
     .hero {
       position: relative;
-      padding: 60px 0 40px;
+      padding: 56px 0 36px;
       text-align: center;
     }
 
@@ -208,7 +237,7 @@
       font-weight: 600;
       background: var(--primary-container);
       color: var(--primary);
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
     .hero h1 {
@@ -234,7 +263,7 @@
     .hero p {
       font-size: 1.05rem;
       color: var(--text-muted);
-      max-width: 620px;
+      max-width: 640px;
       margin: 0 auto 28px;
     }
 
@@ -316,7 +345,6 @@
       padding: 28px;
       box-shadow: var(--card-shadow);
       display: flex;
-      flex-col: column;
       flex-direction: column;
       justify-content: space-between;
       transition: transform 0.2s, border-color 0.2s;
@@ -410,7 +438,7 @@
       width: 100%;
     }
 
-    /* Screenshots Showcase */
+    /* Screenshots Showcase - Pixel-Perfect Vertical Alignment */
     .screenshots-section {
       margin: 40px 0 60px;
     }
@@ -419,34 +447,54 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 24px;
+      align-items: stretch;
     }
 
     .screenshot-card {
       background: var(--surface);
       border: 1px solid var(--surface-border);
       border-radius: 24px;
-      padding: 16px;
+      padding: 18px;
       box-shadow: var(--card-shadow);
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
     }
 
     .screenshot-frame {
+      width: 100%;
+      aspect-ratio: 16 / 10;
       border-radius: 16px;
       overflow: hidden;
       border: 1px solid var(--surface-border);
       background: #000;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .screenshot-frame img {
       width: 100%;
-      height: auto;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
       display: block;
       transition: transform 0.3s ease;
     }
 
     .screenshot-card:hover .screenshot-frame img {
       transform: scale(1.02);
+    }
+
+    .screenshot-caption {
+      text-align: center;
+      padding: 4px 8px;
+      min-height: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .screenshot-caption h4 {
@@ -558,9 +606,9 @@
 
         <!-- Nav -->
         <nav class="nav-links">
-          <a href="#downloads" class="nav-link hide-sm">下载中心</a>
-          <a href="#screenshots" class="nav-link hide-sm">界面预览</a>
-          <a href="#features" class="nav-link hide-sm">特性</a>
+          <a href="#downloads" class="nav-link hide-sm" id="navDownloads">下载中心</a>
+          <a href="#screenshots" class="nav-link hide-sm" id="navScreenshots">界面预览</a>
+          <a href="#features" class="nav-link hide-sm" id="navFeatures">特性</a>
           <a href="https://github.com/RinCynar/0rhxPlayer-Desktop" target="_blank" class="nav-link">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
@@ -568,20 +616,28 @@
             <span class="hide-sm">GitHub</span>
           </a>
 
-          <!-- Theme Toggle -->
-          <button id="themeToggle" class="theme-btn" title="切换深浅主题" aria-label="Toggle Theme">
-            <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
-          </button>
+          <!-- Controls: Language Select & Theme Switcher -->
+          <div class="controls-group">
+            <select id="langSelect" class="select-btn" aria-label="Select Language">
+              <option value="zh">🇨🇳 简体中文</option>
+              <option value="en">🇺🇸 English</option>
+              <option value="ja">🇯🇵 日本語</option>
+            </select>
+
+            <button id="themeToggle" class="theme-btn" title="切换深浅主题" aria-label="Toggle Theme">
+              <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </button>
+          </div>
         </nav>
       </div>
     </div>
@@ -596,33 +652,33 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
           </svg>
-          Material 3 规范 • 轻量本地音乐播放器
+          <span id="heroBadge">Material 3 规范 • 轻量本地音乐播放器</span>
         </div>
 
         <h1>
-          简洁清爽的<br />
-          <span class="highlight-text">本地音乐播放体验</span>
+          <span id="heroHeadline1">简洁清爽的</span><br />
+          <span class="highlight-text" id="heroHeadline2">本地音乐播放体验</span>
         </h1>
 
-        <p>
+        <p id="heroDesc">
           采用 Tauri 2 + Rust + React 19 技术栈构建，以初音绿（#39C5BB）为主色调。提供基础本地音频解码、10 段均衡器与双语动态歌词同步显示。
         </p>
 
         <div class="hero-actions">
-          <a href="#downloads" class="btn btn-primary">
+          <a href="#downloads" class="btn btn-primary" id="heroPrimaryBtn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            获取客户端 (Windows / Linux)
+            <span id="heroPrimaryBtnText">获取客户端 (Windows / Linux)</span>
           </a>
-          <a href="https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer" target="_blank" class="btn btn-outline">
+          <a href="https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer" target="_blank" class="btn btn-outline" id="heroSecondaryBtn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="16 18 22 12 16 6"></polyline>
               <polyline points="8 6 2 12 8 18"></polyline>
             </svg>
-            VSCode 插件版
+            <span id="heroSecondaryBtnText">VSCode 插件版</span>
           </a>
         </div>
       </div>
@@ -631,8 +687,8 @@
     <!-- Downloads Matrix -->
     <section id="downloads" class="container" style="padding-top: 40px;">
       <div class="section-title">
-        <h2>客户端与插件获取</h2>
-        <p>选择适合您系统的安装程序或免安装便携版本</p>
+        <h2 id="dlSectionTitle">客户端与插件获取</h2>
+        <p id="dlSectionSub">选择适合您系统的安装程序或免安装便携版本</p>
       </div>
 
       <div class="card-grid">
@@ -649,15 +705,15 @@
                   </svg>
                 </div>
                 <div>
-                  <h3>0rhxPlayer 桌面端</h3>
-                  <p>Windows & Linux 本地客户端</p>
+                  <h3 id="desktopCardTitle">0rhxPlayer 桌面端</h3>
+                  <p id="desktopCardSub">Windows & Linux 本地客户端</p>
                 </div>
               </div>
               <span id="desktopTag" class="tag-badge">v1.0.0</span>
             </div>
 
             <div class="card-body">
-              <ul>
+              <ul id="desktopFeatureList">
                 <li>支持 FLAC / WAV / APE / MP3 / AAC / OGG / Opus 等常见格式</li>
                 <li>10 段均衡器调节与声学预设</li>
                 <li>中/日双语动态歌词同步显示与平滑居中滚动</li>
@@ -674,19 +730,19 @@
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              Windows 安装包 (.exe)
+              <span id="btnWinExe">Windows 安装包 (.exe)</span>
             </a>
             <a id="winZipBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-outline btn-sm">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
               </svg>
-              Windows 便携版 (.zip)
+              <span id="btnWinZip">Windows 便携版 (.zip)</span>
             </a>
             <a id="linuxAppImageBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-outline btn-sm">
-              Linux .AppImage
+              <span id="btnLinuxAppImage">Linux .AppImage</span>
             </a>
             <a id="linuxTarBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-outline btn-sm">
-              Linux .tar.gz
+              <span id="btnLinuxTar">Linux .tar.gz</span>
             </a>
           </div>
         </div>
@@ -703,15 +759,15 @@
                   </svg>
                 </div>
                 <div>
-                  <h3>0rhxPlayer for VSCode</h3>
-                  <p>VSCode 沉浸式轻量插件</p>
+                  <h3 id="vscodeCardTitle">0rhxPlayer for VSCode</h3>
+                  <p id="vscodeCardSub">VSCode 沉浸式轻量插件</p>
                 </div>
               </div>
               <span class="tag-badge" style="background: rgba(2, 132, 199, 0.15); color: var(--accent-blue);">v0.5.0</span>
             </div>
 
             <div class="card-body">
-              <ul>
+              <ul id="vscodeFeatureList">
                 <li>状态栏极简常驻控制器，敲代码不分心</li>
                 <li>侧边栏挂载本地曲库与播放队列</li>
                 <li>低内存占用，开箱即用体验</li>
@@ -728,25 +784,25 @@
                 <circle cx="20" cy="21" r="1"></circle>
                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
               </svg>
-              VSCode 市场安装
+              <span id="btnVscodeMarketplace">VSCode 市场安装</span>
             </a>
             <a id="vscodeVsixBtn" href="https://github.com/RinCynar/0rhxPlayer/releases/latest" target="_blank" class="btn btn-outline btn-sm">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
               </svg>
-              下载 VSIX 离线包
+              <span id="btnVscodeVsix">下载 VSIX 离线包</span>
             </a>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Screenshots Showcase -->
+    <!-- Screenshots Showcase - Fixed Alignment -->
     <section id="screenshots" class="container screenshots-section">
       <div class="section-title">
-        <h2>应用实机预览</h2>
-        <p>遵循 Material Design 3 规范的清爽界面设计</p>
+        <h2 id="ssSectionTitle">应用实机预览</h2>
+        <p id="ssSectionSub">遵循 Material Design 3 规范的清爽界面设计</p>
       </div>
 
       <div class="screenshots-grid">
@@ -756,8 +812,8 @@
             <img src="https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Desktop/main/info-pic/Screenshot%202026-08-21%20120003.png" alt="主页与曲库" loading="lazy" decoding="async" />
           </div>
           <div class="screenshot-caption">
-            <h4>主页与曲库视图</h4>
-            <p>个性化问候、随机推荐单曲与专辑、自适应分类侧栏</p>
+            <h4 id="ss1Title">主页与曲库视图</h4>
+            <p id="ss1Sub">个性化问候、随机推荐单曲与专辑、自适应分类侧栏</p>
           </div>
         </div>
 
@@ -767,8 +823,8 @@
             <img src="https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Desktop/main/info-pic/Screenshot%202026-08-21%20120150.png" alt="播放详情与双语歌词" loading="lazy" decoding="async" />
           </div>
           <div class="screenshot-caption">
-            <h4>播放详情与双语歌词</h4>
-            <p>音频流参数卡片、逐行双语歌词平滑同步滚动</p>
+            <h4 id="ss2Title">播放详情与双语歌词</h4>
+            <p id="ss2Sub">音频流参数卡片、逐行双语歌词平滑同步滚动</p>
           </div>
         </div>
       </div>
@@ -777,8 +833,8 @@
     <!-- Features -->
     <section id="features" class="container">
       <div class="section-title">
-        <h2>主要功能特性</h2>
-        <p>专注于本地音频收听的实用功能</p>
+        <h2 id="featSectionTitle">主要功能特性</h2>
+        <p id="featSectionSub">专注于本地音频收听的实用功能</p>
       </div>
 
       <div class="features-grid">
@@ -791,8 +847,8 @@
               <line x1="4" x2="20" y1="12" y2="12"></line>
             </svg>
           </div>
-          <h3>本地音频解码与 EQ</h3>
-          <p>
+          <h3 id="feat1Title">本地音频解码与 EQ</h3>
+          <p id="feat1Sub">
             基于 cpal + symphonia 后端，支持主流音频格式本地播放，提供 10 段参数化均衡器与常见声学预设。
           </p>
         </div>
@@ -806,8 +862,8 @@
               <line x1="17" x2="3" y1="18" y2="18"></line>
             </svg>
           </div>
-          <h3>双语歌词同步呈现</h3>
-          <p>
+          <h3 id="feat2Title">双语歌词同步呈现</h3>
+          <p id="feat2Sub">
             支持内嵌与外部 LRC 歌词，提供中/日双语翻译歌词同步显示，支持居中平滑高亮与字号调整。
           </p>
         </div>
@@ -819,8 +875,8 @@
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
             </svg>
           </div>
-          <h3>Material 3 动效与性能</h3>
-          <p>
+          <h3 id="feat3Title">Material 3 动效与性能</h3>
+          <p id="feat3Sub">
             遵循 M3 强调缓动曲线，结合虚拟化列表（@tanstack/react-virtual）与异步懒加载，确保大曲库滑动流畅。
           </p>
         </div>
@@ -840,9 +896,247 @@
     </div>
   </footer>
 
-  <!-- Script (Zero External Dependencies) -->
+  <!-- Script (I18N + Theme + Data Fetching) -->
   <script>
-    // 1. Theme Switcher Logic
+    // ========================
+    // 1. I18N Dictionaries
+    // ========================
+    const I18N = {
+      zh: {
+        pageTitle: "0rhxPlayer - 轻量本地音乐播放器 (Desktop & VSCode)",
+        navDownloads: "下载中心",
+        navScreenshots: "界面预览",
+        navFeatures: "特性",
+        heroBadge: "Material 3 规范 • 轻量本地音乐播放器",
+        heroHeadline1: "简洁清爽的",
+        heroHeadline2: "本地音乐播放体验",
+        heroDesc: "采用 Tauri 2 + Rust + React 19 技术栈构建，以初音绿（#39C5BB）为主色调。提供基础本地音频解码、10 段均衡器与双语动态歌词同步显示。",
+        heroPrimaryBtnText: "获取客户端 (Windows / Linux)",
+        heroSecondaryBtnText: "VSCode 插件版",
+        dlSectionTitle: "客户端与插件获取",
+        dlSectionSub: "选择适合您系统的安装程序或免安装便携版本",
+        desktopCardTitle: "0rhxPlayer 桌面端",
+        desktopCardSub: "Windows & Linux 本地客户端",
+        desktopFeatures: [
+          "支持 FLAC / WAV / APE / MP3 / AAC / OGG / Opus 等常见格式",
+          "10 段均衡器调节与声学预设",
+          "中/日双语动态歌词同步显示与平滑居中滚动",
+          "提供官方安装包与免安装便携绿色归档"
+        ],
+        btnWinExe: "Windows 安装包 (.exe)",
+        btnWinZip: "Windows 便携版 (.zip)",
+        btnLinuxAppImage: "Linux .AppImage",
+        btnLinuxTar: "Linux .tar.gz",
+        vscodeCardTitle: "0rhxPlayer for VSCode",
+        vscodeCardSub: "VSCode 沉浸式轻量插件",
+        vscodeFeatures: [
+          "状态栏极简常驻控制器，敲代码不分心",
+          "侧边栏挂载本地曲库与播放队列",
+          "低内存占用，开箱即用体验",
+          "支持快捷键全局控制与歌词展示"
+        ],
+        btnVscodeMarketplace: "VSCode 市场安装",
+        btnVscodeVsix: "下载 VSIX 离线包",
+        ssSectionTitle: "应用实机预览",
+        ssSectionSub: "遵循 Material Design 3 规范的清爽界面设计",
+        ss1Title: "主页与曲库视图",
+        ss1Sub: "个性化问候、随机推荐单曲与专辑、自适应分类侧栏",
+        ss2Title: "播放详情与双语歌词",
+        ss2Sub: "音频流参数卡片、逐行双语歌词平滑同步滚动",
+        featSectionTitle: "主要功能特性",
+        featSectionSub: "专注于本地音频收听的实用功能",
+        feat1Title: "本地音频解码与 EQ",
+        feat1Sub: "基于 cpal + symphonia 后端，支持主流音频格式本地播放，提供 10 段参数化均衡器与常见声学预设。",
+        feat2Title: "双语歌词同步呈现",
+        feat2Sub: "支持内嵌与外部 LRC 歌词，提供中/日双语翻译歌词同步显示，支持居中平滑高亮与字号调整。",
+        feat3Title: "Material 3 动效与性能",
+        feat3Sub: "遵循 M3 强调缓动曲线，结合虚拟化列表（@tanstack/react-virtual）与异步懒加载，确保大曲库滑动流畅。"
+      },
+      en: {
+        pageTitle: "0rhxPlayer - Lightweight Local Music Player (Desktop & VSCode)",
+        navDownloads: "Downloads",
+        navScreenshots: "Screenshots",
+        navFeatures: "Features",
+        heroBadge: "Material 3 Design • Lightweight Local Music Player",
+        heroHeadline1: "Clean & Pleasant",
+        heroHeadline2: "Local Music Experience",
+        heroDesc: "Built with Tauri 2 + Rust + React 19 with Miku Teal (#39C5BB) theming. Features universal audio decoding, a 10-band equalizer, and synchronized bilingual lyrics.",
+        heroPrimaryBtnText: "Get Desktop Client (Win / Linux)",
+        heroSecondaryBtnText: "VSCode Extension",
+        dlSectionTitle: "Downloads & Releases",
+        dlSectionSub: "Choose the installer or standalone portable package for your platform",
+        desktopCardTitle: "0rhxPlayer Desktop",
+        desktopCardSub: "Windows & Linux Native Client",
+        desktopFeatures: [
+          "Supports FLAC / WAV / APE / MP3 / AAC / OGG / Opus and more",
+          "10-Band Equalizer with tuned acoustic presets",
+          "Bilingual synchronized lyrics with smooth center tracking",
+          "Available as native installer (.exe) & portable archive (.zip / .tar.gz)"
+        ],
+        btnWinExe: "Windows Installer (.exe)",
+        btnWinZip: "Windows Portable (.zip)",
+        btnLinuxAppImage: "Linux .AppImage",
+        btnLinuxTar: "Linux .tar.gz",
+        vscodeCardTitle: "0rhxPlayer for VSCode",
+        vscodeCardSub: "Lightweight In-Editor Extension",
+        vscodeFeatures: [
+          "Status bar playback controller for focused coding",
+          "Sidebar library browser and playlist queue",
+          "Ultra-low memory footprint and instant startup",
+          "Full shortcut controls and synchronized lyric view"
+        ],
+        btnVscodeMarketplace: "Install from Marketplace",
+        btnVscodeVsix: "Download VSIX Package",
+        ssSectionTitle: "Application Screenshots",
+        ssSectionSub: "Clean, responsive UI crafted with Material Design 3",
+        ss1Title: "Home & Library View",
+        ss1Sub: "Personalized greetings, smart recommendations & adaptive sidebar",
+        ss2Title: "NowPlaying & Bilingual Lyrics",
+        ss2Sub: "Audio stream metadata card and smooth scrolling lyrics",
+        featSectionTitle: "Key Features",
+        featSectionSub: "Practical features focused on local music listening",
+        feat1Title: "Local Audio Decoding & EQ",
+        feat1Sub: "Powered by cpal + symphonia Rust backend, supporting major audio formats and a 10-band parametric equalizer.",
+        feat2Title: "Bilingual Synchronized Lyrics",
+        feat2Sub: "Supports embedded and external LRC lyrics with bilingual translations, font size scaling, and smooth alignment.",
+        feat3Title: "Material 3 Motion & Speed",
+        feat3Sub: "Adheres to M3 emphasized easing curves with virtualized rendering (@tanstack/react-virtual) for 60fps responsiveness."
+      },
+      ja: {
+        pageTitle: "0rhxPlayer - 軽量ローカル音楽プレーヤー (Desktop & VSCode)",
+        navDownloads: "ダウンロード",
+        navScreenshots: "スクリーンショット",
+        navFeatures: "機能紹介",
+        heroBadge: "Material 3 設計 • 軽量ローカル音楽プレーヤー",
+        heroHeadline1: "シンプルで心地よい",
+        heroHeadline2: "ローカル音楽再生体験",
+        heroDesc: "Tauri 2 + Rust + React 19 を採用し、初音ミクグリーン（#39C5BB）を基調としたデザイン。主要フォーマットの再生、10バンドEQ、日中バイリンガル歌詞表示を提供します。",
+        heroPrimaryBtnText: "デスクトップ版を入手 (Win / Linux)",
+        heroSecondaryBtnText: "VSCode 拡張機能",
+        dlSectionTitle: "ダウンロード＆リリース",
+        dlSectionSub: "お使いのシステムに適したインストーラーまたはポータブル版を選択してください",
+        desktopCardTitle: "0rhxPlayer デスクトップ版",
+        desktopCardSub: "Windows & Linux ネイティブクライアント",
+        desktopFeatures: [
+          "FLAC / WAV / APE / MP3 / AAC / OGG / Opus 等の再生に対応",
+          "10バンドイコライザー調整＆各種音響プリセット",
+          "日中バイリンガル同期歌詞のスムーズスクロール表示",
+          "公式インストーラー (.exe) およびポータブル版 (.zip / .tar.gz) を提供"
+        ],
+        btnWinExe: "Windows インストーラー (.exe)",
+        btnWinZip: "Windows ポータブル版 (.zip)",
+        btnLinuxAppImage: "Linux .AppImage",
+        btnLinuxTar: "Linux .tar.gz",
+        vscodeCardTitle: "0rhxPlayer for VSCode",
+        vscodeCardSub: "エディタ統合型軽量拡張機能",
+        vscodeFeatures: [
+          "ステータスバー常駐コントローラーでコーディングに集中",
+          "サイドバーでのローカルライブラリ・キュー管理",
+          "超軽量メモリ消費で高速起動",
+          "ショートカットキー操作および歌詞表示に対応"
+        ],
+        btnVscodeMarketplace: "マーケットプレイスからインストール",
+        btnVscodeVsix: "VSIX パッケージをダウンロード",
+        ssSectionTitle: "スクリーンショット",
+        ssSectionSub: "Material Design 3 に準拠した洗練されたUI",
+        ss1Title: "ホーム＆ライブラリ画面",
+        ss1Sub: "時間帯に合わせた挨拶、おすすめ曲＆アルバム、適応型サイドバー",
+        ss2Title: "再生画面＆バイリンガル歌詞",
+        ss2Sub: "オーディオストリーム情報カード、滑らかな同期歌詞スクロール",
+        featSectionTitle: "主な機能",
+        featSectionSub: "ローカル音楽鑑賞に特化した実用機能",
+        feat1Title: "ローカルデコード＆EQ",
+        feat1Sub: "cpal + symphonia による高効率なRustバックエンド。主要フォーマットと10バンドEQに対応。",
+        feat2Title: "バイリンガル同期歌詞",
+        feat2Sub: "内蔵および外部LRC歌詞の解析に対応。日中対訳歌詞の同期表示、中央配置ハイライト、フォントサイズ変更が可能。",
+        feat3Title: "Material 3 モーション＆高速描画",
+        feat3Sub: "M3標準イージング曲線を採用し、仮想リスト（@tanstack/react-virtual）と遅延読み込みで60fpsの滑らかさを実現。"
+      }
+    };
+
+    // ========================
+    // 2. Language Detection & State
+    // ========================
+    function detectLanguage() {
+      const saved = localStorage.getItem('0rhx_lang');
+      if (saved && ['zh', 'en', 'ja'].includes(saved)) {
+        return saved;
+      }
+      const navLang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+      if (navLang.startsWith('zh')) return 'zh';
+      if (navLang.startsWith('ja')) return 'ja';
+      return 'en'; // fallback to English
+    }
+
+    let currentLang = detectLanguage();
+
+    function renderLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('0rhx_lang', lang);
+      const d = I18N[lang] || I18N.en;
+
+      document.getElementById('pageTitle').textContent = d.pageTitle;
+      document.getElementById('navDownloads').textContent = d.navDownloads;
+      document.getElementById('navScreenshots').textContent = d.navScreenshots;
+      document.getElementById('navFeatures').textContent = d.navFeatures;
+      document.getElementById('heroBadge').textContent = d.heroBadge;
+      document.getElementById('heroHeadline1').textContent = d.heroHeadline1;
+      document.getElementById('heroHeadline2').textContent = d.heroHeadline2;
+      document.getElementById('heroDesc').textContent = d.heroDesc;
+      document.getElementById('heroPrimaryBtnText').textContent = d.heroPrimaryBtnText;
+      document.getElementById('heroSecondaryBtnText').textContent = d.heroSecondaryBtnText;
+      document.getElementById('dlSectionTitle').textContent = d.dlSectionTitle;
+      document.getElementById('dlSectionSub').textContent = d.dlSectionSub;
+      document.getElementById('desktopCardTitle').textContent = d.desktopCardTitle;
+      document.getElementById('desktopCardSub').textContent = d.desktopCardSub;
+      
+      const dfEl = document.getElementById('desktopFeatureList');
+      dfEl.innerHTML = d.desktopFeatures.map(f => `<li>${f}</li>`).join('');
+
+      document.getElementById('btnWinExe').textContent = d.btnWinExe;
+      document.getElementById('btnWinZip').textContent = d.btnWinZip;
+      document.getElementById('btnLinuxAppImage').textContent = d.btnLinuxAppImage;
+      document.getElementById('btnLinuxTar').textContent = d.btnLinuxTar;
+
+      document.getElementById('vscodeCardTitle').textContent = d.vscodeCardTitle;
+      document.getElementById('vscodeCardSub').textContent = d.vscodeCardSub;
+
+      const vfEl = document.getElementById('vscodeFeatureList');
+      vfEl.innerHTML = d.vscodeFeatures.map(f => `<li>${f}</li>`).join('');
+
+      document.getElementById('btnVscodeMarketplace').textContent = d.btnVscodeMarketplace;
+      document.getElementById('btnVscodeVsix').textContent = d.btnVscodeVsix;
+
+      document.getElementById('ssSectionTitle').textContent = d.ssSectionTitle;
+      document.getElementById('ssSectionSub').textContent = d.ssSectionSub;
+      document.getElementById('ss1Title').textContent = d.ss1Title;
+      document.getElementById('ss1Sub').textContent = d.ss1Sub;
+      document.getElementById('ss2Title').textContent = d.ss2Title;
+      document.getElementById('ss2Sub').textContent = d.ss2Sub;
+
+      document.getElementById('featSectionTitle').textContent = d.featSectionTitle;
+      document.getElementById('featSectionSub').textContent = d.featSectionSub;
+      document.getElementById('feat1Title').textContent = d.feat1Title;
+      document.getElementById('feat1Sub').textContent = d.feat1Sub;
+      document.getElementById('feat2Title').textContent = d.feat2Title;
+      document.getElementById('feat2Sub').textContent = d.feat2Sub;
+      document.getElementById('feat3Title').textContent = d.feat3Title;
+      document.getElementById('feat3Sub').textContent = d.feat3Sub;
+
+      document.getElementById('langSelect').value = lang;
+      document.documentElement.lang = lang === 'zh' ? 'zh-CN' : (lang === 'ja' ? 'ja' : 'en');
+    }
+
+    document.getElementById('langSelect').addEventListener('change', (e) => {
+      renderLanguage(e.target.value);
+    });
+
+    // Initial render of language
+    renderLanguage(currentLang);
+
+    // ========================
+    // 3. Theme Toggle
+    // ========================
     const html = document.documentElement;
     const themeToggle = document.getElementById('themeToggle');
     const themeIcon = document.getElementById('themeIcon');
@@ -850,10 +1144,10 @@
     function updateThemeUI() {
       const isDark = html.classList.contains('dark');
       if (isDark) {
-        // Render Sun icon
+        // Sun icon
         themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
       } else {
-        // Render Moon icon
+        // Moon icon
         themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
       }
     }
@@ -870,7 +1164,9 @@
     }
     updateThemeUI();
 
-    // 2. Fetch Release Data
+    // ========================
+    // 4. Release Links Fetcher
+    // ========================
     async function loadReleaseData() {
       try {
         const res = await fetch('./latest.json');
@@ -883,12 +1179,12 @@
             if (data.downloads.linux_x64_appimage) document.getElementById('linuxAppImageBtn').href = data.downloads.linux_x64_appimage;
             if (data.downloads.linux_x64_tar) document.getElementById('linuxTarBtn').href = data.downloads.linux_x64_tar;
           }
-          if (data.vscode) {
-            if (data.vscode.vsix) document.getElementById('vscodeVsixBtn').href = data.vscode.vsix;
+          if (data.vscode && data.vscode.vsix) {
+            document.getElementById('vscodeVsixBtn').href = data.vscode.vsix;
           }
         }
       } catch (e) {
-        // Default links already present
+        // Fallback URLs already in HTML
       }
     }
 

@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build-tauri:
     strategy:
       fail-fast: false
       matrix:
@@ -60,61 +60,90 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
-      - name: Build frontend & Tauri app
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: '0rhxPlayer v__VERSION__'
-          releaseBody: |
-            ## 0rhxPlayer v__VERSION__
-            
-            ### ✨ Features
-            - **Audio Pipeline**: WASAPI / DirectSound basic stream scheduler with low latency.
-            - **DSP Processing**: 10-Band Biquad Equalizer with presets.
-            - **Material You 3.0**: M3 motion system with teal theme (#39C5BB).
-            - **Cross-Platform**: Windows (Installer `.exe` & Portable `.zip`) and Linux (`.AppImage` & Portable `.tar.gz`).
-            
-            ### 🌐 Links
-            - Website: [0rhxplayer.rincynar.top](https://0rhxplayer.rincynar.top)
-            - VSCode Extension: [0rhxPlayer for VSCode](https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer)
-          releaseDraft: false
-          prerelease: false
-          args: ${{ matrix.args }}
+      - name: Build Tauri bundles
+        run: pnpm tauri build ${{ matrix.args }}
 
-      - name: Package Portable Windows Archive (.zip)
+      - name: Prepare Artifacts (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $ver = "1.0.0"
           $target = "${{ matrix.target }}"
-          $exe = Get-ChildItem -Path "src-tauri/target" -Recurse -File | Where-Object { ($_.Name -eq "0rhxPlayer.exe" -or $_.Name -eq "app.exe") -and $_.FullName -like "*release*" -and $_.FullName -notlike "*deps*" -and $_.FullName -notlike "*build*" } | Select-Object -First 1
+          New-Item -ItemType Directory -Force -Path "build-artifacts"
+
+          # 1. Copy NSIS installer and MSI bundles
+          Get-ChildItem -Path "src-tauri/target" -Recurse -File | Where-Object { ($_.Extension -eq ".exe" -or $_.Extension -eq ".msi") -and $_.FullName -like "*bundle*" } | ForEach-Object {
+            Copy-Item $_.FullName -Destination "build-artifacts/$($_.Name)" -Force
+          }
+
+          # 2. Package portable zip
+          $exe = Get-ChildItem -Path "src-tauri/target" -Recurse -File | Where-Object { ($_.Name -eq "0rhxPlayer.exe" -or $_.Name -eq "app.exe") -and $_.FullName -like "*release*" -and $_.FullName -notlike "*deps*" -and $_.FullName -notlike "*build*" -and $_.FullName -notlike "*bundle*" } | Select-Object -First 1
           if ($exe) {
             New-Item -ItemType Directory -Force -Path "dist-portable"
             Copy-Item $exe.FullName -Destination "dist-portable/0rhxPlayer.exe"
-            Compress-Archive -Path "dist-portable/*" -DestinationPath "0rhxPlayer_${ver}_${target}_portable.zip" -Force
+            Compress-Archive -Path "dist-portable/*" -DestinationPath "build-artifacts/0rhxPlayer_${ver}_${target}_portable.zip" -Force
           }
 
-      - name: Package Portable Linux Archive (.tar.gz)
+      - name: Prepare Artifacts (Linux)
         if: runner.os == 'Linux'
         run: |
           ver="1.0.0"
           target="${{ matrix.target }}"
-          bin_path=$(find src-tauri/target -type f \( -name "0rhxPlayer" -o -name "app" \) | grep "release" | grep -v "deps" | grep -v "build" | head -n 1)
+          mkdir -p build-artifacts
+
+          # 1. Copy AppImage and deb bundles
+          find src-tauri/target -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) | grep "bundle" | while read -r file; do
+            cp "$file" build-artifacts/
+          done
+
+          # 2. Package portable tar.gz
+          bin_path=$(find src-tauri/target -type f \( -name "0rhxPlayer" -o -name "app" \) | grep "release" | grep -v "deps" | grep -v "build" | grep -v "bundle" | head -n 1)
           if [ -n "$bin_path" ]; then
             mkdir -p dist-portable
             cp "$bin_path" dist-portable/0rhxPlayer
             chmod +x dist-portable/0rhxPlayer
-            tar -czvf "0rhxPlayer_${ver}_${target}.tar.gz" -C dist-portable 0rhxPlayer
+            tar -czvf "build-artifacts/0rhxPlayer_${ver}_${target}.tar.gz" -C dist-portable 0rhxPlayer
           fi
 
-      - name: Upload Portable Archives to Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            0rhxPlayer_*.zip
-            0rhxPlayer_*.tar.gz
+          name: tauri-build-${{ matrix.target }}
+          path: build-artifacts/*
+          if-no-files-found: error
+
+  publish-release:
+    needs: build-tauri
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+          merge-multiple: true
+
+      - name: Display downloaded artifacts
+        run: ls -la all-artifacts/
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: '0rhxPlayer v1.0.0'
+          body: |
+            ## 0rhxPlayer v1.0.0
+            
+            ### ✨ Features
+            - **Audio Backend**: WASAPI / DirectSound stream scheduler with low latency.
+            - **DSP Processing**: 10-Band Biquad Equalizer with presets.
+            - **Material You 3.0**: M3 motion system with teal theme (#39C5BB).
+            - **Cross-Platform Packages**: Native Windows (`.exe` installer / `.zip` portable) and Linux (`.AppImage` / `.tar.gz` portable).
+            
+            ### 🌐 Official Links
+            - Website: [0rhxplayer.rincynar.top](https://0rhxplayer.rincynar.top)
+            - VSCode Extension: [0rhxPlayer for VSCode](https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer)
+          draft: false
+          prerelease: false
+          files: all-artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
