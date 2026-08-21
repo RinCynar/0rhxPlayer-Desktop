@@ -68,7 +68,8 @@ export default {
         'full': '9999px',
       },
       fontFamily: {
-        sans: ['"Noto Sans SC"', '"Noto Sans JP"', '"Noto Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        brand: ['"Google Sans Flex"', '"Google Sans"', 'sans-serif'],
+        sans: ['"Noto Sans"', '"Noto Sans SC"', '"Noto Sans JP"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
       }
     },
   },

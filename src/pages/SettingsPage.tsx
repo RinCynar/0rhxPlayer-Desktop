@@ -53,12 +53,30 @@ export const SettingsPage: React.FC = () => {
   };
 
   const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void }> = ({ value, onChange }) => (
-    <button
-      onClick={() => onChange(!value)}
-      className={`w-11 h-6 rounded-full transition relative p-0.5 ${value ? (isDarkMode ? 'bg-[#39C5BB]' : 'bg-[#006A6B]') : 'bg-gray-600'}`}
+    <label
+      onClick={e => e.stopPropagation()}
+      className="relative inline-flex items-center cursor-pointer p-2 -m-2 select-none"
     >
-      <div className={`w-5 h-5 rounded-full bg-white transition transform ${value ? 'translate-x-5' : 'translate-x-0'}`} />
-    </button>
+      <input
+        type="checkbox"
+        checked={value}
+        onChange={e => onChange(e.target.checked)}
+        className="sr-only peer"
+      />
+      {/* 胶囊轨道 Track */}
+      <div
+        className={`w-12 h-6 rounded-full transition-colors duration-200 relative p-0.5 ${
+          value ? (isDarkMode ? 'bg-[#39C5BB]' : 'bg-[#006A6B]') : isDarkMode ? 'bg-white/20' : 'bg-black/20'
+        }`}
+      >
+        {/* 滑块 Thumb：添加 pointer-events-none 避免阻挡点击 */}
+        <div
+          className={`w-5 h-5 bg-white rounded-full transition-transform duration-200 pointer-events-none shadow-sm ${
+            value ? 'translate-x-6' : 'translate-x-0'
+          }`}
+        />
+      </div>
+    </label>
   );
 
   const driverOptions: DropdownOption<string>[] = [
@@ -198,7 +216,10 @@ export const SettingsPage: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5">
+            <div
+              onClick={() => setAudioSettings({ ...audioSettings, cueAutoScan: !audioSettings.cueAutoScan })}
+              className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5 cursor-pointer select-none py-1 hover:opacity-90 transition"
+            >
               <div>
                 <div className="font-semibold">{t.cueAutoScan}</div>
                 <div className="text-gray-500 text-[11px]">{t.sectionLibraryNav}</div>
@@ -337,7 +358,10 @@ export const SettingsPage: React.FC = () => {
 
 
           {/* Translation */}
-          <div className="flex items-center justify-between text-xs pt-2 border-t border-black/5 dark:border-white/5">
+          <div
+            onClick={() => setShowTrans(!showTrans)}
+            className="flex items-center justify-between text-xs pt-2 border-t border-black/5 dark:border-white/5 cursor-pointer select-none py-1 hover:opacity-90 transition"
+          >
             <div>
               <div className="font-semibold">{t.showTrans}</div>
               <div className="text-gray-500 text-[11px]">{t.transSub}</div>
@@ -384,7 +408,10 @@ export const SettingsPage: React.FC = () => {
 
 
         {/* 5. System */}
-        <div className={`${card} p-5 rounded-3xl flex items-center justify-between text-xs`}>
+        <div
+          onClick={() => setAudioSettings({ ...audioSettings, systemTray: !audioSettings.systemTray })}
+          className={`${card} p-5 rounded-3xl flex items-center justify-between text-xs cursor-pointer select-none hover:opacity-95 transition`}
+        >
           <div>
             <div className="font-semibold">{t.systemTray}</div>
             <div className="text-gray-500 text-[11px]">{t.systemTraySub}</div>
@@ -403,7 +430,7 @@ export const SettingsPage: React.FC = () => {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center space-x-2">
-                <h3 className="font-bold text-base tracking-tight">{t.aboutTitle}</h3>
+                <h3 className="font-brand font-bold text-base tracking-tight">{t.aboutTitle}</h3>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-[#39C5BB]/20 text-[#39C5BB]">
                   v1.0.1
                 </span>

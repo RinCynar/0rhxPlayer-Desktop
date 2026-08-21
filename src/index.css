@@ -2,7 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Google Sans Flex Brand Font */
+@font-face {
+  font-family: 'Google Sans Flex';
+  src: url('./assets/fonts/GoogleSansFlex.woff2') format('woff2-variations'),
+       url('./assets/fonts/GoogleSansFlex.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Noto Sans Latin */
+@font-face {
+  font-family: 'Noto Sans';
+  src: url('./assets/fonts/NotoSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  src: url('./assets/fonts/NotoSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Noto Sans SC (Simplified Chinese) */
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: url('./assets/fonts/NotoSansSC-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: url('./assets/fonts/NotoSansSC-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Noto Sans JP (Japanese) */
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: url('./assets/fonts/NotoSansJP-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: url('./assets/fonts/NotoSansJP-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
+  font-family: 'Noto Sans', 'Noto Sans SC', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   /* Material 3 Seed #39C5BB Tokens (Light Mode) */
   --md-sys-color-primary: #006A6B;
   --md-sys-color-on-primary: #FFFFFF;
@@ -112,10 +177,14 @@ input[type="number"] {
 }
 
 body {
-  font-family: 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Noto Sans', 'Noto Sans SC', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
   user-select: none;
   background-color: transparent;
   overflow: hidden;
+}
+
+body, #root, button, input, select, textarea {
+  font-family: 'Noto Sans', 'Noto Sans SC', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
 /* Material 3 Fade Through Animation for Page Navigation */

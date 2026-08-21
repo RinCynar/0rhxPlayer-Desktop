@@ -95,7 +95,7 @@ export const NavigationRail: React.FC = () => {
           {/* Brand & collapse toggle */}
           <div className="flex items-center justify-between px-2">
             {!isCollapsed && (
-              <span className={`font-extrabold text-base tracking-wider truncate pl-1 ${primaryText}`}>
+              <span className={`font-brand font-extrabold text-base tracking-tight truncate pl-1 ${primaryText}`}>
                 {t.appName}
               </span>
             )}

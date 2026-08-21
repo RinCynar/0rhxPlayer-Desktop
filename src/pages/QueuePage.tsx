@@ -3,6 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePlayer } from '../context/PlayerContext';
 import { I18N } from '../i18n';
 import { getCoverSrc } from '../utils/assetUrl';
+import { M3CoverImage } from '../components/M3CoverImage';
 import { TrackMetadata } from '../types/audio';
 import { TrackActionMenu } from '../components/TrackActionMenu';
 
@@ -50,7 +51,6 @@ export const QueuePage: React.FC = () => {
           {coverSrc && (
             <img
               src={coverSrc}
-              loading="lazy"
               decoding="async"
               className="absolute inset-0 w-full h-full object-cover object-center"
             />
@@ -122,7 +122,6 @@ export const QueuePage: React.FC = () => {
               const localIdx = virtualRow.index;
               const tr = displayTracks[localIdx];
               const globalIdx = displayOffset + localIdx;
-              const cover = getCoverSrc(tr.coverUrl);
               const isFav = isFavorite(tr.path);
 
               return (
@@ -144,19 +143,14 @@ export const QueuePage: React.FC = () => {
                       className="flex items-center space-x-4 cursor-pointer flex-1 min-w-0"
                       onClick={() => playTrackAtIndex(globalIdx)}
                     >
-                      <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-white/5 relative">
-                        {cover ? (
-                          <img
-                            src={cover}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'bg-white/5' : 'bg-black/5'}`}>
-                            <i className="fa-solid fa-music opacity-30" />
-                          </div>
-                        )}
+                      <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0">
+                        <M3CoverImage
+                          src={tr.coverUrl}
+                          alt={tr.title}
+                          placeholderType="music"
+                          className="w-12 h-12 rounded-xl"
+                          iconClassName="text-base"
+                        />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className={`font-semibold text-sm truncate ${isDarkMode ? 'group-hover:text-[#39C5BB]' : 'group-hover:text-[#006A6B]'} transition`}>

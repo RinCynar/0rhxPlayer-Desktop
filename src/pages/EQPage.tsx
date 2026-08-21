@@ -61,13 +61,18 @@ export const EQPage: React.FC = () => {
             {t.reset}
           </button>
 
-          <label className="flex items-center gap-3 cursor-pointer select-none">
+          <label className="flex items-center gap-3 cursor-pointer select-none p-1.5 -m-1.5">
             <span className="text-sm font-semibold">
               {eqSettings.enabled ? t.eqEnabled : t.eqBypass}
             </span>
+            <input
+              type="checkbox"
+              checked={eqSettings.enabled}
+              onChange={e => setEqEnabled(e.target.checked)}
+              className="sr-only peer"
+            />
             <div
-              onClick={() => setEqEnabled(!eqSettings.enabled)}
-              className={`w-14 h-8 rounded-full transition-colors p-1 flex items-center ${
+              className={`w-14 h-8 rounded-full transition-colors duration-200 relative p-1 ${
                 eqSettings.enabled
                   ? isDarkMode
                     ? 'bg-[#39C5BB]'
@@ -78,7 +83,7 @@ export const EQPage: React.FC = () => {
               }`}
             >
               <div
-                className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform ${
+                className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-200 pointer-events-none ${
                   eqSettings.enabled ? 'translate-x-6' : 'translate-x-0'
                 }`}
               />

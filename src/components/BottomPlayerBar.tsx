@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { I18N } from '../i18n';
-import { getCoverSrc } from '../utils/assetUrl';
+import { M3CoverImage } from './M3CoverImage';
 
 export const BottomPlayerBar: React.FC = () => {
 
@@ -16,7 +16,6 @@ export const BottomPlayerBar: React.FC = () => {
 
   const t = I18N[lang];
   const progressRef = useRef<HTMLDivElement>(null);
-  const coverSrc = getCoverSrc(currentTrack?.coverUrl);
   const progress = durationMs > 0 ? (positionMs / durationMs) * 100 : 0;
 
   const handleSeekClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -95,17 +94,16 @@ export const BottomPlayerBar: React.FC = () => {
           >
             <i className="fa-solid fa-chevron-down text-base transition-transform group-hover:translate-y-0.5" />
           </div>
-        ) : coverSrc ? (
-          <img
-            src={coverSrc}
-            loading="lazy"
-            decoding="async"
-            className="w-12 h-12 rounded-xl object-cover group-hover:opacity-80 transition shrink-0 shadow-sm"
-          />
         ) : (
-
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-[#28272F]' : 'bg-[#E2DBE8]'}`}>
-            <i className="fa-solid fa-music text-lg opacity-40" />
+          <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 shadow-sm">
+            <M3CoverImage
+              src={currentTrack?.coverUrl}
+              alt={currentTrack?.title}
+              placeholderType="music"
+              className="w-12 h-12 rounded-xl"
+              iconClassName="text-lg"
+              imageClassName="group-hover:opacity-80 transition"
+            />
           </div>
         )}
         <div className="truncate min-w-0">

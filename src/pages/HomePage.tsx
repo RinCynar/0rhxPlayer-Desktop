@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { I18N } from '../i18n';
-import { getCoverSrc } from '../utils/assetUrl';
+import { M3CoverImage } from '../components/M3CoverImage';
 import { TrackMetadata } from '../types/audio';
 
 interface RecommendedAlbum {
@@ -113,7 +113,6 @@ export const HomePage: React.FC = () => {
           {userProfile.avatar ? (
             <img
               src={userProfile.avatar}
-              loading="lazy"
               decoding="async"
               className="w-12 h-12 rounded-full object-cover cursor-pointer hover:scale-105 transition shadow-md"
               onClick={() => setActiveTab('settings')}
@@ -174,39 +173,32 @@ export const HomePage: React.FC = () => {
                 <span>{t.showAll}</span>
                 <i className="fa-solid fa-chevron-right text-[10px] opacity-70" />
               </button>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-              {recommendedTracks.map(tr => {
-                const cover = getCoverSrc(tr.coverUrl);
-                return (
-                  <div
-                    key={tr.path}
-                    onClick={() => playTrack(tr, libraryTracks)}
-                    className={`${card} p-4 rounded-3xl cursor-pointer group flex items-center space-x-3.5 hover:scale-[1.02] transition shadow-sm`}
-                  >
-                    <div className={`w-14 h-14 rounded-2xl ${isDarkMode ? 'bg-[#39C5BB]/20' : 'bg-[#39C5BB]/15'} flex items-center justify-center shrink-0 relative overflow-hidden bg-white/5`}>
-                      {cover ? (
-                        <img
-                          src={cover}
-                          loading="lazy"
-                          decoding="async"
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                        />
-                      ) : (
-                        <i className={`fa-solid fa-music text-lg ${primaryText}`} />
-                      )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                        <i className="fa-solid fa-play text-white text-xs" />
-                      </div>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className={`font-bold text-xs truncate transition ${isDarkMode ? 'group-hover:text-[#39C5BB]' : 'group-hover:text-[#006A6B]'}`}>{tr.title}</div>
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">{tr.artist}</div>
+            </div>            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              {recommendedTracks.map(tr => (
+                <div
+                  key={tr.path}
+                  onClick={() => playTrack(tr, libraryTracks)}
+                  className={`${card} p-4 rounded-3xl cursor-pointer group flex items-center space-x-3.5 hover:scale-[1.02] transition shadow-sm`}
+                >
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 relative overflow-hidden">
+                    <M3CoverImage
+                      src={tr.coverUrl}
+                      alt={tr.title}
+                      placeholderType="music"
+                      className="w-14 h-14 rounded-2xl"
+                      iconClassName="text-lg"
+                      imageClassName="group-hover:scale-105 transition duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                      <i className="fa-solid fa-play text-white text-xs" />
                     </div>
                   </div>
-                );
-              })}
+                  <div className="min-w-0 flex-1">
+                    <div className={`font-bold text-xs truncate transition ${isDarkMode ? 'group-hover:text-[#39C5BB]' : 'group-hover:text-[#006A6B]'}`}>{tr.title}</div>
+                    <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">{tr.artist}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -224,31 +216,23 @@ export const HomePage: React.FC = () => {
                 </button>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 sm:gap-5">
-                {recommendedAlbums.map(album => {
-                  const cover = getCoverSrc(album.coverUrl);
-                  return (
-                    <div
-                      key={album.name}
-                      onClick={() => playAlbum(album.tracks)}
-                      className={`${card} p-3.5 rounded-3xl cursor-pointer group flex flex-col justify-between hover:-translate-y-1 transition-all duration-200 shadow-sm relative`}
-                    >
-                      <div className="w-full aspect-square rounded-2xl overflow-hidden relative mb-2.5 bg-white/5">
-                        {cover ? (
-                          <img
-                            src={cover}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                          />
-                        ) : (
-                          <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'bg-white/5' : 'bg-black/5'}`}>
-                            <i className="fa-solid fa-compact-disc text-4xl opacity-30" />
-                          </div>
-                        )}
+                {recommendedAlbums.map(album => (
+                  <div
+                    key={album.name}
+                    onClick={() => playAlbum(album.tracks)}
+                    className={`${card} p-3.5 rounded-3xl cursor-pointer group flex flex-col justify-between hover:-translate-y-1 transition-all duration-200 shadow-sm relative`}
+                  >
+                    <div className="w-full aspect-square rounded-2xl overflow-hidden relative mb-2.5">
+                      <M3CoverImage
+                        src={album.coverUrl}
+                        alt={album.name}
+                        placeholderType="album"
+                        imageClassName="group-hover:scale-105 transition duration-300"
+                      />
 
-                        <span className="absolute bottom-2 left-2 text-white text-[10px] font-semibold bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-md">
-                          {album.tracks.length} {t.titles}
-                        </span>
+                      <span className="absolute bottom-2 left-2 text-white text-[10px] font-semibold bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-md">
+                        {album.tracks.length} {t.titles}
+                      </span>
 
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                           <div className="w-9 h-9 rounded-full bg-[#006A6B] dark:bg-[#39C5BB] text-white dark:text-[#003738] flex items-center justify-center shadow-lg">
@@ -261,8 +245,7 @@ export const HomePage: React.FC = () => {
                         <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">{album.artist}</div>
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
               </div>
             </div>
           )}

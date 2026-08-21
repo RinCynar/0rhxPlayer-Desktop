@@ -212,11 +212,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return (localStorage.getItem('0rhx_lang') as LangKey) || 'zh';
   });
   const [lyricsAlign, setLyricsAlign] = useState<LyricsAlign>(() => {
-    return (localStorage.getItem('0rhx_lyrics_align') as LyricsAlign) || 'center';
+    return (localStorage.getItem('0rhx_lyrics_align') as LyricsAlign) || 'right';
   });
   const [lyricsFontSize, setLyricsFontSize] = useState<number>(() => {
     const saved = localStorage.getItem('0rhx_lyrics_font_size');
-    return saved ? parseInt(saved, 10) : 20;
+    return saved ? parseInt(saved, 10) : 30;
   });
   const [showTrans, setShowTrans] = useState<boolean>(() => {
     return localStorage.getItem('0rhx_show_trans') !== 'false';

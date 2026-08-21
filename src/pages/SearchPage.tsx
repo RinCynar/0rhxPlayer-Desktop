@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { I18N, formatCount } from '../i18n';
-import { getCoverSrc } from '../utils/assetUrl';
-
+import { M3CoverImage } from '../components/M3CoverImage';
 import { TrackMetadata } from '../types/audio';
 import { TrackActionMenu } from '../components/TrackActionMenu';
 
@@ -133,9 +132,7 @@ export const SearchPage: React.FC = () => {
               <p className="text-sm text-gray-500">{t.noMatchDesc}</p>
             </div>
           ) : (
-
             results.map(tr => {
-              const cover = getCoverSrc(tr.coverUrl);
               const isFav = isFavorite(tr.path);
               return (
                 <div
@@ -144,19 +141,14 @@ export const SearchPage: React.FC = () => {
                   className={`${card} p-3.5 rounded-2xl flex items-center justify-between cursor-pointer group hover:bg-[#36343B] dark:hover:bg-[#36343B] transition`}
                 >
                   <div className="flex items-center space-x-3.5 min-w-0 flex-1">
-                    <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-white/5">
-                      {cover ? (
-                        <img
-                          src={cover}
-                          loading="lazy"
-                          decoding="async"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'bg-white/5' : 'bg-black/5'}`}>
-                          <i className="fa-solid fa-music opacity-30" />
-                        </div>
-                      )}
+                    <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0">
+                      <M3CoverImage
+                        src={tr.coverUrl}
+                        alt={tr.title}
+                        placeholderType="music"
+                        className="w-11 h-11 rounded-xl"
+                        iconClassName="text-base"
+                      />
                     </div>
 
                     <div className="min-w-0 flex-1">
@@ -198,7 +190,6 @@ export const SearchPage: React.FC = () => {
           </div>
 
           {libraryTracks.slice(0, 10).map(tr => {
-            const cover = getCoverSrc(tr.coverUrl);
             const isFav = isFavorite(tr.path);
             return (
               <div
@@ -208,13 +199,13 @@ export const SearchPage: React.FC = () => {
               >
                 <div className="flex items-center space-x-3.5 min-w-0 flex-1">
                   <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0">
-                    {cover ? (
-                      <img src={cover} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'bg-white/5' : 'bg-black/5'}`}>
-                        <i className="fa-solid fa-music opacity-30" />
-                      </div>
-                    )}
+                    <M3CoverImage
+                      src={tr.coverUrl}
+                      alt={tr.title}
+                      placeholderType="music"
+                      className="w-11 h-11 rounded-xl"
+                      iconClassName="text-base"
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold text-sm truncate">{tr.title}</div>

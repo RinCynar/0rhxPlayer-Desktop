@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { usePlayer, splitArtists } from '../context/PlayerContext';
 import { I18N } from '../i18n';
-import { getCoverSrc } from '../utils/assetUrl';
+import { M3CoverImage } from './M3CoverImage';
 
 export const NowPlayingDrawer: React.FC = () => {
   const {
@@ -13,7 +13,6 @@ export const NowPlayingDrawer: React.FC = () => {
 
 
   const t = I18N[lang];
-  const coverSrc = getCoverSrc(currentTrack?.coverUrl);
 
   const hasLyrics = currentLyrics && currentLyrics.length > 0;
   const positionSec = positionMs / 1000;
@@ -104,20 +103,14 @@ export const NowPlayingDrawer: React.FC = () => {
         <div className="flex flex-col justify-center items-center h-full max-h-[calc(100vh-6rem)] shrink-0 gap-3 py-2 select-none">
           {/* 1. Cover container: Dynamic square bound to min(380px, 36vw, 38vh) */}
           <div className="w-[min(380px,36vw,38vh)] aspect-square rounded-3xl overflow-hidden shadow-2xl relative group shrink-0 transition-all duration-150">
-            {coverSrc ? (
-              <img
-                src={coverSrc}
-                alt={currentTrack?.title}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-              />
-            ) : (
-
-              <div className="w-full h-full bg-[#1C1B20] dark:bg-[#28272F] flex items-center justify-center">
-                <i className="fa-solid fa-music text-6xl opacity-30" />
-              </div>
-            )}
+            <M3CoverImage
+              src={currentTrack?.coverUrl}
+              alt={currentTrack?.title}
+              placeholderType="music"
+              className="w-full h-full aspect-square rounded-3xl"
+              iconClassName="text-6xl"
+              imageClassName="group-hover:scale-105 transition duration-500"
+            />
           </div>
 
           {/* 2. Audio spec card: Width strictly bound to min(380px, 36vw, 38vh) */}

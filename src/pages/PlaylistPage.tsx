@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { I18N } from '../i18n';
-import { getCoverSrc } from '../utils/assetUrl';
+import { M3CoverImage } from '../components/M3CoverImage';
+import { M3CoverPlaceholder } from '../components/M3CoverPlaceholder';
 import { TrackMetadata } from '../types/audio';
 import { TrackActionMenu } from '../components/TrackActionMenu';
 
@@ -115,18 +116,21 @@ export const PlaylistPage: React.FC = () => {
 
           {/* Playlist Header Banner */}
           <div className={`${card} p-6 rounded-3xl flex flex-col sm:flex-row items-center sm:items-end gap-6`}>
-            <div className="w-36 h-36 rounded-2xl overflow-hidden shrink-0 shadow-lg relative bg-gradient-to-br from-[#39C5BB]/30 to-[#006A6B]/30 flex items-center justify-center">
+            <div className="w-36 h-36 rounded-2xl overflow-hidden shrink-0 shadow-lg relative flex items-center justify-center">
               {selectedDetail.isFavorites ? (
-                <i className="fa-solid fa-heart text-6xl text-red-400 opacity-80" />
-              ) : selectedDetail.coverUrl ? (
-                <img
-                  src={getCoverSrc(selectedDetail.coverUrl)}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover"
+                <M3CoverPlaceholder
+                  type="heart"
+                  className="w-36 h-36 rounded-2xl bg-gradient-to-br from-red-500/20 to-pink-500/20"
+                  iconClassName="text-6xl text-red-400 opacity-90"
                 />
               ) : (
-                <i className={`fa-solid fa-compact-disc text-6xl ${primaryText} opacity-40`} />
+                <M3CoverImage
+                  src={selectedDetail.coverUrl}
+                  alt={selectedDetail.name}
+                  placeholderType="disc"
+                  className="w-36 h-36 rounded-2xl"
+                  iconClassName="text-6xl"
+                />
               )}
             </div>
 
@@ -212,7 +216,6 @@ export const PlaylistPage: React.FC = () => {
           ) : (
             <div className="space-y-1.5">
               {selectedDetail.tracks.map((tr, idx) => {
-                const cover = getCoverSrc(tr.coverUrl);
                 const isFav = isFavorite(tr.path);
                 return (
                   <div
@@ -224,19 +227,14 @@ export const PlaylistPage: React.FC = () => {
                       <span className="text-xs font-mono text-gray-400 w-5 text-center shrink-0">
                         {idx + 1}
                       </span>
-                      <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-white/5">
-                        {cover ? (
-                          <img
-                            src={cover}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'bg-white/5' : 'bg-black/5'}`}>
-                            <i className="fa-solid fa-music opacity-30 text-xs" />
-                          </div>
-                        )}
+                      <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0">
+                        <M3CoverImage
+                          src={tr.coverUrl}
+                          alt={tr.title}
+                          placeholderType="music"
+                          className="w-10 h-10 rounded-xl"
+                          iconClassName="text-xs"
+                        />
                       </div>
 
                       <div className="min-w-0 flex-1">
