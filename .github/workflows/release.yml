@@ -8,11 +8,13 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   build-tauri:
     permissions:
       contents: write
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -119,6 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -12,8 +12,8 @@
 
   <style>
     /* ==========================================================
-       0rhxPlayer Official Landing Page - Self-Contained Styles
-       Zero external CSS/Icon dependencies for 100% reliable rendering
+       0rhxPlayer Official Landing Page - Material 3 Design
+       Zero external CSS/Font dependencies for 100% reliable rendering
        ========================================================== */
     :root {
       --bg: #F6F2F8;
@@ -29,6 +29,9 @@
       --primary-on: #FFFFFF;
       --primary-container: rgba(0, 106, 107, 0.12);
       --miku: #39C5BB;
+      --tonal-bg: rgba(0, 106, 107, 0.08);
+      --tonal-text: #006A6B;
+      --tonal-border: rgba(0, 106, 107, 0.18);
       --accent-blue: #0284C7;
       --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
       --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
@@ -37,7 +40,7 @@
 
     html.dark {
       --bg: #131317;
-      --bg-elevated: #18171D;
+      --bg-elevated: #1A1921;
       --surface: #1E1D24;
       --surface-border: rgba(255, 255, 255, 0.08);
       --surface-hover: rgba(255, 255, 255, 0.05);
@@ -49,6 +52,9 @@
       --primary-on: #003738;
       --primary-container: rgba(57, 197, 187, 0.15);
       --miku: #39C5BB;
+      --tonal-bg: rgba(255, 255, 255, 0.06);
+      --tonal-text: #E6E1E5;
+      --tonal-border: rgba(255, 255, 255, 0.1);
       --accent-blue: #38BDF8;
       --card-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.45), 0 4px 16px -2px rgba(0, 0, 0, 0.3);
     }
@@ -76,9 +82,9 @@
 
     /* Container */
     .container {
-      max-width: 1140px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 0 32px;
     }
 
     /* Header */
@@ -96,7 +102,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 68px;
+      height: 72px;
     }
 
     .brand {
@@ -107,9 +113,9 @@
     }
 
     .brand-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
       background: var(--primary-container);
       color: var(--primary);
       display: flex;
@@ -118,7 +124,7 @@
     }
 
     .brand-title {
-      font-size: 1.15rem;
+      font-size: 1.2rem;
       font-weight: 800;
       letter-spacing: -0.02em;
     }
@@ -135,7 +141,7 @@
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 18px;
       font-size: 0.875rem;
       font-weight: 500;
     }
@@ -156,12 +162,12 @@
     .controls-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .select-btn {
-      height: 36px;
-      padding: 0 12px;
+      height: 38px;
+      padding: 0 14px;
       border-radius: 9999px;
       border: 1px solid var(--surface-border);
       background: var(--surface);
@@ -182,8 +188,8 @@
     }
 
     .theme-btn {
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       border: 1px solid var(--surface-border);
       background: var(--surface);
@@ -203,19 +209,19 @@
     /* Hero */
     .hero {
       position: relative;
-      padding: 56px 0 36px;
+      padding: 64px 0 44px;
       text-align: center;
     }
 
     .hero-glow {
       position: absolute;
-      top: 30%;
+      top: 35%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 460px;
-      height: 460px;
+      width: 520px;
+      height: 520px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(57, 197, 187, 0.16) 0%, rgba(57, 197, 187, 0) 70%);
+      background: radial-gradient(circle, rgba(57, 197, 187, 0.18) 0%, rgba(57, 197, 187, 0) 70%);
       pointer-events: none;
       z-index: 0;
     }
@@ -223,7 +229,7 @@
     .hero-content {
       position: relative;
       z-index: 1;
-      max-width: 760px;
+      max-width: 780px;
       margin: 0 auto;
     }
 
@@ -231,21 +237,21 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 14px;
+      padding: 6px 16px;
       border-radius: 9999px;
       font-size: 0.75rem;
       font-weight: 600;
       background: var(--primary-container);
       color: var(--primary);
-      margin-bottom: 18px;
+      margin-bottom: 20px;
     }
 
     .hero h1 {
-      font-size: 2.75rem;
+      font-size: 2.85rem;
       font-weight: 800;
       letter-spacing: -0.03em;
       line-height: 1.2;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
 
     .highlight-text {
@@ -263,15 +269,15 @@
     .hero p {
       font-size: 1.05rem;
       color: var(--text-muted);
-      max-width: 640px;
-      margin: 0 auto 28px;
+      max-width: 660px;
+      margin: 0 auto 30px;
     }
 
     .hero-actions {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 14px;
+      gap: 16px;
       flex-wrap: wrap;
     }
 
@@ -281,13 +287,14 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 12px 24px;
+      padding: 12px 26px;
       border-radius: 9999px;
       font-size: 0.875rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
       border: 1px solid transparent;
+      text-align: center;
     }
 
     .btn-primary {
@@ -298,7 +305,19 @@
 
     .btn-primary:hover {
       opacity: 0.92;
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+    }
+
+    .btn-tonal {
+      background: var(--tonal-bg);
+      color: var(--tonal-text);
+      border-color: var(--tonal-border);
+    }
+
+    .btn-tonal:hover {
+      background: var(--surface-hover);
+      border-color: var(--primary);
+      transform: translateY(-2px);
     }
 
     .btn-outline {
@@ -310,17 +329,17 @@
     .btn-outline:hover {
       background: var(--surface-hover);
       border-color: var(--primary);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
     }
 
-    /* Grid Layouts */
+    /* Downloads Matrix - Equal Height & 2x2 Clean Grid */
     .section-title {
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 36px;
     }
 
     .section-title h2 {
-      font-size: 1.75rem;
+      font-size: 1.85rem;
       font-weight: 700;
       letter-spacing: -0.02em;
       margin-bottom: 6px;
@@ -333,25 +352,33 @@
 
     .card-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 24px;
-      margin-bottom: 48px;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 32px;
+      align-items: stretch;
+      margin-bottom: 56px;
     }
 
     .card {
       background: var(--surface);
       border: 1px solid var(--surface-border);
-      border-radius: 24px;
-      padding: 28px;
+      border-radius: 28px;
+      padding: 32px;
       box-shadow: var(--card-shadow);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: transform 0.2s, border-color 0.2s;
+      height: 100%;
+      transition: transform 0.25s ease, border-color 0.25s ease;
     }
 
     .card:hover {
       border-color: rgba(57, 197, 187, 0.4);
+    }
+
+    .card-top {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
     }
 
     .card-header {
@@ -364,27 +391,28 @@
     .card-brand {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 16px;
     }
 
     .card-icon {
-      width: 48px;
-      height: 48px;
+      width: 52px;
+      height: 52px;
       border-radius: 16px;
       background: var(--primary-container);
       color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
 
     .card-brand h3 {
-      font-size: 1.15rem;
+      font-size: 1.25rem;
       font-weight: 700;
     }
 
     .card-brand p {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
     }
 
@@ -392,20 +420,26 @@
       font-size: 0.75rem;
       font-family: var(--font-mono);
       font-weight: 600;
-      padding: 4px 10px;
+      padding: 4px 12px;
       border-radius: 9999px;
       background: var(--primary-container);
       color: var(--primary);
+      flex-shrink: 0;
     }
 
     .card-body {
-      font-size: 0.825rem;
+      font-size: 0.85rem;
       color: var(--text-muted);
       background: var(--bg-elevated);
-      padding: 16px;
-      border-radius: 16px;
+      padding: 18px 20px;
+      border-radius: 20px;
       margin-bottom: 24px;
       line-height: 1.7;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 140px;
     }
 
     .card-body ul {
@@ -416,7 +450,7 @@
       display: flex;
       align-items: baseline;
       gap: 8px;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
     }
 
     .card-body li::before {
@@ -425,136 +459,155 @@
       font-weight: bold;
     }
 
-    .download-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    .card-bottom {
+      margin-top: auto;
+      border-top: 1px solid var(--surface-border);
+      padding-top: 20px;
     }
 
-    .btn-sm {
-      padding: 10px 14px;
-      font-size: 0.8rem;
-      border-radius: 12px;
+    .download-grid-2x2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
       width: 100%;
     }
 
-    /* Screenshots Showcase - Pixel-Perfect Vertical Alignment */
+    .btn-m3 {
+      height: 46px;
+      padding: 0 16px;
+      font-size: 0.825rem;
+      font-weight: 600;
+      border-radius: 16px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    /* Screenshots Showcase - Breathing M3 Layout */
     .screenshots-section {
-      margin: 40px 0 60px;
+      margin: 56px 0 72px;
     }
 
     .screenshots-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 24px;
+      gap: 32px;
       align-items: stretch;
     }
 
     .screenshot-card {
       background: var(--surface);
       border: 1px solid var(--surface-border);
-      border-radius: 24px;
-      padding: 18px;
+      border-radius: 28px;
+      padding: 12px;
       box-shadow: var(--card-shadow);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       height: 100%;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+
+    .screenshot-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.4);
+      border-color: rgba(57, 197, 187, 0.4);
     }
 
     .screenshot-frame {
       width: 100%;
       aspect-ratio: 2364 / 1417;
-      border-radius: 16px;
+      border-radius: 20px;
       overflow: hidden;
       border: 1px solid var(--surface-border);
-      background: #18171D;
-      margin-bottom: 16px;
+      background: #131317;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-
     .screenshot-frame img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: top center;
       display: block;
-      transition: transform 0.3s ease;
-    }
-
-    .screenshot-card:hover .screenshot-frame img {
-      transform: scale(1.02);
     }
 
     .screenshot-caption {
       text-align: center;
-      padding: 4px 8px;
-      min-height: 48px;
+      padding: 6px 12px 12px;
+      min-height: 52px;
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
 
     .screenshot-caption h4 {
-      font-size: 0.95rem;
+      font-size: 1rem;
       font-weight: 700;
       margin-bottom: 4px;
     }
 
     .screenshot-caption p {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
     }
 
     /* Features 3-Cols */
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      margin-bottom: 60px;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 72px;
     }
 
     .feature-box {
       background: var(--surface);
       border: 1px solid var(--surface-border);
-      border-radius: 20px;
-      padding: 24px;
+      border-radius: 24px;
+      padding: 28px;
       box-shadow: var(--card-shadow);
+      transition: transform 0.2s;
+    }
+
+    .feature-box:hover {
+      transform: translateY(-2px);
     }
 
     .feature-icon-wrapper {
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
       background: var(--primary-container);
       color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
 
     .feature-box h3 {
-      font-size: 1rem;
+      font-size: 1.05rem;
       font-weight: 700;
       margin-bottom: 8px;
     }
 
     .feature-box p {
-      font-size: 0.8rem;
+      font-size: 0.825rem;
       color: var(--text-muted);
-      line-height: 1.6;
+      line-height: 1.65;
     }
 
     /* Footer */
     footer {
       border-top: 1px solid var(--surface-border);
-      padding: 36px 0;
+      padding: 40px 0;
       text-align: center;
-      font-size: 0.8rem;
+      font-size: 0.825rem;
       color: var(--text-sub);
     }
 
@@ -568,14 +621,17 @@
     }
 
     /* Responsive */
-    @media (max-width: 768px) {
+    @media (max-width: 860px) {
       .hero h1 {
-        font-size: 2.1rem;
+        font-size: 2.2rem;
       }
       .screenshots-grid {
         grid-template-columns: 1fr;
       }
-      .download-grid {
+      .download-grid-2x2 {
+        grid-template-columns: 1fr;
+      }
+      .card-grid {
         grid-template-columns: 1fr;
       }
       .nav-links .hide-sm {
@@ -685,7 +741,7 @@
       </div>
     </section>
 
-    <!-- Downloads Matrix -->
+    <!-- Downloads Matrix - Equal Height & 2x2 Grid -->
     <section id="downloads" class="container" style="padding-top: 40px;">
       <div class="section-title">
         <h2 id="dlSectionTitle">客户端与插件获取</h2>
@@ -695,7 +751,7 @@
       <div class="card-grid">
         <!-- 1. Desktop Card -->
         <div class="card">
-          <div>
+          <div class="card-top">
             <div class="card-header">
               <div class="card-brand">
                 <div class="card-icon">
@@ -723,34 +779,36 @@
             </div>
           </div>
 
-          <!-- Download Buttons -->
-          <div class="download-grid">
-            <a id="winExeBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-primary btn-sm">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              <span id="btnWinExe">Windows 安装包 (.exe)</span>
-            </a>
-            <a id="winZipBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-outline btn-sm">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-              </svg>
-              <span id="btnWinZip">Windows 便携版 (.zip)</span>
-            </a>
-            <a id="linuxAppImageBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-outline btn-sm">
-              <span id="btnLinuxAppImage">Linux .AppImage</span>
-            </a>
-            <a id="linuxTarBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-outline btn-sm">
-              <span id="btnLinuxTar">Linux .tar.gz</span>
-            </a>
+          <!-- Download Buttons 2x2 Grid -->
+          <div class="card-bottom">
+            <div class="download-grid-2x2">
+              <a id="winExeBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-primary btn-m3">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span id="btnWinExe">Windows 安装包 (.exe)</span>
+              </a>
+              <a id="winZipBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-tonal btn-m3">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+                <span id="btnWinZip">Windows 便携版 (.zip)</span>
+              </a>
+              <a id="linuxAppImageBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-tonal btn-m3">
+                <span id="btnLinuxAppImage">Linux .AppImage</span>
+              </a>
+              <a id="linuxTarBtn" href="https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest" target="_blank" class="btn btn-tonal btn-m3">
+                <span id="btnLinuxTar">Linux .tar.gz</span>
+              </a>
+            </div>
           </div>
         </div>
 
         <!-- 2. VSCode Extension Card -->
         <div class="card">
-          <div>
+          <div class="card-top">
             <div class="card-header">
               <div class="card-brand">
                 <div class="card-icon" style="background: rgba(2, 132, 199, 0.15); color: var(--accent-blue);">
@@ -764,6 +822,7 @@
                   <p id="vscodeCardSub">VSCode 沉浸式轻量插件</p>
                 </div>
               </div>
+              <span class="tag-badge" style="background: rgba(2, 132, 199, 0.15); color: var(--accent-blue);">v0.5.0</span>
             </div>
 
             <div class="card-body">
@@ -776,29 +835,37 @@
             </div>
           </div>
 
-          <!-- Extension Buttons -->
-          <div class="download-grid">
-            <a href="https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer" target="_blank" class="btn btn-primary btn-sm" style="background: var(--accent-blue); color: #fff;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="9" cy="21" r="1"></circle>
-                <circle cx="20" cy="21" r="1"></circle>
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-              </svg>
-              <span id="btnVscodeMarketplace">VSCode 市场安装</span>
-            </a>
-            <a id="vscodeVsixBtn" href="https://github.com/RinCynar/0rhxPlayer/releases/latest" target="_blank" class="btn btn-outline btn-sm">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-              </svg>
-              <span id="btnVscodeVsix">下载 VSIX 离线包</span>
-            </a>
+          <!-- Extension Buttons 2x2 Grid Equivalent -->
+          <div class="card-bottom">
+            <div class="download-grid-2x2">
+              <a href="https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer" target="_blank" class="btn btn-primary btn-m3" style="background: var(--accent-blue); color: #fff; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                <span id="btnVscodeMarketplace">VSCode 市场安装</span>
+              </a>
+              <a id="vscodeVsixBtn" href="https://github.com/RinCynar/0rhxPlayer/releases/latest" target="_blank" class="btn btn-tonal btn-m3">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                <span id="btnVscodeVsix">下载 VSIX 离线包</span>
+              </a>
+              <a href="https://github.com/RinCynar/0rhxPlayer" target="_blank" class="btn btn-tonal btn-m3" style="grid-column: span 2;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                </svg>
+                <span id="btnVscodeRepo">查看 VSCode 插件源码仓库</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Screenshots Showcase - Fixed Alignment -->
+    <!-- Screenshots Showcase - Breathing M3 & Fixed Alignment -->
     <section id="screenshots" class="container screenshots-section">
       <div class="section-title">
         <h2 id="ssSectionTitle">应用实机预览</h2>
@@ -937,6 +1004,7 @@
         ],
         btnVscodeMarketplace: "VSCode 市场安装",
         btnVscodeVsix: "下载 VSIX 离线包",
+        btnVscodeRepo: "查看 VSCode 插件源码仓库",
         ssSectionTitle: "应用实机预览",
         ssSectionSub: "遵循 Material Design 3 规范的清爽界面设计",
         ss1Title: "主页与曲库视图",
@@ -987,6 +1055,7 @@
         ],
         btnVscodeMarketplace: "Install from Marketplace",
         btnVscodeVsix: "Download VSIX Package",
+        btnVscodeRepo: "View Extension Repository on GitHub",
         ssSectionTitle: "Application Screenshots",
         ssSectionSub: "Clean, responsive UI crafted with Material Design 3",
         ss1Title: "Home & Library View",
@@ -1037,6 +1106,7 @@
         ],
         btnVscodeMarketplace: "マーケットプレイスからインストール",
         btnVscodeVsix: "VSIX パッケージをダウンロード",
+        btnVscodeRepo: "拡張機能の GitHub リポジトリを見る",
         ssSectionTitle: "スクリーンショット",
         ssSectionSub: "Material Design 3 に準拠した洗練されたUI",
         ss1Title: "ホーム＆ライブラリ画面",
@@ -1106,6 +1176,7 @@
 
       document.getElementById('btnVscodeMarketplace').textContent = d.btnVscodeMarketplace;
       document.getElementById('btnVscodeVsix').textContent = d.btnVscodeVsix;
+      document.getElementById('btnVscodeRepo').textContent = d.btnVscodeRepo;
 
       document.getElementById('ssSectionTitle').textContent = d.ssSectionTitle;
       document.getElementById('ssSectionSub').textContent = d.ssSectionSub;
