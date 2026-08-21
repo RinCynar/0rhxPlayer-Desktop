@@ -2,8 +2,8 @@
 
 # 🎵 0rhxPlayer Desktop
 
-### 下一代发烧级全格式无损本地音乐播放器
-**Next-Generation Audiophile Lossless Music Player for Desktop**
+### 无损本地音乐播放器
+**Lossless Music Player for Desktop**
 
 [![Release](https://img.shields.io/github/v/release/RinCynar/0rhxPlayer-Desktop?style=flat-square&color=39C5BB)](https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-006A6B?style=flat-square)](https://0rhxPlayer.rincynar.top)
@@ -21,7 +21,7 @@
 
 ## 📖 项目简介 (Introduction)
 
-**0rhxPlayer Desktop** 是一款专为音乐发烧友、二次元爱好者与极客开发者打造的现代化桌面本地音乐播放器。基于 **Tauri 2 + Rust + React 19** 构建，以 **Bit-Perfect 硬件直通**、**无锁低延迟音频调度** 与 **Google Material Design 3** 为核心设计原则，在提供极致原声音质的同时，带来毫秒级响应的流畅交互体验。
+**0rhxPlayer Desktop** 是一款现代化桌面本地音乐播放器。基于 **Tauri 2 + Rust + React 19** 构建，以 **Bit-Perfect 硬件直通**、**无锁低延迟音频调度** 与 **Google Material Design 3** 为核心设计原则，在提供极致原声音质的同时，带来毫秒级响应的流畅交互体验。
 
 ---
 
@@ -89,7 +89,7 @@
 
 | 平台 (Platform) | 架构 (Arch) | 安装包类型 (Package Type) | 说明 |
 | :--- | :--- | :--- | :--- |
-| **Windows** | x64 (AMD64) | `.exe` (NSIS Installer) / `.zip` (Portable) | 推荐 Windows 10/11 用户使用 |
+| **Windows** | x64 (AMD64) | `.exe` (NSIS Installer)  | 推荐 Windows 10/11 用户使用 |
 | **Windows** | ARM64 | `.exe` (NSIS Installer) | 适用于 Surface Pro 等 ARM 架构设备 |
 | **Linux** | x64 (AMD64) | `.AppImage` / `.tar.gz` | 开箱即用，免安装便携运行 |
 
