@@ -143,22 +143,42 @@ pub fn run() {
                 #[cfg(target_os = "windows")]
                 let _ = window_vibrancy::apply_mica(&window, Some(true));
 
-                if let Some(icon) = app.default_window_icon() {
-                    let _ = window.set_icon(icon.clone());
+                let win_icon = app
+                    .default_window_icon()
+                    .cloned()
+                    .or_else(|| {
+                        tauri::image::Image::from_bytes(include_bytes!("../icons/128x128.png")).ok()
+                    })
+                    .or_else(|| {
+                        tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")).ok()
+                    });
+
+                if let Some(icon) = win_icon {
+                    let _ = window.set_icon(icon);
                 }
             }
 
             // System Tray Setup
-            let show_item = MenuItem::with_id(app, "show", "显示主界面 (Show 0rhxPlayer)", true, None::<&str>)?;
-            let play_pause_item = MenuItem::with_id(app, "play_pause", "播放 / 暂停 (Play/Pause)", true, None::<&str>)?;
-            let next_item = MenuItem::with_id(app, "next", "下一首 (Next Track)", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "显示主界面", true, None::<&str>)?;
+            let play_pause_item = MenuItem::with_id(app, "play_pause", "播放 / 暂停", true, None::<&str>)?;
+            let next_item = MenuItem::with_id(app, "next", "下一首", true, None::<&str>)?;
             let separator = PredefinedMenuItem::separator(app)?;
-            let quit_item = MenuItem::with_id(app, "quit", "退出应用 (Quit)", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "彻底退出", true, None::<&str>)?;
 
             let tray_menu = Menu::with_items(
                 app,
                 &[&show_item, &play_pause_item, &next_item, &separator, &quit_item],
             )?;
+
+            let tray_icon = app
+                .default_window_icon()
+                .cloned()
+                .or_else(|| {
+                    tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png")).ok()
+                })
+                .or_else(|| {
+                    tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")).ok()
+                });
 
             let mut tray_builder = TrayIconBuilder::new()
                 .menu(&tray_menu)
@@ -207,8 +227,8 @@ pub fn run() {
                     }
                 });
 
-            if let Some(icon) = app.default_window_icon() {
-                tray_builder = tray_builder.icon(icon.clone());
+            if let Some(icon) = tray_icon {
+                tray_builder = tray_builder.icon(icon);
             }
 
             let _ = tray_builder.build(app)?;
@@ -256,12 +276,14 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 let app = window.app_handle();
-                if let Some(state) = app.try_state::<AppState>() {
-                    let minimize_to_tray = state.minimize_to_tray.load(Ordering::SeqCst);
-                    if minimize_to_tray {
-                        api.prevent_close();
-                        let _ = window.hide();
-                    }
+                let minimize_to_tray = if let Some(state) = app.try_state::<AppState>() {
+                    state.minimize_to_tray.load(Ordering::SeqCst)
+                } else {
+                    true
+                };
+                if minimize_to_tray {
+                    api.prevent_close();
+                    let _ = window.hide();
                 }
             }
         })
