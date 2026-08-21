@@ -2,7 +2,7 @@
 <html lang="zh-CN" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <title id="pageTitle">0rhxPlayer - 轻量本地音乐播放器 (Desktop & VSCode)</title>
   <meta name="description" content="0rhxPlayer 是一个遵循 Material 3 设计的轻量本地音乐播放器，支持 Windows / Linux 桌面端与 VSCode 插件端。" />
   <meta name="keywords" content="0rhxPlayer, 音乐播放器, 本地音乐, Material You, Tauri, Rust, VSCode 插件, RinCynar" />
@@ -18,6 +18,7 @@
     :root {
       --bg: #F6F2F8;
       --bg-elevated: #EDE7F0;
+      --header-bg: rgba(246, 242, 248, 0.88);
       --surface: #FFFFFF;
       --surface-border: rgba(0, 0, 0, 0.08);
       --surface-hover: rgba(0, 0, 0, 0.04);
@@ -41,6 +42,7 @@
     html.dark {
       --bg: #131317;
       --bg-elevated: #1A1921;
+      --header-bg: rgba(19, 19, 23, 0.88);
       --surface: #1E1D24;
       --surface-border: rgba(255, 255, 255, 0.08);
       --surface-hover: rgba(255, 255, 255, 0.05);
@@ -65,6 +67,12 @@
       padding: 0;
     }
 
+    html, body {
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+
     body {
       background-color: var(--bg);
       color: var(--text-main);
@@ -72,7 +80,7 @@
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       transition: background-color 0.25s ease, color 0.25s ease;
-      overflow-x: hidden;
+      padding-top: 68px; /* Safe offset for fixed header */
     }
 
     a {
@@ -88,6 +96,7 @@
       align-items: center;
       justify-content: flex-start;
       box-sizing: border-box;
+      overflow-x: hidden;
     }
 
     .container {
@@ -95,52 +104,63 @@
       max-width: 1200px;
       margin-left: auto !important;
       margin-right: auto !important;
-      padding-left: 32px;
-      padding-right: 32px;
+      padding-left: 24px;
+      padding-right: 24px;
       box-sizing: border-box;
     }
 
-
-    /* Header */
+    /* Header - Responsive Full-Width Fixed Navbar */
     header {
-      position: sticky;
+      position: fixed;
       top: 0;
-      z-index: 100;
-      background-color: var(--bg);
+      left: 0;
+      right: 0;
+      width: 100%;
+      z-index: 1000;
+      background-color: var(--header-bg);
       border-bottom: 1px solid var(--surface-border);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: background-color 0.25s ease, border-color 0.25s ease;
     }
 
     .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      height: 68px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 72px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       font-weight: 700;
+      flex-shrink: 0;
     }
 
     .brand-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
       background: var(--primary-container);
       color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
 
     .brand-title {
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 800;
       letter-spacing: -0.02em;
+      line-height: 1.2;
     }
 
     .brand-tag {
@@ -150,12 +170,14 @@
       color: var(--text-sub);
       display: block;
       letter-spacing: 0.06em;
+      line-height: 1;
+      margin-top: 2px;
     }
 
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 18px;
+      gap: 14px;
       font-size: 0.875rem;
       font-weight: 500;
     }
@@ -176,22 +198,23 @@
     .controls-group {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      flex-shrink: 0;
     }
 
     .select-btn {
-      height: 38px;
-      padding: 0 14px;
+      height: 36px;
+      padding: 0 10px;
       border-radius: 9999px;
       border: 1px solid var(--surface-border);
       background: var(--surface);
       color: var(--text-main);
-      font-size: 0.8rem;
+      font-size: 0.775rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
       transition: all 0.2s;
       outline: none;
     }
@@ -202,8 +225,8 @@
     }
 
     .theme-btn {
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       border: 1px solid var(--surface-border);
       background: var(--surface);
@@ -213,6 +236,7 @@
       align-items: center;
       justify-content: center;
       transition: all 0.2s;
+      flex-shrink: 0;
     }
 
     .theme-btn:hover {
@@ -220,11 +244,32 @@
       border-color: var(--primary);
     }
 
+    .github-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--surface-border);
+      background: var(--surface);
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .github-btn:hover {
+      background: var(--surface-hover);
+      border-color: var(--primary);
+    }
+
     /* Hero */
     .hero {
       position: relative;
-      padding: 64px 0 44px;
+      padding: 56px 0 40px;
       text-align: center;
+      width: 100%;
     }
 
     .hero-glow {
@@ -232,8 +277,9 @@
       top: 35%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 520px;
-      height: 520px;
+      width: 480px;
+      height: 480px;
+      max-width: 90vw;
       border-radius: 50%;
       background: radial-gradient(circle, rgba(57, 197, 187, 0.18) 0%, rgba(57, 197, 187, 0) 70%);
       pointer-events: none;
@@ -258,6 +304,8 @@
       background: var(--primary-container);
       color: var(--primary);
       margin-bottom: 20px;
+      max-width: 100%;
+      text-align: center;
     }
 
     .hero h1 {
@@ -373,13 +421,14 @@
       width: 100%;
     }
 
-
+    /* Downloads Matrix - Equal Height & 2x2 Clean Grid */
     .card-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
       gap: 32px;
       align-items: stretch;
       margin-bottom: 56px;
+      width: 100%;
     }
 
     .card {
@@ -393,6 +442,7 @@
       justify-content: space-between;
       height: 100%;
       transition: transform 0.25s ease, border-color 0.25s ease;
+      box-sizing: border-box;
     }
 
     .card:hover {
@@ -487,6 +537,7 @@
       margin-top: auto;
       border-top: 1px solid var(--surface-border);
       padding-top: 20px;
+      width: 100%;
     }
 
     .download-grid-2x2 {
@@ -494,6 +545,7 @@
       grid-template-columns: 1fr 1fr;
       gap: 12px;
       width: 100%;
+      box-sizing: border-box;
     }
 
     .btn-m3 {
@@ -508,6 +560,7 @@
       justify-content: center;
       gap: 8px;
       white-space: nowrap;
+      box-sizing: border-box;
     }
 
     /* Screenshots Showcase - Global Centering & Breathing M3 Layout */
@@ -516,8 +569,8 @@
       max-width: 1200px;
       margin-left: auto !important;
       margin-right: auto !important;
-      padding-left: 32px;
-      padding-right: 32px;
+      padding-left: 24px;
+      padding-right: 24px;
       margin-top: 56px;
       margin-bottom: 72px;
       display: flex;
@@ -536,7 +589,6 @@
       box-sizing: border-box;
     }
 
-
     .screenshot-card {
       background: var(--surface);
       border: 1px solid var(--surface-border);
@@ -548,6 +600,7 @@
       justify-content: space-between;
       height: 100%;
       transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+      box-sizing: border-box;
     }
 
     .screenshot-card:hover {
@@ -602,6 +655,7 @@
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 24px;
       margin-bottom: 72px;
+      width: 100%;
     }
 
     .feature-box {
@@ -611,6 +665,7 @@
       padding: 28px;
       box-shadow: var(--card-shadow);
       transition: transform 0.2s;
+      box-sizing: border-box;
     }
 
     .feature-box:hover {
@@ -648,6 +703,7 @@
       text-align: center;
       font-size: 0.825rem;
       color: var(--text-sub);
+      width: 100%;
     }
 
     footer a {
@@ -659,22 +715,97 @@
       color: var(--primary);
     }
 
-    /* Responsive */
-    @media (max-width: 860px) {
+    /* Responsive Breakdown */
+    @media (max-width: 900px) {
       .hero h1 {
-        font-size: 2.2rem;
+        font-size: 2.3rem;
       }
       .screenshots-grid {
         grid-template-columns: 1fr;
-      }
-      .download-grid-2x2 {
-        grid-template-columns: 1fr;
+        gap: 24px;
       }
       .card-grid {
         grid-template-columns: 1fr;
+        gap: 24px;
       }
-      .nav-links .hide-sm {
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding-top: 64px;
+      }
+      .header-inner {
+        height: 64px;
+        padding: 0 16px;
+      }
+      .brand-tag {
         display: none;
+      }
+      .nav-links .hide-mobile {
+        display: none;
+      }
+      .hero {
+        padding: 40px 0 28px;
+      }
+      .hero h1 {
+        font-size: 1.85rem;
+        margin-bottom: 14px;
+      }
+      .hero p {
+        font-size: 0.925rem;
+        margin-bottom: 24px;
+      }
+      .hero-actions {
+        flex-direction: column;
+        width: 100%;
+      }
+      .hero-actions .btn {
+        width: 100%;
+      }
+      .container {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+      .card {
+        padding: 24px 18px;
+        border-radius: 24px;
+      }
+      .card-body {
+        padding: 16px 14px;
+        font-size: 0.8rem;
+      }
+      .download-grid-2x2 {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .download-grid-2x2 a[style*="grid-column: span 2"] {
+        grid-column: span 1 !important;
+      }
+      .btn-m3 {
+        height: 44px;
+        font-size: 0.8rem;
+      }
+      #screenshots, .screenshots-section {
+        padding-left: 16px;
+        padding-right: 16px;
+        margin-top: 40px;
+        margin-bottom: 56px;
+      }
+      .screenshot-card {
+        padding: 10px;
+        border-radius: 20px;
+      }
+      .screenshot-frame {
+        border-radius: 14px;
+      }
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-bottom: 56px;
+      }
+      .feature-box {
+        padding: 20px 18px;
+        border-radius: 20px;
       }
     }
   </style>
@@ -682,59 +813,57 @@
 
 <body>
 
-  <!-- Header -->
+  <!-- Header: Fixed Top Full-Width Navbar -->
   <header>
-    <div class="container">
-      <div class="header-inner">
-        <!-- Logo -->
-        <a href="#" class="brand">
-          <div class="brand-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-          </div>
-          <div>
-            <div class="brand-title">0rhxPlayer</div>
-            <span class="brand-tag">DESKTOP & VSCODE</span>
-          </div>
-        </a>
+    <div class="header-inner">
+      <!-- Logo & Brand -->
+      <a href="#" class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">0rhxPlayer</div>
+          <span class="brand-tag">DESKTOP & VSCODE</span>
+        </div>
+      </a>
 
-        <!-- Nav -->
-        <nav class="nav-links">
-          <a href="#downloads" class="nav-link hide-sm" id="navDownloads">下载中心</a>
-          <a href="#screenshots" class="nav-link hide-sm" id="navScreenshots">界面预览</a>
-          <a href="#features" class="nav-link hide-sm" id="navFeatures">特性</a>
-          <a href="https://github.com/RinCynar/0rhxPlayer-Desktop" target="_blank" class="nav-link">
+      <!-- Navigation & Controls -->
+      <div class="nav-links">
+        <a href="#downloads" class="nav-link hide-mobile" id="navDownloads">下载中心</a>
+        <a href="#screenshots" class="nav-link hide-mobile" id="navScreenshots">界面预览</a>
+        <a href="#features" class="nav-link hide-mobile" id="navFeatures">特性</a>
+
+        <!-- Controls: Lang Selector, Theme Toggle & GitHub -->
+        <div class="controls-group">
+          <select id="langSelect" class="select-btn" aria-label="Select Language">
+            <option value="zh">🇨🇳 中文</option>
+            <option value="en">🇺🇸 EN</option>
+            <option value="ja">🇯🇵 日本語</option>
+          </select>
+
+          <button id="themeToggle" class="theme-btn" title="切换深浅主题" aria-label="Toggle Theme">
+            <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </button>
+
+          <a href="https://github.com/RinCynar/0rhxPlayer-Desktop" target="_blank" class="github-btn" title="GitHub Repository" aria-label="GitHub Repository">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
             </svg>
-            <span class="hide-sm">GitHub</span>
           </a>
-
-          <!-- Controls: Language Select & Theme Switcher -->
-          <div class="controls-group">
-            <select id="langSelect" class="select-btn" aria-label="Select Language">
-              <option value="zh">🇨🇳 简体中文</option>
-              <option value="en">🇺🇸 English</option>
-              <option value="ja">🇯🇵 日本語</option>
-            </select>
-
-            <button id="themeToggle" class="theme-btn" title="切换深浅主题" aria-label="Toggle Theme">
-              <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="5"></circle>
-                <line x1="12" y1="1" x2="12" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="23"></line>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                <line x1="1" y1="12" x2="3" y2="12"></line>
-                <line x1="21" y1="12" x2="23" y2="12"></line>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-              </svg>
-            </button>
-          </div>
-        </nav>
+        </div>
       </div>
     </div>
   </header>
@@ -781,7 +910,7 @@
     </section>
 
     <!-- Downloads Matrix - Equal Height & 2x2 Grid -->
-    <section id="downloads" class="container" style="padding-top: 40px;">
+    <section id="downloads" class="container" style="padding-top: 24px;">
       <div class="section-title">
         <h2 id="dlSectionTitle">客户端与插件获取</h2>
         <p id="dlSectionSub">选择适合您系统的安装程序或免安装便携版本</p>
@@ -863,7 +992,6 @@
               </div>
             </div>
 
-
             <div class="card-body">
               <ul id="vscodeFeatureList">
                 <li>状态栏极简常驻控制器，敲代码不分心</li>
@@ -904,7 +1032,7 @@
       </div>
     </section>
 
-    <!-- Screenshots Showcase - Breathing M3 & Fixed Alignment -->
+    <!-- Screenshots Showcase - Breathing M3 & Global Centering -->
     <section id="screenshots" class="container screenshots-section">
       <div class="section-title">
         <h2 id="ssSectionTitle">应用实机预览</h2>
