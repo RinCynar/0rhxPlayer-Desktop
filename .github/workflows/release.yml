@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'windows-latest'
+            target: 'x86_64-pc-windows-msvc'
+            args: '--target x86_64-pc-windows-msvc'
+          - platform: 'windows-latest'
+            target: 'aarch64-pc-windows-msvc'
+            args: '--target aarch64-pc-windows-msvc'
+          - platform: 'ubuntu-22.04'
+            target: 'x86_64-unknown-linux-gnu'
+            args: '--target x86_64-unknown-linux-gnu'
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libssl-dev pkg-config
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Build frontend & Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: '0rhxPlayer v__VERSION__'
+          releaseBody: |
+            ## 0rhxPlayer v__VERSION__
+            
+            ### ✨ Features
+            - **Audiophile Hi-Res Engine**: WASAPI / DirectSound bit-perfect playback with non-blocking stream scheduler.
+            - **DSP Processing**: 10-Band Biquad Equalizer with hardware-level clarity.
+            - **Material You 3.0 Motion**: Complete M3 fluid transition curves and responsive layouts.
+            - **Cross-Platform Delivery**: Native Windows (x64 / arm64) and Linux AppImage packages.
+            
+            ### 🌐 Official Website & Documentation
+            Visit [0rhxPlayer.rincynar.top](https://0rhxPlayer.rincynar.top) for online docs and VSCode extensions.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

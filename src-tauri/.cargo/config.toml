@@ -1,0 +1,7 @@
+[build]
+jobs = 2
+incremental = false
+
+[env]
+CARGO_INCREMENTAL = "0"
+RUST_MIN_STACK = "67108864"

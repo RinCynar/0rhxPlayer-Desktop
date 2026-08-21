@@ -1,0 +1,45 @@
+[package]
+name = "app"
+version = "1.0.0"
+description = "0rhxPlayer Desktop"
+authors = ["RinCynar"]
+
+edition = "2021"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.5", features = [] }
+
+[dependencies]
+tauri = { version = "2.2.0", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2.2.0"
+tauri-plugin-opener = "2.2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+cpal = "0.15.3"
+symphonia = { version = "0.5.4", features = ["mp3", "flac", "wav", "aac", "vorbis", "isomp4", "alac", "pcm"] }
+lofty = "0.21.1"
+base64 = "0.22.1"
+tokio = { version = "1.43", features = ["rt", "time", "macros", "sync"] }
+crossbeam-channel = "0.5.14"
+uuid = { version = "1.13", features = ["v4"] }
+walkdir = "2.5.0"
+encoding_rs = "0.8.34"
+window-vibrancy = "0.5.2"
+log = "0.4"
+env_logger = "0.11"
+
+
+
+[profile.dev]
+opt-level = 0
+debug = 0
+incremental = false
+
+[profile.dev.package."*"]
+opt-level = 0
+debug = 0
+incremental = false

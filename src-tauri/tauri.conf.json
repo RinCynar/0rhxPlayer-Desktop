@@ -1,0 +1,53 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
+  "productName": "0rhxPlayer",
+  "version": "1.0.0",
+  "identifier": "com.rhx.player",
+
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "0rhxPlayer",
+        "width": 1180,
+        "height": 780,
+        "minWidth": 880,
+        "minHeight": 580,
+        "resizable": true,
+        "decorations": true,
+        "transparent": true,
+        "center": true
+      }
+
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ]
+  },
+  "plugins": {
+    "dialog": null,
+    "opener": null
+  }
+}

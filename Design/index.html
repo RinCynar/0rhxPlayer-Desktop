@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>0rhxPlayer Interactive Prototype</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React 18 & Babel CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- FontAwesome Icon Library -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts: Inter & Noto Sans JP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        m3: {
+                            bgDark: '#131317',
+                            surfaceDark: '#1C1B20',
+                            cardDark: '#28272F',
+                            primaryDark: '#D0BCFF',
+                            onPrimaryDark: '#381E72',
+                            primaryContainerDark: '#4F378B',
+                            secondaryDark: '#CCC2DC',
+
+                            bgLight: '#F6F2F8',
+                            surfaceLight: '#EDE7F0',
+                            cardLight: '#E2DBE8',
+                            primaryLight: '#6750A4',
+                            onPrimaryLight: '#FFFFFF',
+                            primaryContainerLight: '#EADDFF',
+                            secondaryLight: '#625B71',
+                            borderLight: 'rgba(0, 0, 0, 0.08)',
+                            borderDark: 'rgba(255, 255, 255, 0.08)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(150, 150, 150, 0.25);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(150, 150, 150, 0.4);
+        }
+        .m3-card-hover {
+            transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
+        .m3-card-hover:hover {
+            transform: translateY(-2px);
+        }
+        @keyframes spinSlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spinSlow 12s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-m3-bgDark text-gray-100 font-sans antialiased h-full overflow-hidden select-none">
+
+    <div id="root" class="h-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const I18N = {
+            zh: {
+                appName: "0rhxPlayer",
+                home: "首页",
+                library: "曲库",
+                search: "搜索",
+                queue: "播放队列",
+                playlist: "歌单",
+                settings: "设置",
+                dailyMix: "每日推荐",
+                featuredSection: "特色专题",
+                titles: "单曲",
+                artists: "歌手",
+                albums: "专辑",
+                folders: "文件夹",
+                updatedToday: "今天更新",
+                updatedYesterday: "昨天更新",
+                updatedDaysAgo: "2 天前更新",
+                nowPlayingTitle: "播放队列",
+                played: "已播放",
+                nexts: "即将播放",
+                hintedSearch: "搜索歌曲、歌手或专辑...",
+                profileSettings: "个人资料设置",
+                nickname: "用户昵称",
+                avatarLocal: "本地头像图片",
+                selectAvatarFile: "选择本地文件...",
+                resetAvatar: "恢复默认头像",
+                lyricAlign: "歌词对齐方式",
+                alignRight: "居右",
+                alignCenter: "居中",
+                alignLeft: "居左",
+                showRomaji: "显示罗马音/注音",
+                showTrans: "显示歌词翻译",
+                language: "界面语言",
+                languageSub: "设置应用界面显示语言",
+                themeMode: "主题模式",
+                dark: "深色模式",
+                light: "浅色模式",
+                audioEngine: "音频输出驱动引擎",
+                audioSpec: "输出规格",
+                greetingMorning: "早上好",
+                greetingAfternoon: "下午好",
+                greetingEvening: "晚上好",
+                greetingNight: "夜深了，注意休息",
+                emptyLibrary: "暂无本地音乐，点击侧栏浮动按钮导入文件夹",
+                showAll: "查看全部",
+                openFolder: "扫描文件夹",
+                importFiles: "导入文件",
+                noLyrics: "暂无歌词",
+                sectionAudioEngine: "音频驱动与 DSP 引擎",
+                resamplerAlgorithm: "重采样算法",
+                bufferSize: "缓冲区大小",
+                replayGainMode: "声级平准 (ReplayGain)",
+                cueAutoScan: "CUE 关联分轨解析",
+                sectionLibraryNav: "曲库与标签检索管线",
+                sectionInterface: "界面与视觉定制",
+                navRailCustom: "编辑侧边栏菜单",
+                navRailCustomDesc: "开启或勾选要在侧边栏中显示的导航项目",
+                windowEffect: "窗口背景材质",
+                globalHotkeys: "全局热键与媒体按键",
+                systemTray: "关闭时最小化到系统托盘",
+                enabled: "已启用",
+                disabled: "已禁用",
+                formatLabel: "音频格式",
+                bitrateLabel: "比特率",
+                engineLabel: "输出引擎",
+                featuredPlaylists: "精选专题歌单",
+                audiophileCol: "发烧级无损典藏系列",
+                searchTrackResults: "精选单曲搜索结果",
+                audioEngineSub: "独占/共享模式与低延迟驱动",
+                resamplerSub: "高精度重采样算法",
+                replayGainSub: "防止跨曲目音量突变与过载",
+                lyricAlignSub: "滚动歌词的版面排列习惯",
+                windowEffectSub: "窗口高斯模糊与云母材质",
+                systemTraySub: "关闭主窗口时挂起至系统托盘",
+                createPlaylist: "新建歌单",
+                myPlaylists: "我的歌单收藏",
+                favoritesPlaylist: "我最喜爱的音乐",
+                trackCount: "首曲目",
+                saveNavCustom: "保存更改",
+                romajiSub: "适用于日文假名/注音实时标注",
+                transSub: "切换主歌词下方的多语言翻译行"
+            },
+            en: {
+                appName: "0rhxPlayer",
+                home: "Home",
+                library: "Library",
+                search: "Search",
+                queue: "Queue",
+                playlist: "Playlists",
+                settings: "Settings",
+                dailyMix: "Daily Mix",
+                featuredSection: "Featured Section",
+                titles: "Titles",
+                artists: "Artists",
+                albums: "Albums",
+                folders: "Folders",
+                updatedToday: "Updated today",
+                updatedYesterday: "Updated yesterday",
+                updatedDaysAgo: "Updated 2 days ago",
+                nowPlayingTitle: "Playback Queue",
+                played: "Played",
+                nexts: "Nexts",
+                hintedSearch: "Search tracks, artists or albums...",
+                profileSettings: "Profile Settings",
+                nickname: "Nickname",
+                avatarLocal: "Local Avatar File",
+                selectAvatarFile: "Choose File...",
+                resetAvatar: "Reset Default Avatar",
+                lyricAlign: "Lyrics Alignment",
+                alignRight: "Right",
+                alignCenter: "Center",
+                alignLeft: "Left",
+                showRomaji: "Show Romaji/Phonetics",
+                showTrans: "Show Lyrics Translation",
+                language: "App Language",
+                languageSub: "Select application display language",
+                themeMode: "Theme Mode",
+                dark: "Dark",
+                light: "Light",
+                audioEngine: "Audio Driver Engine",
+                audioSpec: "Output Specs",
+                greetingMorning: "Good morning",
+                greetingAfternoon: "Good afternoon",
+                greetingEvening: "Good evening",
+                greetingNight: "Late night, remember to rest",
+                emptyLibrary: "No local audio found. Click the FAB button to import.",
+                showAll: "Show all",
+                openFolder: "Scan Folder",
+                importFiles: "Import Files",
+                noLyrics: "No lyrics available",
+                sectionAudioEngine: "Audio Engine & DSP Pipeline",
+                resamplerAlgorithm: "Resampler Algorithm",
+                bufferSize: "Buffer Size",
+                replayGainMode: "ReplayGain Loudness",
+                cueAutoScan: "CUE Sheet Auto-indexing",
+                sectionLibraryNav: "Library & Metadata Pipeline",
+                sectionInterface: "Interface & Customization",
+                navRailCustom: "Customize Navigation Rail",
+                navRailCustomDesc: "Select visible navigation items on the side rail",
+                windowEffect: "Window Material Effect",
+                globalHotkeys: "Global Hotkeys & Media Keys",
+                systemTray: "Minimize to system tray on close",
+                enabled: "Enabled",
+                disabled: "Disabled",
+                formatLabel: "Format",
+                bitrateLabel: "Bitrate",
+                engineLabel: "Audio Driver",
+                featuredPlaylists: "Featured Playlists",
+                audiophileCol: "Lossless Audiophile Collection",
+                searchTrackResults: "Featured Track Results",
+                audioEngineSub: "Exclusive/Shared low latency output",
+                resamplerSub: "High precision audio resampling",
+                replayGainSub: "Prevent sudden loudness jumps across tracks",
+                lyricAlignSub: "Layout pattern for synchronized lyrics",
+                windowEffectSub: "Mica or Acrylic window blur",
+                systemTraySub: "Keep playing in tray when closed",
+                createPlaylist: "Create Playlist",
+                myPlaylists: "My Playlists",
+                favoritesPlaylist: "My Favorite Tracks",
+                trackCount: "tracks",
+                saveNavCustom: "Save Changes",
+                romajiSub: "Show phonetic annotations for Japanese or foreign lyrics",
+                transSub: "Toggle translated lyric lines below main text"
+            },
+            ja: {
+                appName: "0rhxPlayer",
+                home: "ホーム",
+                library: "ライブラリ",
+                search: "検索",
+                queue: "再生キュー",
+                playlist: "プレイリスト",
+                settings: "設定",
+                dailyMix: "デイリーミックス",
+                featuredSection: "特集セクション",
+                titles: "曲名",
+                artists: "アーティスト",
+                albums: "アルバム",
+                folders: "フォルダ",
+                updatedToday: "本日更新",
+                updatedYesterday: "昨日更新",
+                updatedDaysAgo: "2日前に更新",
+                nowPlayingTitle: "再生キュー",
+                played: "再生済み",
+                nexts: "次再生",
+                hintedSearch: "曲、歌手、アルバムを検索...",
+                profileSettings: "プロフィール設定",
+                nickname: "ユーザー名",
+                avatarLocal: "ローカルアバター画像",
+                selectAvatarFile: "ローカルファイル選択...",
+                resetAvatar: "デフォルトに戻す",
+                lyricAlign: "歌詞の配置",
+                alignRight: "右揃え",
+                alignCenter: "中央揃え",
+                alignLeft: "左揃え",
+                showRomaji: "ローマ字/ルビ表示",
+                showTrans: "歌詞の翻訳表示",
+                language: "表示言語",
+                languageSub: "アプリの表示言語を選択",
+                themeMode: "テーマモード",
+                dark: "ダーク",
+                light: "ライト",
+                audioEngine: "オーディオドライバー",
+                audioSpec: "出力スペック",
+                greetingMorning: "おはようございます",
+                greetingAfternoon: "こんにちは",
+                greetingEvening: "こんばんは",
+                greetingNight: "夜深です，おやすみなさい",
+                emptyLibrary: "ローカル曲がありません。ボタンからフォルダを追加してください。",
+                showAll: "すべて表示",
+                openFolder: "フォルダをスキャン",
+                importFiles: "ファイルを追加",
+                noLyrics: "歌詞がありません",
+                sectionAudioEngine: "オーディオエンジン & DSP",
+                resamplerAlgorithm: "リサンプラーアルゴリズム",
+                bufferSize: "バッファサイズ",
+                replayGainMode: "ReplayGain 音量平准化",
+                cueAutoScan: "CUE シート自動読み込み",
+                sectionLibraryNav: "ライブラリとタグ検索",
+                sectionInterface: "UI & テーマのカスタム",
+                navRailCustom: "ナビゲーションバーの編集",
+                navRailCustomDesc: "表示項目をカスタマイズできます",
+                windowEffect: "ウィンドウ背景エフェクト",
+                globalHotkeys: "グローバルショートカット",
+                systemTray: "終了時にトレイに最小化",
+                enabled: "有効",
+                disabled: "無効",
+                formatLabel: "フォーマット",
+                bitrateLabel: "ビットレート",
+                engineLabel: "出力エンジン",
+                featuredPlaylists: "注目のプレイリスト",
+                audiophileCol: "ハイレゾ高音質コレクション",
+                searchTrackResults: "検索結果（トラック）",
+                audioEngineSub: "排他/共有モードと低遅延出力",
+                resamplerSub: "高精度リサンプリングアルゴリズム",
+                replayGainSub: "トラック間の音量急变を防止",
+                lyricAlignSub: "同期歌詞のテキスト配置",
+                windowEffectSub: "Micaやアクリルなどのウィンドウ背景",
+                systemTraySub: "終了時にバックグラウンドで継続",
+                createPlaylist: "新規プレイリスト",
+                myPlaylists: "マイプレイリスト",
+                favoritesPlaylist: "お気に入り曲集",
+                trackCount: "曲",
+                saveNavCustom: "変更を保存",
+                romajiSub: "日本語仮名ルビ/ローマ字の表示",
+                transSub: "メイン歌詞下の多言語翻訳表示を切り替え"
+            }
+        };
+
+        const MOCK_TRACKS = [
+            {
+                id: "tr_1",
+                title: "Hotel California (Live)",
+                artist: "Eagles",
+                album: "Hell Freezes Over",
+                duration: 390,
+                format: "FLAC 24bit/96kHz",
+                bitrate: "2840 kbps",
+                rating: 5,
+                favorite: true,
+                updatedTextKey: "updatedToday",
+                cover: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&auto=format&fit=crop&q=80",
+                lyrics: [
+                    { time: 5, text: "On a dark desert highway, cool wind in my hair", trans: { zh: "行驶在漆黑的沙漠公路，凉风吹拂着我的头发", ja: "暗い砂漠のハイウェイを走り、冷たい風が髪を吹き抜ける", en: "Driving on a dark desert highway with cool wind in my hair" } },
+                    { time: 12, text: "Warm smell of colitas, rising up through the air", trans: { zh: "空气中弥漫着温热的鼠尾草香味", ja: "コリータの暖かい香りが空気中に立ち上る", en: "Warm smell of colitas rising up through the air" } },
+                    { time: 20, text: "Up ahead in the distance, I saw a shimmering light", trans: { zh: "遥望前方的远方，我看见微微闪烁的灯光", ja: "前方遥か遠くに、揺らめく光が見えた", en: "Up ahead in the distance I saw a shimmering light" } },
+                    { time: 28, text: "My head grew heavy and my sight grew dim", trans: { zh: "我的头脑变得昏沉，双眼变得模糊", ja: "頭が重くなり、視界がかすんできた", en: "My head grew heavy and my sight grew dim" } },
+                    { time: 35, text: "I had to stop for the night...", trans: { zh: "我必须停下来度过今夜...", ja: "今夜は立ち寄らなければならなかった...", en: "I had to stop for the night..." } },
+                    { time: 45, text: "Welcome to the Hotel California!", trans: { zh: "欢迎来到加州旅馆！", ja: "ホテル・カリフォルニアへようこそ！", en: "Welcome to the Hotel California!" } },
+                    { time: 55, text: "Such a lovely place, such a lovely face", trans: { zh: "多么美丽的地方，多么可爱的笑脸", ja: "なんて素敵な場所、なんて可愛らしい顔", en: "Such a lovely place, such a lovely face" } }
+                ]
+            },
+            {
+                id: "tr_2",
+                title: "渡口 (Ferry Port)",
+                artist: "蔡琴 (Tsai Chin)",
+                album: "民歌蔡琴",
+                duration: 215,
+                format: "WAV 24bit/192kHz",
+                bitrate: "4608 kbps",
+                rating: 5,
+                favorite: true,
+                updatedTextKey: "updatedYesterday",
+                cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80",
+                lyrics: [
+                    { time: 5, text: "让我不停地把影子踩在脚下", roma: "rang wo bu ting de ba ying zi cai zai jiao xia", trans: { zh: "让我不停地把影子踩在脚下", en: "Let me step on shadows without stopping", ja: "影を止まることなく踏ませてください" } },
+                    { time: 12, text: "让我在这夜里轻轻地说一声再见", roma: "rang wo zai zhe ye li qing qing de shuo yi sheng zai jian", trans: { zh: "让我在这夜里轻轻地说一声再见", en: "Let me softly say goodbye in this quiet night", ja: "この静かな夜にそっとさよならを言わせて" } },
+                    { time: 20, text: "渡口旁找不到相拥的理由", roma: "du kou pang zhao bu dao xiang yong de li you", trans: { zh: "渡口旁找不到相拥的理由", en: "Finding no reason for a hug beside the ferry terminal", ja: "渡し船のそばで抱き合う理由が見つからない" } }
+                ]
+            },
+            {
+                id: "tr_3",
+                title: "Cyberpunk Night Drive",
+                artist: "SynthWave Pro",
+                album: "Neon Dreams 2088",
+                duration: 240,
+                format: "FLAC 16bit/44.1kHz",
+                bitrate: "1024 kbps",
+                rating: 4,
+                favorite: false,
+                updatedTextKey: "updatedDaysAgo",
+                cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&auto=format&fit=crop&q=80",
+                lyrics: []
+            }
+        ];
+
+        const MOCK_PLAYLISTS = [
+            {
+                id: "pl_1",
+                name: "我最喜爱的音乐",
+                count: 128,
+                cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80",
+                updated: "今天更新"
+            },
+            {
+                id: "pl_2",
+                name: "Hi-Res 无损发烧典藏集",
+                count: 42,
+                cover: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&auto=format&fit=crop&q=80",
+                updated: "3 天前"
+            },
+            {
+                id: "pl_3",
+                name: "ACG 动画原声 & 东方神曲",
+                count: 89,
+                cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&auto=format&fit=crop&q=80",
+                updated: "昨天"
+            }
+        ];
+
+        const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80";
+
+        const ALL_NAV_ITEMS = [
+            { id: 'home', icon: 'fa-star', labelKey: 'home' },
+            { id: 'library', icon: 'fa-folder', labelKey: 'library' },
+            { id: 'search', icon: 'fa-magnifying-glass', labelKey: 'search' },
+            { id: 'queue', icon: 'fa-list-ol', labelKey: 'queue' },
+            { id: 'playlist', icon: 'fa-compact-disc', labelKey: 'playlist' }
+        ];
+
+        function App() {
+            // App State
+            const [activeTab, setActiveTab] = useState('home'); 
+            const [lang, setLang] = useState('zh');
+            const [theme, setTheme] = useState('dark');
+            const [lyricsAlign, setLyricsAlign] = useState('center'); 
+            const [showRomaji, setShowRomaji] = useState(true); 
+            const [showTrans, setShowTrans] = useState(true); 
+            const [isNavCollapsed, setIsNavCollapsed] = useState(false); 
+            
+            // 侧边栏可定制项状态 (功能完全可用)
+            const [visibleNavIds, setVisibleNavIds] = useState(['home', 'library', 'search', 'queue', 'playlist']);
+            const [tempNavIds, setTempNavIds] = useState(['home', 'library', 'search', 'queue', 'playlist']);
+            const [isEditingNav, setIsEditingNav] = useState(false); 
+            
+            // User Profile
+            const [userProfile, setUserProfile] = useState({
+                nickname: 'RinCynar',
+                avatar: DEFAULT_AVATAR
+            });
+
+            // Audio Settings State
+            const [audioSettings, setAudioSettings] = useState({
+                driver: 'WASAPI Exclusive',
+                resampler: 'SoX Resampler High Quality',
+                bufferMs: 100,
+                replayGain: 'Track Mode (-18 LUFS)',
+                cueAutoScan: true,
+                windowEffect: 'Mica Alt',
+                globalHotkeys: true,
+                systemTray: true
+            });
+
+            // Player State
+            const [currentTrackIdx, setCurrentTrackIdx] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(true);
+            const [currentTime, setCurrentTime] = useState(18);
+            const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+            const [playlistSubTab, setPlaylistSubTab] = useState('played'); 
+            const [libFilterChip, setLibFilterChip] = useState('titles'); 
+            const [tracks, setTracks] = useState(MOCK_TRACKS);
+            const [userPlaylists, setUserPlaylists] = useState(MOCK_PLAYLISTS);
+
+            const fileInputRef = useRef(null);
+            const t = I18N[lang] || I18N.zh;
+            const currentTrack = tracks[currentTrackIdx] || tracks[0];
+
+            useEffect(() => {
+                const root = document.documentElement;
+                if (theme === 'dark') {
+                    root.classList.add('dark');
+                } else {
+                    root.classList.remove('dark');
+                }
+            }, [theme]);
+
+            // Timer Loop
+            useEffect(() => {
+                let interval = null;
+                if (isPlaying) {
+                    interval = setInterval(() => {
+                        setCurrentTime(prev => {
+                            if (prev >= currentTrack.duration) return 0;
+                            return prev + 1;
+                        });
+                    }, 1000);
+                } else {
+                    clearInterval(interval);
+                }
+                return () => clearInterval(interval);
+            }, [isPlaying, currentTrack]);
+
+            const getGreeting = () => {
+                const hour = new Date().getHours();
+                if (hour >= 5 && hour < 12) return t.greetingMorning;
+                if (hour >= 12 && hour < 18) return t.greetingAfternoon;
+                if (hour >= 18 && hour < 23) return t.greetingEvening;
+                return t.greetingNight;
+            };
+
+            const toggleFavorite = (idx) => {
+                const updated = [...tracks];
+                updated[idx].favorite = !updated[idx].favorite;
+                setTracks(updated);
+            };
+
+            const setRating = (idx, rating) => {
+                const updated = [...tracks];
+                updated[idx].rating = rating;
+                setTracks(updated);
+            };
+
+            const handleAvatarSelect = (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        setUserProfile(prev => ({ ...prev, avatar: event.target.result }));
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const toggleNavItemInCustomizer = (id) => {
+                if (id === 'home') return; // Home 强制保留
+                if (tempNavIds.includes(id)) {
+                    setTempNavIds(tempNavIds.filter(item => item !== id));
+                } else {
+                    setTempNavIds([...tempNavIds, id]);
+                }
+            };
+
+            const saveNavCustomization = () => {
+                setVisibleNavIds(tempNavIds);
+                if (!tempNavIds.includes(activeTab)) {
+                    setActiveTab('home');
+                }
+                setIsEditingNav(false);
+            };
+
+            return (
+                <div className={`h-full flex flex-col ${theme === 'dark' ? 'bg-m3-bgDark text-gray-100' : 'bg-m3-bgLight text-gray-900'} transition-colors duration-300`}>
+                    
+                    {/* Top Main Work Area */}
+                    <div className="flex-1 flex overflow-hidden relative">
+                        
+                        {/* 左侧 Navigation Rail */}
+                        <aside className={`${isNavCollapsed ? 'w-18' : 'w-56'} ${theme === 'dark' ? 'bg-m3-surfaceDark border-m3-borderDark' : 'bg-m3-surfaceLight border-m3-borderLight'} border-r flex flex-col justify-between py-5 shrink-0 z-20 transition-all duration-300`}>
+                            <div className="flex flex-col gap-4 w-full px-3">
+                                {/* 顶部品牌与控制面板 */}
+                                <div className="flex items-center justify-between px-2">
+                                    {!isNavCollapsed && (
+                                        <span className="font-extrabold text-base tracking-wider text-m3-primaryLight dark:text-m3-primaryDark truncate">
+                                            {t.appName}
+                                        </span>
+                                    )}
+                                    <button 
+                                        onClick={() => setIsNavCollapsed(!isNavCollapsed)}
+                                        title={isNavCollapsed ? "Expand Rail" : "Collapse Rail"}
+                                        className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition shrink-0 mx-auto md:mx-0"
+                                    >
+                                        <i className={`fa-solid ${isNavCollapsed ? 'fa-indent' : 'fa-outdent'} text-base opacity-80`}></i>
+                                    </button>
+                                </div>
+
+                                {/* 编辑侧栏功能按钮 */}
+                                <button 
+                                    onClick={() => { setTempNavIds([...visibleNavIds]); setIsEditingNav(true); }}
+                                    title={t.navRailCustom}
+                                    className={`rounded-2xl bg-m3-primaryContainerLight dark:bg-m3-primaryContainerDark text-m3-primaryLight dark:text-m3-primaryDark flex items-center hover:scale-[1.02] active:scale-95 transition shadow-sm ${isNavCollapsed ? 'w-11 h-11 justify-center mx-auto' : 'w-full px-4 py-2.5 space-x-3'}`}
+                                >
+                                    <i className="fa-solid fa-pen text-sm"></i>
+                                    {!isNavCollapsed && <span className="text-xs font-semibold">{t.navRailCustom}</span>}
+                                </button>
+
+                                {/* Nav Items (真正支持自定义选择性显示) */}
+                                <nav className="flex flex-col gap-1.5 w-full mt-2">
+                                    {ALL_NAV_ITEMS.filter(item => visibleNavIds.includes(item.id)).map(item => {
+                                        const isActive = activeTab === item.id;
+                                        const labelText = t[item.labelKey];
+                                        return (
+                                            <button 
+                                                key={item.id}
+                                                onClick={() => setActiveTab(item.id)}
+                                                className={`flex items-center rounded-2xl transition group ${isNavCollapsed ? 'justify-center py-2.5' : 'px-3.5 py-3 space-x-3 text-left'} ${isActive ? 'bg-m3-primaryContainerLight dark:bg-m3-primaryContainerDark text-m3-primaryLight dark:text-m3-primaryDark font-bold' : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                            >
+                                                <div className={`w-9 h-7 rounded-full flex items-center justify-center shrink-0 ${isActive ? 'bg-m3-primaryLight dark:bg-m3-primaryDark text-white dark:text-m3-onPrimaryDark' : ''}`}>
+                                                    <i className={`fa-solid ${item.icon} text-sm`}></i>
+                                                </div>
+                                                {!isNavCollapsed && (
+                                                    <span className="text-sm truncate">{labelText}</span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </nav>
+                            </div>
+
+                            {/* 底部设置入口 */}
+                            <div className="px-3">
+                                <button 
+                                    onClick={() => setActiveTab('settings')}
+                                    title={t.settings}
+                                    className={`w-full flex items-center rounded-2xl transition p-2.5 ${isNavCollapsed ? 'justify-center' : 'space-x-3 px-3.5 py-3'} ${activeTab === 'settings' ? 'bg-m3-primaryContainerLight dark:bg-m3-primaryContainerDark text-m3-primaryLight dark:text-m3-primaryDark font-bold' : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                >
+                                    <i className="fa-solid fa-gear text-base shrink-0"></i>
+                                    {!isNavCollapsed && <span className="text-sm truncate">{t.settings}</span>}
+                                </button>
+                            </div>
+                        </aside>
+
+                        {}
+                        <main className="flex-1 flex flex-col relative overflow-hidden p-8 overflow-y-auto">
+                            
+                            {/* --- TAB 1: HOME PAGE --- */}
+                            {activeTab === 'home' && (
+                                <div className="max-w-6xl w-full mx-auto space-y-8 animate-fadeIn">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-4">
+                                            <img 
+                                                src={userProfile.avatar} 
+                                                className="w-12 h-12 rounded-full object-cover border-2 border-m3-primaryDark cursor-pointer hover:scale-105 transition shadow-md"
+                                                onClick={() => setActiveTab('settings')}
+                                            />
+                                            <div>
+                                                <h1 className="text-2xl font-bold tracking-tight">{userProfile.nickname}</h1>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-medium">
+                                                    {getGreeting()}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <button 
+                                            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                                            className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition"
+                                        >
+                                            <i className={`fa-solid ${theme === 'dark' ? 'fa-sun text-amber-400' : 'fa-moon text-indigo-600'}`}></i>
+                                        </button>
+                                    </div>
+
+                                    {/* Daily Mix */}
+                                    <div>
+                                        <div className="flex items-center space-x-2 text-lg font-bold mb-4 cursor-pointer group">
+                                            <span>{t.dailyMix}</span>
+                                            <i className="fa-solid fa-arrow-right text-sm group-hover:translate-x-1 transition-transform"></i>
+                                        </div>
+                                        <div className="flex items-center gap-6 overflow-x-auto pb-2">
+                                            {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+                                                <div key={num} className="flex flex-col items-center shrink-0 cursor-pointer group">
+                                                    <div className="w-24 h-24 rounded-full bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark flex items-center justify-center group-hover:scale-105 transition shadow-sm relative overflow-hidden">
+                                                        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-m3-primaryDark">
+                                                            <i className="fa-solid fa-compact-disc text-xl animate-spin-slow"></i>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-xs font-medium mt-2 opacity-80 group-hover:opacity-100">{t.dailyMix} #{num}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Featured Section */}
+                                    <div>
+                                        <div className="flex items-center space-x-2 text-lg font-bold mb-4 cursor-pointer group">
+                                            <span>{t.featuredSection}</span>
+                                            <i className="fa-solid fa-arrow-right text-sm group-hover:translate-x-1 transition-transform"></i>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                                            {tracks.slice(0, 3).map((tr, idx) => (
+                                                <div 
+                                                    key={tr.id} 
+                                                    onClick={() => { setCurrentTrackIdx(idx); setIsPlaying(true); }}
+                                                    className="bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark p-4 rounded-3xl cursor-pointer m3-card-hover group relative overflow-hidden flex flex-col justify-between h-56"
+                                                >
+                                                    <div className="w-full h-32 rounded-2xl overflow-hidden relative">
+                                                        <img src={tr.cover} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                                                    </div>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <div>
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400">{tr.artist}</div>
+                                                            <div className="font-semibold text-sm truncate max-w-[160px]">{tr.title}</div>
+                                                        </div>
+                                                        <button className="w-10 h-10 rounded-full bg-m3-primaryLight dark:bg-m3-primaryDark text-white dark:text-m3-onPrimaryDark flex items-center justify-center shadow-lg group-hover:scale-110 transition">
+                                                            <i className="fa-solid fa-play text-xs pl-0.5"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* --- TAB 2: LIBRARY PAGE --- */}
+                            {activeTab === 'library' && (
+                                <div className="max-w-6xl w-full mx-auto space-y-6 animate-fadeIn">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-3">
+                                            <button className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 transition">
+                                                <i className="fa-solid fa-arrow-left text-sm"></i>
+                                            </button>
+                                            <h1 className="text-3xl font-bold tracking-tight">{t.library}</h1>
+                                        </div>
+                                        <button className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 transition">
+                                            <i className="fa-solid fa-ellipsis-vertical text-sm"></i>
+                                        </button>
+                                    </div>
+
+                                    {/* Filter Chips */}
+                                    <div className="flex items-center space-x-3 overflow-x-auto pb-1">
+                                        {['titles', 'artists', 'albums', 'folders'].map((chip) => (
+                                            <button
+                                                key={chip}
+                                                onClick={() => setLibFilterChip(chip)}
+                                                className={`px-4 py-1.5 rounded-xl text-xs font-medium transition flex items-center space-x-1.5 border ${libFilterChip === chip ? 'bg-m3-primaryContainerLight dark:bg-m3-primaryContainerDark border-m3-primaryLight dark:border-m3-primaryDark text-m3-primaryLight dark:text-m3-primaryDark' : 'bg-transparent border-m3-borderLight dark:border-m3-borderDark opacity-70 hover:opacity-100'}`}
+                                            >
+                                                {libFilterChip === chip && <i className="fa-solid fa-check text-[10px]"></i>}
+                                                <span>{t[chip]}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Grid Cards */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+                                        {tracks.map((tr, idx) => (
+                                            <div 
+                                                key={tr.id} 
+                                                onClick={() => { setCurrentTrackIdx(idx); setIsPlaying(true); }}
+                                                className="bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark p-3.5 rounded-3xl cursor-pointer m3-card-hover group"
+                                            >
+                                                <div className="relative aspect-square rounded-2xl overflow-hidden mb-3">
+                                                    <img src={tr.cover} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                                                    <span className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] font-mono text-amber-300 border border-white/10">
+                                                        FLAC
+                                                    </span>
+                                                </div>
+                                                <div className="font-semibold text-sm truncate">{tr.title}</div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t[tr.updatedTextKey]}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {}
+                            {/* --- TAB 3: QUEUE PAGE (播放队列) --- */}
+                            {activeTab === 'queue' && (
+                                <div className="max-w-6xl w-full mx-auto space-y-6 animate-fadeIn">
+                                    <div className="relative h-64 rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-black p-8 flex flex-col justify-end">
+                                        <img src={currentTrack.cover} className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay" />
+                                        <div className="relative z-10">
+                                            <h1 className="text-4xl font-extrabold tracking-tight text-white">{t.nowPlayingTitle}</h1>
+                                            <p className="text-sm text-gray-300 mt-1">{currentTrack.artist} • {currentTrack.album}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-center">
+                                        <div className="bg-m3-cardLight dark:bg-m3-cardDark p-1 rounded-full border border-m3-borderLight dark:border-m3-borderDark flex items-center space-x-1">
+                                            <button 
+                                                onClick={() => setPlaylistSubTab('played')}
+                                                className={`px-6 py-2 rounded-full text-xs font-semibold transition ${playlistSubTab === 'played' ? 'bg-m3-primaryLight dark:bg-m3-primaryDark text-white dark:text-m3-onPrimaryDark shadow-md' : 'opacity-70 hover:opacity-100'}`}
+                                            >
+                                                ✓ {t.played}
+                                            </button>
+                                            <button 
+                                                onClick={() => setPlaylistSubTab('nexts')}
+                                                className={`px-6 py-2 rounded-full text-xs font-semibold transition ${playlistSubTab === 'nexts' ? 'bg-m3-primaryLight dark:bg-m3-primaryDark text-white dark:text-m3-onPrimaryDark shadow-md' : 'opacity-70 hover:opacity-100'}`}
+                                            >
+                                                {t.nexts}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {tracks.map((tr, idx) => (
+                                            <div 
+                                                key={tr.id}
+                                                className="bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark p-4 rounded-2xl flex items-center justify-between hover:border-m3-primaryDark transition group"
+                                            >
+                                                <div className="flex items-center space-x-4 cursor-pointer" onClick={() => { setCurrentTrackIdx(idx); setIsPlaying(true); }}>
+                                                    <img src={tr.cover} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                                                    <div>
+                                                        <div className="font-semibold text-sm group-hover:text-m3-primaryDark transition">{tr.title}</div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{tr.artist}</div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center space-x-6">
+                                                    <div className="flex items-center space-x-1">
+                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                            <i 
+                                                                key={star} 
+                                                                onClick={() => setRating(idx, star)}
+                                                                className={`fa-star text-xs cursor-pointer transition ${star <= tr.rating ? 'fa-solid text-amber-400' : 'fa-regular opacity-30 hover:opacity-70'}`}
+                                                            ></i>
+                                                        ))}
+                                                    </div>
+                                                    <button onClick={() => toggleFavorite(idx)} className="text-base transition hover:scale-110">
+                                                        <i className={`${tr.favorite ? 'fa-solid text-red-500' : 'fa-regular opacity-40 hover:opacity-80'} fa-heart`}></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {}
+                            {/* --- TAB 4: PLAYLIST PAGE (全新独立歌单页) --- */}
+                            {activeTab === 'playlist' && (
+                                <div className="max-w-6xl w-full mx-auto space-y-6 animate-fadeIn">
+                                    <div className="flex items-center justify-between">
+                                        <h1 className="text-3xl font-bold tracking-tight">{t.myPlaylists}</h1>
+                                        <button className="px-4 py-2.5 rounded-full bg-m3-primaryLight dark:bg-m3-primaryDark text-white dark:text-m3-onPrimaryDark text-xs font-semibold flex items-center gap-2 shadow-md hover:scale-105 transition">
+                                            <i className="fa-solid fa-plus"></i>
+                                            <span>{t.createPlaylist}</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                                        {userPlaylists.map((pl) => (
+                                            <div 
+                                                key={pl.id}
+                                                className="bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark p-5 rounded-3xl cursor-pointer m3-card-hover group flex flex-col justify-between h-64 relative overflow-hidden"
+                                            >
+                                                <div className="w-full h-36 rounded-2xl overflow-hidden relative mb-3">
+                                                    <img src={pl.cover} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                                                    <span className="absolute bottom-2.5 left-3 text-white text-xs font-semibold flex items-center gap-1.5">
+                                                        <i className="fa-solid fa-music"></i>
+                                                        {pl.count} {t.trackCount}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <div className="font-bold text-base truncate">{pl.name}</div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{pl.updated}</div>
+                                                    </div>
+                                                    <button className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-m3-primaryDark hover:text-m3-onPrimaryDark transition">
+                                                        <i className="fa-solid fa-play text-xs pl-0.5"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* --- TAB 5: SEARCH PAGE --- */}
+                            {activeTab === 'search' && (
+                                <div className="max-w-6xl w-full mx-auto space-y-6 animate-fadeIn">
+                                    <div className="flex justify-end">
+                                        <div className="relative w-80">
+                                            <i className="fa-solid fa-magnifying-glass absolute right-4 top-3 text-sm opacity-50"></i>
+                                            <input 
+                                                type="text" 
+                                                placeholder={t.hintedSearch} 
+                                                className="w-full bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark rounded-full px-5 py-2.5 text-xs focus:outline-none focus:border-m3-primaryDark transition pr-10"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <h1 className="text-3xl font-bold tracking-tight">{t.search}</h1>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                        {[1, 2, 3].map((item) => (
+                                            <div key={item} className="bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark h-40 rounded-3xl p-5 flex flex-col justify-end cursor-pointer hover:border-m3-primaryDark transition">
+                                                <div className="text-xs text-m3-primaryDark font-semibold">{t.featuredPlaylists} #{item}</div>
+                                                <div className="text-base font-bold mt-1">{t.audiophileCol}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="space-y-3 pt-4">
+                                        <div className="flex items-center justify-between text-sm font-bold">
+                                            <span>{t.searchTrackResults}</span>
+                                            <button className="text-xs text-m3-primaryDark hover:underline">{t.showAll}</button>
+                                        </div>
+                                        {tracks.map((tr) => (
+                                            <div key={tr.id} className="bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark p-3.5 rounded-2xl flex items-center justify-between">
+                                                <div className="flex items-center space-x-3.5">
+                                                    <img src={tr.cover} className="w-10 h-10 rounded-lg object-cover" />
+                                                    <div>
+                                                        <div className="font-semibold text-sm">{tr.title}</div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400">{tr.artist} • {tr.album}</div>
+                                                    </div>
+                                                </div>
+                                                <button className="w-8 h-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center">
+                                                    <i className="fa-solid fa-ellipsis-vertical text-xs opacity-70"></i>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* --- TAB 6: SETTINGS PAGE --- */}
+                            {activeTab === 'settings' && (
+                                <div className="max-w-3xl w-full mx-auto space-y-6 animate-fadeIn pb-12">
+                                    <div className="flex items-center space-x-3">
+                                        <button onClick={() => setActiveTab('home')} className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 transition">
+                                            <i className="fa-solid fa-arrow-left text-sm"></i>
+                                        </button>
+                                        <h1 className="text-3xl font-bold tracking-tight">{t.settings}</h1>
+                                    </div>
+
+                                    <div className="space-y-5">
+                                        {/* 1. 个人资料编辑 */}
+                                        <div className="bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark p-5 rounded-3xl space-y-4">
+                                            <h2 className="text-sm font-bold text-m3-primaryLight dark:text-m3-primaryDark flex items-center gap-2">
+                                                <i className="fa-solid fa-user"></i> {t.profileSettings}
+                                            </h2>
+                                            <div className="flex items-center space-x-5">
+                                                <div className="relative group">
+                                                    <img src={userProfile.avatar} className="w-16 h-16 rounded-full object-cover border-2 border-m3-primaryDark" />
+                                                    <button 
+                                                        onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                                                        className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white text-xs"
+                                                    >
+                                                        <i className="fa-solid fa-camera"></i>
+                                                    </button>
+                                                </div>
+                                                <div className="flex-1 space-y-2">
+                                                    <div>
+                                                        <label className="block mb-1 text-xs text-gray-500">{t.nickname}</label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={userProfile.nickname} 
+                                                            onChange={(e) => setUserProfile({ ...userProfile, nickname: e.target.value })}
+                                                            className="w-full bg-black/5 dark:bg-white/5 border border-m3-borderLight dark:border-m3-borderDark rounded-xl p-2.5 text-xs focus:outline-none focus:border-m3-primaryDark"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center space-x-3 pt-1">
+                                                        <input 
+                                                            type="file" 
+                                                            ref={fileInputRef} 
+                                                            accept="image/*" 
+                                                            className="hidden" 
+                                                            onChange={handleAvatarSelect}
+                                                        />
+                                                        <button 
+                                                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                                                            className="px-3.5 py-1.5 rounded-xl bg-m3-primaryContainerLight dark:bg-m3-primaryContainerDark text-m3-primaryLight dark:text-m3-primaryDark text-xs font-semibold hover:opacity-90 transition"
+                                                        >
+                                                            {t.selectAvatarFile}
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => setUserProfile(prev => ({ ...prev, avatar: DEFAULT_AVATAR }))}
+                                                            className="text-xs text-gray-400 hover:text-gray-200 transition"
+                                                        >
+                                                            {t.resetAvatar}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 2. 音频驱动与 DSP 引擎 */}
+                                        <div className="bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark p-5 rounded-3xl space-y-4">
+                                            <h2 className="text-sm font-bold text-m3-primaryLight dark:text-m3-primaryDark flex items-center gap-2">
+                                                <i className="fa-solid fa-sliders"></i> {t.sectionAudioEngine}
+                                            </h2>
+                                            
+                                            <div className="space-y-3 text-xs">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <div className="font-semibold">{t.audioEngine}</div>
+                                                        <div className="text-gray-500 text-[11px]">{t.audioEngineSub}</div>
+                                                    </div>
+                                                    <select 
+                                                        value={audioSettings.driver} 
+                                                        onChange={(e) => setAudioSettings({ ...audioSettings, driver: e.target.value })}
+                                                        className="bg-black/5 dark:bg-white/5 border border-m3-borderLight dark:border-m3-borderDark rounded-xl px-3 py-1.5 text-xs"
+                                                    >
+                                                        <option value="WASAPI Exclusive">WASAPI Exclusive</option>
+                                                        <option value="WASAPI Shared">WASAPI Shared</option>
+                                                        <option value="DirectSound">DirectSound</option>
+                                                    </select>
+                                                </div>
+
+                                                <div className="flex items-center justify-between pt-2 border-t border-m3-borderDark/40">
+                                                    <div>
+                                                        <div className="font-semibold">{t.resamplerAlgorithm}</div>
+                                                        <div className="text-gray-500 text-[11px]">{t.resamplerSub}</div>
+                                                    </div>
+                                                    <select 
+                                                        value={audioSettings.resampler} 
+                                                        onChange={(e) => setAudioSettings({ ...audioSettings, resampler: e.target.value })}
+                                                        className="bg-black/5 dark:bg-white/5 border border-m3-borderLight dark:border-m3-borderDark rounded-xl px-3 py-1.5 text-xs"
+                                                    >
+                                                        <option value="SoX Resampler High Quality">SoX Resampler (HQ)</option>
+                                                        <option value="Speex DSP Resampler">Speex DSP</option>
+                                                        <option value="Disabled">Bypass Pass-through</option>
+                                                    </select>
+                                                </div>
+
+                                                <div className="flex items-center justify-between pt-2 border-t border-m3-borderDark/40">
+                                                    <div>
+                                                        <div className="font-semibold">{t.replayGainMode}</div>
+                                                        <div className="text-gray-500 text-[11px]">{t.replayGainSub}</div>
+                                                    </div>
+                                                    <select 
+                                                        value={audioSettings.replayGain} 
+                                                        onChange={(e) => setAudioSettings({ ...audioSettings, replayGain: e.target.value })}
+                                                        className="bg-black/5 dark:bg-white/5 border border-m3-borderLight dark:border-m3-borderDark rounded-xl px-3 py-1.5 text-xs"
+                                                    >
+                                                        <option value="Track Mode (-18 LUFS)">Track Mode (-18 LUFS)</option>
+                                                        <option value="Album Mode">Album Mode</option>
+                                                        <option value="Disabled">Disabled</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 3. 歌词与界面定制 */}
+                                        <div className="bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark p-5 rounded-3xl space-y-4">
+                                            <h2 className="text-sm font-bold text-m3-primaryLight dark:text-m3-primaryDark flex items-center gap-2">
+                                                <i className="fa-solid fa-palette"></i> {t.sectionInterface}
+                                            </h2>
+
+                                            {/* 歌词对齐控制 */}
+                                            <div className="flex items-center justify-between text-xs">
+                                                <div>
+                                                    <div className="font-semibold">{t.lyricAlign}</div>
+                                                    <div className="text-gray-500 text-[11px]">{t.lyricAlignSub}</div>
+                                                </div>
+                                                <div className="bg-black/5 dark:bg-white/5 p-1 rounded-2xl flex items-center space-x-1 border border-m3-borderLight dark:border-m3-borderDark">
+                                                    {['right', 'center', 'left'].map((align) => (
+                                                        <button 
+                                                            key={align}
+                                                            onClick={() => setLyricsAlign(align)}
+                                                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${lyricsAlign === align ? 'bg-m3-primaryLight dark:bg-m3-primaryDark text-white dark:text-m3-onPrimaryDark' : 'opacity-60'}`}
+                                                        >
+                                                            {align === 'right' ? t.alignRight : align === 'center' ? t.alignCenter : t.alignLeft}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* 罗马音显隐控制 */}
+                                            <div className="flex items-center justify-between text-xs pt-2 border-t border-m3-borderDark/40">
+                                                <div>
+                                                    <div className="font-semibold">{t.showRomaji}</div>
+                                                    <div className="text-gray-500 text-[11px]">{t.romajiSub}</div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => setShowRomaji(!showRomaji)}
+                                                    className={`w-11 h-6 rounded-full transition relative p-0.5 ${showRomaji ? 'bg-m3-primaryLight dark:bg-m3-primaryDark' : 'bg-gray-600'}`}
+                                                >
+                                                    <div className={`w-5 h-5 rounded-full bg-white transition transform ${showRomaji ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                </button>
+                                            </div>
+
+                                            {/* 译文显隐控制 */}
+                                            <div className="flex items-center justify-between text-xs pt-2 border-t border-m3-borderDark/40">
+                                                <div>
+                                                    <div className="font-semibold">{t.showTrans}</div>
+                                                    <div className="text-gray-500 text-[11px]">{t.transSub}</div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => setShowTrans(!showTrans)}
+                                                    className={`w-11 h-6 rounded-full transition relative p-0.5 ${showTrans ? 'bg-m3-primaryLight dark:bg-m3-primaryDark' : 'bg-gray-600'}`}
+                                                >
+                                                    <div className={`w-5 h-5 rounded-full bg-white transition transform ${showTrans ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                                </button>
+                                            </div>
+
+                                            {/* 纯正语言选择 */}
+                                            <div className="flex items-center justify-between text-xs pt-2 border-t border-m3-borderDark/40">
+                                                <div>
+                                                    <div className="font-semibold">{t.language}</div>
+                                                    <div className="text-gray-500 text-[11px]">{t.languageSub}</div>
+                                                </div>
+                                                <select 
+                                                    value={lang} 
+                                                    onChange={(e) => setLang(e.target.value)}
+                                                    className="bg-black/5 dark:bg-white/5 border border-m3-borderLight dark:border-m3-borderDark rounded-xl px-3 py-1.5 text-xs font-medium"
+                                                >
+                                                    <option value="zh">简体中文 (Chinese)</option>
+                                                    <option value="en">English (US)</option>
+                                                    <option value="ja">日本語 (Japanese)</option>
+                                                </select>
+                                            </div>
+
+                                            {/* 窗口背景材质 */}
+                                            <div className="flex items-center justify-between text-xs pt-2 border-t border-m3-borderDark/40">
+                                                <div>
+                                                    <div className="font-semibold">{t.windowEffect}</div>
+                                                    <div className="text-gray-500 text-[11px]">{t.windowEffectSub}</div>
+                                                </div>
+                                                <select 
+                                                    value={audioSettings.windowEffect} 
+                                                    onChange={(e) => setAudioSettings({ ...audioSettings, windowEffect: e.target.value })}
+                                                    className="bg-black/5 dark:bg-white/5 border border-m3-borderLight dark:border-m3-borderDark rounded-xl px-3 py-1.5 text-xs"
+                                                >
+                                                    <option value="Mica Alt">Mica Alt</option>
+                                                    <option value="Acrylic Blur">Acrylic Blur</option>
+                                                    <option value="Solid Opaque">Solid Opaque</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* 4. 系统行为 */}
+                                        <div className="bg-m3-cardLight dark:bg-m3-cardDark border border-m3-borderLight dark:border-m3-borderDark p-5 rounded-3xl flex items-center justify-between text-xs">
+                                            <div>
+                                                <div className="font-semibold">{t.systemTray}</div>
+                                                <div className="text-gray-500 text-[11px]">{t.systemTraySub}</div>
+                                            </div>
+                                            <button 
+                                                onClick={() => setAudioSettings({ ...audioSettings, systemTray: !audioSettings.systemTray })}
+                                                className={`w-11 h-6 rounded-full transition relative p-0.5 ${audioSettings.systemTray ? 'bg-m3-primaryLight dark:bg-m3-primaryDark' : 'bg-gray-600'}`}
+                                            >
+                                                <div className={`w-5 h-5 rounded-full bg-white transition transform ${audioSettings.systemTray ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                        </main>
+
+                        {}
+                        {/* NOW PLAYING DRAWER */}
+                        <div className={`absolute inset-0 ${theme === 'dark' ? 'bg-[#131317]' : 'bg-[#F6F2F8]'} z-40 transition-transform duration-500 transform ${isDrawerOpen ? 'translate-y-0' : 'translate-y-full'} flex flex-col p-6 overflow-hidden pb-24`}>
+                            {/* Drawer 关闭按键 */}
+                            <div className="absolute top-6 right-8 z-50">
+                                <button 
+                                    onClick={() => setIsDrawerOpen(false)}
+                                    className="w-10 h-10 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center hover:bg-black/20 dark:hover:bg-white/20 transition"
+                                >
+                                    <i className="fa-solid fa-chevron-down text-lg"></i>
+                                </button>
+                            </div>
+
+                            <div className="max-w-6xl w-full mx-auto flex-1 flex flex-col justify-center items-center py-2 my-auto overflow-hidden">
+                                {currentTrack.lyrics && currentTrack.lyrics.length > 0 ? (
+                                    <div className="w-full h-full flex flex-row items-center justify-between gap-6 sm:gap-10 animate-fadeIn overflow-hidden px-2">
+                                        {/* Left Cover & Metadata */}
+                                        <div className="flex flex-col items-center text-center w-1/3 min-w-[170px] max-w-[240px] shrink-0">
+                                            <img src={currentTrack.cover} className="w-36 h-36 sm:w-48 sm:h-48 rounded-2xl object-cover shadow-2xl mb-3" />
+                                            <h2 className="text-base sm:text-xl font-bold tracking-tight truncate max-w-full">{currentTrack.title}</h2>
+                                            <p className="text-m3-primaryLight dark:text-m3-primaryDark font-medium text-xs sm:text-sm mt-0.5 truncate max-w-full">{currentTrack.artist}</p>
+                                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-full">{currentTrack.album}</p>
+
+                                            <div className="mt-3 bg-black/5 dark:bg-white/5 border border-m3-borderLight dark:border-m3-borderDark rounded-xl p-2.5 w-full text-left font-mono text-[11px] space-y-1">
+                                                <div className="flex justify-between"><span>{t.formatLabel}:</span><span className="text-amber-500 dark:text-amber-300">{currentTrack.format}</span></div>
+                                                <div className="flex justify-between"><span>{t.bitrateLabel}:</span><span className="text-emerald-500 dark:text-emerald-400">{currentTrack.bitrate}</span></div>
+                                                <div className="flex justify-between"><span>{t.engineLabel}:</span><span className="text-m3-primaryLight dark:text-m3-primaryDark">WASAPI Exclusive</span></div>
+                                            </div>
+                                        </div>
+
+                                        {/* Right Multi-line Lyrics Stream */}
+                                        <div className="flex-1 w-2/3 h-full max-h-[380px] flex flex-col justify-center overflow-y-auto py-4 px-2 relative border-l border-m3-borderLight dark:border-m3-borderDark pl-6 sm:pl-8">
+                                            <div className={`space-y-6 my-auto ${lyricsAlign === 'right' ? 'text-right' : lyricsAlign === 'center' ? 'text-center' : 'text-left'}`}>
+                                                {currentTrack.lyrics.map((line, idx) => {
+                                                    const isActive = currentTime >= line.time;
+                                                    const transText = typeof line.trans === 'object' ? (line.trans[lang] || line.trans.zh || Object.values(line.trans)[0]) : line.trans;
+
+                                                    return (
+                                                        <div 
+                                                            key={idx}
+                                                            onClick={() => setCurrentTime(line.time)}
+                                                            className={`cursor-pointer transition-all duration-300 ${isActive ? 'opacity-100 scale-[1.02]' : 'opacity-30 hover:opacity-70'}`}
+                                                        >
+                                                            {/* 1. 罗马音 / 注音行 */}
+                                                            {showRomaji && line.roma && (
+                                                                <div className={`text-[11px] font-mono mb-0.5 ${isActive ? 'text-m3-primaryLight dark:text-m3-secondaryDark font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                                    {line.roma}
+                                                                </div>
+                                                            )}
+                                                            {/* 2. 主歌词行 */}
+                                                            <div className={`font-bold tracking-wide transition-all ${isActive ? 'text-xl sm:text-2xl text-gray-900 dark:text-white' : 'text-base sm:text-lg text-gray-600 dark:text-gray-300'}`}>
+                                                                {line.text}
+                                                            </div>
+                                                            {/* 3. 翻译行 */}
+                                                            {showTrans && transText && (
+                                                                <div className={`text-xs sm:text-sm mt-1 font-normal ${isActive ? 'text-gray-700 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                                    {transText}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center text-center max-w-md w-full animate-fadeIn my-auto">
+                                        <img src={currentTrack.cover} className="w-52 h-52 rounded-3xl object-cover shadow-2xl mb-5" />
+                                        <h2 className="text-xl font-bold tracking-tight">{currentTrack.title}</h2>
+                                        <p className="text-m3-primaryLight dark:text-m3-primaryDark font-medium text-xs mt-1">{currentTrack.artist}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{currentTrack.album}</p>
+
+                                        <div className="mt-5 bg-black/5 dark:bg-white/5 border border-m3-borderLight dark:border-m3-borderDark rounded-2xl p-3.5 w-full text-left font-mono text-xs space-y-1.5">
+                                            <div className="flex justify-between"><span>{t.formatLabel}:</span><span className="text-amber-500 dark:text-amber-300">{currentTrack.format}</span></div>
+                                            <div className="flex justify-between"><span>{t.bitrateLabel}:</span><span className="text-emerald-500 dark:text-emerald-400">{currentTrack.bitrate}</span></div>
+                                            <div className="flex justify-between"><span>{t.engineLabel}:</span><span className="text-m3-primaryLight dark:text-m3-primaryDark">WASAPI Exclusive</span></div>
+                                        </div>
+                                        <div className="mt-4 text-xs text-gray-500 italic flex items-center gap-2">
+                                            <i className="fa-solid fa-music opacity-60"></i>
+                                            <span>{t.noLyrics}</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {}
+                    {/* 底部全局 Mini Player Bar */}
+                    <footer className={`h-20 ${theme === 'dark' ? 'bg-m3-surfaceDark border-m3-borderDark' : 'bg-m3-surfaceLight border-m3-borderLight'} border-t px-6 flex items-center justify-between shrink-0 z-30 relative`}>
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-black/10 dark:bg-white/10 cursor-pointer group" onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const pct = (e.clientX - rect.left) / rect.width;
+                            setCurrentTime(Math.floor(pct * currentTrack.duration));
+                        }}>
+                            <div 
+                                className="h-full bg-m3-primaryLight dark:bg-m3-primaryDark transition-all duration-100 relative" 
+                                style={{ width: `${(currentTime / currentTrack.duration) * 100}%` }}
+                            >
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-m3-primaryLight dark:bg-m3-primaryDark shadow opacity-0 group-hover:opacity-100 transition"></div>
+                            </div>
+                        </div>
+
+                        <div onClick={() => setIsDrawerOpen(true)} className="flex items-center space-x-3.5 cursor-pointer group w-1/3">
+                            <img src={currentTrack.cover} className="w-12 h-12 rounded-xl object-cover group-hover:opacity-80 transition" />
+                            <div className="truncate">
+                                <div className="text-sm font-semibold truncate group-hover:text-m3-primaryLight dark:group-hover:text-m3-primaryDark transition">{currentTrack.title}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{currentTrack.artist}</div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-4 sm:space-x-6 justify-end w-2/3">
+                            {/* 仅在 NowPlaying 展开时在控制栏显示 罗马音 与 译文 切换按钮 */}
+                            {isDrawerOpen && (
+                                <div className="flex items-center space-x-1.5 mr-2 animate-fadeIn">
+                                    <button 
+                                        onClick={() => setShowRomaji(!showRomaji)}
+                                        title={t.showRomaji}
+                                        className={`w-7 h-7 rounded-full text-xs font-semibold flex items-center justify-center transition border ${showRomaji ? 'bg-m3-primaryContainerLight dark:bg-m3-primaryContainerDark text-m3-primaryLight dark:text-m3-primaryDark border-m3-primaryDark' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
+                                    >
+                                        罗
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowTrans(!showTrans)}
+                                        title={t.showTrans}
+                                        className={`w-7 h-7 rounded-full text-xs font-semibold flex items-center justify-center transition border ${showTrans ? 'bg-m3-primaryContainerLight dark:bg-m3-primaryContainerDark text-m3-primaryLight dark:text-m3-primaryDark border-m3-primaryDark' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
+                                    >
+                                        译
+                                    </button>
+                                </div>
+                            )}
+
+                            <button className="text-gray-400 hover:text-gray-200 text-xs transition">
+                                <i className="fa-solid fa-shuffle"></i>
+                            </button>
+                            <button 
+                                onClick={() => setCurrentTrackIdx((currentTrackIdx - 1 + tracks.length) % tracks.length)}
+                                className="text-gray-400 hover:text-gray-200 text-base transition"
+                            >
+                                <i className="fa-solid fa-backward-step"></i>
+                            </button>
+                            <button 
+                                onClick={() => setIsPlaying(!isPlaying)}
+                                className="w-10 h-10 rounded-full bg-m3-primaryLight dark:bg-m3-primaryDark text-white dark:text-m3-onPrimaryDark flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-md"
+                            >
+                                <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play pl-0.5'} text-base`}></i>
+                            </button>
+                            <button 
+                                onClick={() => setCurrentTrackIdx((currentTrackIdx + 1) % tracks.length)}
+                                className="text-gray-400 hover:text-gray-200 text-base transition"
+                            >
+                                <i className="fa-solid fa-forward-step"></i>
+                            </button>
+
+                            {/* 播放队列按钮 */}
+                            <button 
+                                onClick={() => { setActiveTab('queue'); setIsDrawerOpen(false); }}
+                                className={`text-base transition ${activeTab === 'queue' ? 'text-m3-primaryLight dark:text-m3-primaryDark' : 'text-gray-400 hover:text-gray-200'}`}
+                                title={t.queue}
+                            >
+                                <i className="fa-solid fa-list-ol"></i>
+                            </button>
+                        </div>
+                    </footer>
+
+                    {}
+                    {/* 编辑侧边栏 模态框 (完全可用的勾选定制) */}
+                    {isEditingNav && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+                            <div className="bg-m3-cardDark border border-m3-borderDark rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+                                <h3 className="text-base font-bold flex items-center gap-2">
+                                    <i className="fa-solid fa-pen-to-square text-m3-primaryDark"></i> {t.navRailCustom}
+                                </h3>
+                                <p className="text-xs text-gray-400">{t.navRailCustomDesc}</p>
+                                
+                                <div className="space-y-2 py-2">
+                                    {ALL_NAV_ITEMS.map((item) => {
+                                        const isChecked = tempNavIds.includes(item.id);
+                                        const isHome = item.id === 'home';
+                                        return (
+                                            <div 
+                                                key={item.id}
+                                                onClick={() => toggleNavItemInCustomizer(item.id)}
+                                                className={`flex items-center justify-between p-3 rounded-2xl transition cursor-pointer border ${isChecked ? 'bg-m3-primaryContainerDark/50 border-m3-primaryDark/50 text-white' : 'bg-white/5 border-transparent opacity-60'}`}
+                                            >
+                                                <div className="flex items-center space-x-3 text-xs">
+                                                    <i className={`fa-solid ${item.icon} text-sm w-5 text-center`}></i>
+                                                    <span className="font-medium">{t[item.labelKey]}</span>
+                                                </div>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={isChecked} 
+                                                    disabled={isHome}
+                                                    onChange={() => {}}
+                                                    className="w-4 h-4 accent-purple-500 rounded cursor-pointer"
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="flex justify-end space-x-3 pt-2 border-t border-m3-borderDark/40">
+                                    <button 
+                                        onClick={() => setIsEditingNav(false)}
+                                        className="px-4 py-2 rounded-full text-xs font-semibold text-gray-400 hover:text-white transition"
+                                    >
+                                        取消
+                                    </button>
+                                    <button 
+                                        onClick={saveNavCustomization}
+                                        className="px-5 py-2 rounded-full bg-m3-primaryDark text-m3-onPrimaryDark font-semibold text-xs hover:opacity-90 transition shadow"
+                                    >
+                                        {t.saveNavCustom}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
