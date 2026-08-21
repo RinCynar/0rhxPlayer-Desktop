@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react';
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import React from 'react';
 import { PlayerProvider, usePlayer } from './context/PlayerContext';
 import { NavigationRail } from './components/NavigationRail';
 import { BottomPlayerBar } from './components/BottomPlayerBar';
@@ -15,15 +14,6 @@ import { EQPage } from './pages/EQPage';
 const MainLayout: React.FC = () => {
   const { activeTab, isDarkMode } = usePlayer();
 
-  useEffect(() => {
-    // Show window once first frame is mounted to eliminate white flash
-    try {
-      const appWindow = getCurrentWebviewWindow();
-      appWindow.show();
-    } catch {
-      // Browser preview fallback
-    }
-  }, []);
 
 
   const renderContent = () => {
