@@ -12,7 +12,7 @@ import { QueuePage } from './pages/QueuePage';
 import { EQPage } from './pages/EQPage';
 
 const MainLayout: React.FC = () => {
-  const { activeTab, isDarkMode } = usePlayer();
+  const { activeTab } = usePlayer();
 
 
 
@@ -31,7 +31,7 @@ const MainLayout: React.FC = () => {
 
 
   return (
-    <div className={`flex h-screen w-screen overflow-hidden select-none ${isDarkMode ? 'bg-[#131317] text-gray-100' : 'bg-[#F6F2F8] text-gray-900'} transition-colors duration-300`}>
+    <div className="flex h-screen w-screen overflow-hidden select-none bg-md-surface text-md-on-surface transition-colors duration-300">
       {/* Left Navigation Rail */}
       <NavigationRail />
 

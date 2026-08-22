@@ -8,7 +8,7 @@ import { TrackActionMenu } from '../components/TrackActionMenu';
 const STORAGE_KEY_SEARCH_HISTORY = '0rhx_search_history';
 
 export const SearchPage: React.FC = () => {
-  const { isDarkMode, lang, libraryTracks, playTrack, isFavorite, toggleFavorite } = usePlayer();
+  const { lang, libraryTracks, playTrack, isFavorite, toggleFavorite } = usePlayer();
   const t = I18N[lang];
   const [query, setQuery] = useState('');
   const [history, setHistory] = useState<string[]>(() => {
@@ -24,8 +24,8 @@ export const SearchPage: React.FC = () => {
   const [menuTrack, setMenuTrack] = useState<TrackMetadata | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const card = isDarkMode ? 'bg-[#28272F]' : 'bg-[#E2DBE8]';
-  const primaryText = isDarkMode ? 'text-[#39C5BB]' : 'text-[#006A6B]';
+  const card = 'bg-md-surface-container-high';
+  const primaryText = 'text-md-primary';
 
   // Save query to history on enter
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -71,7 +71,7 @@ export const SearchPage: React.FC = () => {
 
       {/* Capsule Search Bar */}
       <div className="relative w-full">
-        <div className={`flex items-center ${card} rounded-full px-5 py-3.5 shadow-sm transition-all focus-within:ring-2 focus-within:ring-[#39C5BB]`}>
+        <div className={`flex items-center ${card} rounded-full px-5 py-3.5 shadow-sm transition-all focus-within:ring-2 focus-within:ring-md-primary`}>
           <i className="fa-solid fa-magnifying-glass text-base opacity-50 mr-3.5" />
           <input
             type="text"
@@ -106,7 +106,7 @@ export const SearchPage: React.FC = () => {
               <button
                 key={item}
                 onClick={() => setQuery(item)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-medium ${isDarkMode ? 'bg-[#28272F] hover:bg-[#36343B]' : 'bg-[#E2DBE8] hover:bg-[#D8D0DF]'} flex items-center gap-2 transition`}
+                className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-md-surface-container-high hover:bg-md-surface-container-highest flex items-center gap-2 transition"
               >
                 <span>{item}</span>
                 <i
@@ -159,7 +159,7 @@ export const SearchPage: React.FC = () => {
 
                   <div className="flex items-center space-x-2 shrink-0">
                     {tr.format && (
-                      <span className="text-[10px] font-mono text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
+                      <span className="text-[10px] font-semibold text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
                     )}
                     <button
                       onClick={e => { e.stopPropagation(); toggleFavorite(tr.path); }}
@@ -186,7 +186,7 @@ export const SearchPage: React.FC = () => {
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between text-sm font-bold">
             <span>{t.libraryTracksHeader}</span>
-            <span className="text-xs text-gray-500 font-mono">{formatCount(libraryTracks.length, 'track', lang)}</span>
+            <span className="text-xs text-gray-500">{formatCount(libraryTracks.length, 'track', lang)}</span>
           </div>
 
           {libraryTracks.slice(0, 10).map(tr => {
@@ -215,7 +215,7 @@ export const SearchPage: React.FC = () => {
 
                 <div className="flex items-center space-x-2 shrink-0">
                   {tr.format && (
-                    <span className="text-[10px] font-mono text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
+                    <span className="text-[10px] font-semibold text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
                   )}
                   <button
                     onClick={e => { e.stopPropagation(); toggleFavorite(tr.path); }}

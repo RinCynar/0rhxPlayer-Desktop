@@ -19,7 +19,6 @@ const BAND_FREQUENCIES = [
 
 export const EQPage: React.FC = () => {
   const {
-    isDarkMode,
     lang,
     eqSettings,
     setEqBand,
@@ -30,12 +29,12 @@ export const EQPage: React.FC = () => {
   } = usePlayer();
 
   const t = I18N[lang];
-  const card = isDarkMode ? 'bg-[#1E1D24] border-white/5' : 'bg-white/90 border-black/5 shadow-sm';
-  const containerCard = isDarkMode ? 'bg-[#28272F]' : 'bg-[#EAE4EE]';
-  const primaryBg = isDarkMode ? 'bg-[#39C5BB] text-[#003738]' : 'bg-[#006A6B] text-white';
-  const primaryText = isDarkMode ? 'text-[#39C5BB]' : 'text-[#006A6B]';
-  const activePresetBg = isDarkMode ? 'bg-[#39C5BB] text-[#003738] font-bold' : 'bg-[#006A6B] text-white font-bold';
-  const inactivePresetBg = isDarkMode ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-black/5 text-gray-700 hover:bg-black/10';
+  const card = 'bg-md-surface-container-high border-black/5 dark:border-white/5 shadow-xs';
+  const containerCard = 'bg-md-surface-container';
+  const primaryBg = 'bg-md-primary text-md-on-primary';
+  const primaryText = 'text-md-primary';
+  const activePresetBg = 'bg-md-primary text-md-on-primary font-bold shadow-sm';
+  const inactivePresetBg = 'bg-black/5 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10';
 
   return (
     <div className="max-w-6xl w-full mx-auto p-8 space-y-8 animate-fade-in">
@@ -74,17 +73,13 @@ export const EQPage: React.FC = () => {
             <div
               className={`w-14 h-8 rounded-full transition-colors duration-200 relative p-1 ${
                 eqSettings.enabled
-                  ? isDarkMode
-                    ? 'bg-[#39C5BB]'
-                    : 'bg-[#006A6B]'
-                  : isDarkMode
-                  ? 'bg-white/20'
-                  : 'bg-black/20'
+                  ? 'bg-md-primary'
+                  : 'bg-black/20 dark:bg-white/20'
               }`}
             >
               <div
-                className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-200 pointer-events-none ${
-                  eqSettings.enabled ? 'translate-x-6' : 'translate-x-0'
+                className={`w-6 h-6 rounded-full shadow-md transform transition-transform duration-200 pointer-events-none ${
+                  eqSettings.enabled ? 'bg-md-on-primary translate-x-6' : 'bg-white translate-x-0'
                 }`}
               />
             </div>
@@ -142,7 +137,7 @@ export const EQPage: React.FC = () => {
 
 
           <div className="flex items-center gap-4 min-w-[260px]">
-            <span className="text-xs font-mono font-bold text-gray-400">-12dB</span>
+            <span className="text-xs font-bold text-gray-400">-12dB</span>
             <input
               type="range"
               min="-12"
@@ -151,7 +146,7 @@ export const EQPage: React.FC = () => {
               value={eqSettings.preampDb}
               onDoubleClick={() => setEqPreamp(0)}
               onChange={(e) => setEqPreamp(parseFloat(e.target.value))}
-              className="flex-1 accent-[#39C5BB] dark:accent-[#39C5BB] cursor-pointer"
+              className="flex-1 accent-md-primary cursor-pointer"
             />
             <M3NumberInput
               value={eqSettings.preampDb}
@@ -212,13 +207,13 @@ export const EQPage: React.FC = () => {
                         width: '8px',
                         height: '100%',
                       }}
-                      className="accent-[#39C5BB] dark:accent-[#39C5BB] cursor-pointer"
+                      className="accent-md-primary cursor-pointer"
                     />
                   </div>
 
                   {/* Frequency Label */}
                   <div className="text-center">
-                    <span className="text-[11px] font-bold tracking-tight block text-gray-500 dark:text-gray-400 group-hover:text-[#39C5BB] transition">
+                    <span className="text-[11px] font-bold tracking-tight block text-gray-500 dark:text-gray-400 group-hover:text-md-primary transition">
                       {band.label}
                     </span>
                   </div>

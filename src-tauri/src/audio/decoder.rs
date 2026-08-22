@@ -15,6 +15,7 @@ pub struct AudioDecoder {
     track_id: u32,
     time_base: Option<TimeBase>,
     sample_rate: u32,
+    bits_per_sample: Option<u32>,
     channels: usize,
     duration_ms: u64,
 }
@@ -52,6 +53,7 @@ impl AudioDecoder {
         let track_id = track.id;
         let time_base = track.codec_params.time_base;
         let sample_rate = track.codec_params.sample_rate.unwrap_or(44100);
+        let bits_per_sample = track.codec_params.bits_per_sample;
         let channels = track
             .codec_params
             .channels
@@ -81,6 +83,7 @@ impl AudioDecoder {
             track_id,
             time_base,
             sample_rate,
+            bits_per_sample,
             channels,
             duration_ms,
         })
@@ -88,6 +91,10 @@ impl AudioDecoder {
 
     pub fn sample_rate(&self) -> u32 {
         self.sample_rate
+    }
+
+    pub fn bits_per_sample(&self) -> Option<u32> {
+        self.bits_per_sample
     }
 
     pub fn channels(&self) -> usize {

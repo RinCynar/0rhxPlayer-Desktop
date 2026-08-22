@@ -23,6 +23,14 @@ export const NowPlayingDrawer: React.FC = () => {
     [currentTrack?.artist, artistSeparators]
   );
 
+  const sampleRateText = currentTrack?.sampleRate
+    ? `${(currentTrack.sampleRate / 1000).toFixed(1)} kHz`
+    : '';
+  const bitDepthText = currentTrack?.bitDepth ? `${currentTrack.bitDepth}-bit` : '';
+  const formatDisplay = [currentTrack?.format?.toUpperCase(), sampleRateText, bitDepthText]
+    .filter(Boolean)
+    .join(' • ') || '—';
+
   // Find active lyric index
   let activeLyricIdx = -1;
   if (hasLyrics) {
@@ -85,8 +93,8 @@ export const NowPlayingDrawer: React.FC = () => {
       ? 'text-center'
       : 'text-left';
 
-  const bg = isDarkMode ? 'bg-[#131317]' : 'bg-[#F6F2F8]';
-  const infoBoxBg = isDarkMode ? 'bg-[#1C1B20]' : 'bg-[#EDE7F0]';
+  const bg = 'bg-md-surface';
+  const infoBoxBg = 'bg-md-surface-container-low';
 
   return (
     <div
@@ -97,12 +105,12 @@ export const NowPlayingDrawer: React.FC = () => {
       }`}
     >
 
-      {/* Main Content Area: Compact max-w-5xl viewport-adaptive layout */}
-      <div className="max-w-5xl w-full mx-auto flex-1 flex flex-col md:flex-row items-center justify-center gap-6 lg:gap-12 my-auto overflow-hidden px-6 h-full">
+      {/* Main Content Area: Centered max-w-6xl viewport-adaptive layout */}
+      <div className="max-w-6xl w-full mx-auto flex-1 flex flex-col md:flex-row items-center justify-center gap-8 lg:gap-14 my-auto overflow-hidden px-6 h-full">
         {/* Left Column: Full-Viewport Elastic Responsive (Width + Height Bound) */}
         <div className="flex flex-col justify-center items-center h-full max-h-[calc(100vh-6rem)] shrink-0 gap-3 py-2 select-none">
-          {/* 1. Cover container: Dynamic square bound to min(380px, 36vw, 38vh) */}
-          <div className="w-[min(380px,36vw,38vh)] aspect-square rounded-3xl overflow-hidden shadow-2xl relative group shrink-0 transition-all duration-150">
+          {/* 1. Cover container: Dynamic square bound to min(460px, 38vw, 44vh) */}
+          <div className="w-[min(460px,38vw,44vh)] aspect-square rounded-3xl overflow-hidden shadow-2xl relative group shrink-0 transition-all duration-150">
             <M3CoverImage
               src={currentTrack?.coverUrl}
               alt={currentTrack?.title}
@@ -113,16 +121,14 @@ export const NowPlayingDrawer: React.FC = () => {
             />
           </div>
 
-          {/* 2. Audio spec card: Width strictly bound to min(380px, 36vw, 38vh) */}
-          <div className={`w-[min(380px,36vw,38vh)] ${infoBoxBg} rounded-2xl p-3.5 sm:p-4 text-left shadow-sm space-y-2.5 shrink-0 transition-all duration-150`}>
+          {/* 2. Audio spec card: Width strictly bound to min(460px, 38vw, 44vh) */}
+          <div className={`w-[min(460px,38vw,44vh)] ${infoBoxBg} rounded-2xl p-3.5 sm:p-4 text-left shadow-sm space-y-2.5 shrink-0 transition-all duration-150`}>
             <div>
               <h2 className="text-sm sm:text-base font-bold tracking-tight truncate max-w-full leading-snug">
                 {currentTrack?.title || '0rhxPlayer'}
               </h2>
               <p
-                className={`font-semibold text-xs mt-0.5 truncate max-w-full ${
-                  isDarkMode ? 'text-[#39C5BB]' : 'text-[#006A6B]'
-                }`}
+                className="font-semibold text-xs mt-0.5 truncate max-w-full text-md-primary"
               >
                 {artists.join(' / ')}
               </p>
@@ -134,11 +140,11 @@ export const NowPlayingDrawer: React.FC = () => {
             <div className="h-px bg-white/10 dark:bg-white/10" />
 
             {/* Extended Foobar2000 Grade Audio Specs */}
-            <div className="font-mono text-[11px] space-y-1.5 leading-normal">
+            <div className="text-[11px] space-y-1.5 leading-normal">
               <div className="flex items-center justify-between">
                 <span className="text-gray-400">{t.specFormat}:</span>
                 <span className="text-amber-300 font-semibold truncate ml-2">
-                  {currentTrack?.format || 'FLAC 24bit / 96.0 kHz'}
+                  {formatDisplay}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -150,11 +156,7 @@ export const NowPlayingDrawer: React.FC = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-400">{t.specDriver}:</span>
-                <span
-                  className={`font-semibold truncate ml-2 ${
-                    isDarkMode ? 'text-[#39C5BB]' : 'text-[#006A6B]'
-                  }`}
-                >
+                <span className="font-semibold truncate ml-2 text-md-primary">
                   {audioSettings.driver} / {audioSettings.bufferMs || 46}ms
                 </span>
               </div>

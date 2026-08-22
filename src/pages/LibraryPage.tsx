@@ -25,7 +25,7 @@ interface FilterGroupDetail {
 
 export const LibraryPage: React.FC = () => {
   const {
-    isDarkMode, lang, libraryTracks, playTrack,
+    lang, libraryTracks, playTrack,
     isScanning, scannedCount, scanDirectoryAction, importFilesAction,
     scannedFolders, addScanFolderAction, removeScanFolder, rescanLibraryAction,
     isFavorite, toggleFavorite, removeTracksFromLibrary,
@@ -49,10 +49,10 @@ export const LibraryPage: React.FC = () => {
   const [menuTrack, setMenuTrack] = useState<TrackMetadata | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const card = isDarkMode ? 'bg-[#28272F]' : 'bg-[#E2DBE8]';
-  const primaryText = isDarkMode ? 'text-[#39C5BB]' : 'text-[#006A6B]';
-  const primaryBg = isDarkMode ? 'bg-[#39C5BB]/20' : 'bg-[#39C5BB]/15';
-  const accentButton = isDarkMode ? 'bg-[#39C5BB] text-[#003738]' : 'bg-[#006A6B] text-white';
+  const card = 'bg-md-surface-container-high';
+  const primaryText = 'text-md-primary';
+  const primaryBg = 'bg-md-primary-container text-md-on-primary-container';
+  const accentButton = 'bg-md-primary text-md-on-primary';
 
   // 1. Filter tracks based on drill-down group if active
   const baseTracks = useMemo(() => {
@@ -352,7 +352,7 @@ export const LibraryPage: React.FC = () => {
   return (
     <div className="flex flex-col h-full relative">
       {/* Sticky header */}
-      <div className={`px-8 pt-8 pb-4 shrink-0 ${isDarkMode ? 'bg-[#131317]' : 'bg-[#F6F2F8]'}`}>
+      <div className="px-8 pt-8 pb-4 shrink-0 bg-md-surface">
         <div className="max-w-7xl mx-auto space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -379,7 +379,7 @@ export const LibraryPage: React.FC = () => {
 
             <div className="flex items-center gap-2">
               {isScanning && (
-                <span className="text-xs text-gray-400 animate-pulse mr-2 font-mono">
+                <span className="text-xs text-gray-400 animate-pulse mr-2">
                   {scannedCount} {t.trackCount}...
                 </span>
               )}
@@ -410,7 +410,7 @@ export const LibraryPage: React.FC = () => {
                 disabled={isScanning}
                 className={`px-3 py-1.5 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-xs font-semibold flex items-center gap-1.5 transition ${isScanning ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <i className={`fa-solid fa-arrows-rotate text-xs ${isScanning ? 'animate-spin text-[#39C5BB]' : ''}`} />
+                <i className={`fa-solid fa-arrows-rotate text-xs ${isScanning ? 'animate-spin text-md-primary' : ''}`} />
                 <span className="hidden sm:inline">{t.rescanLibrary}</span>
               </button>
 
@@ -498,8 +498,8 @@ export const LibraryPage: React.FC = () => {
                           </span>
                         </div>
                         <div>
-                          <div className={`font-bold text-xs truncate transition ${isDarkMode ? 'group-hover:text-[#39C5BB]' : 'group-hover:text-[#006A6B]'}`}>{alb.name}</div>
-                          <div className="text-[11px] text-gray-500 truncate mt-0.5">{alb.artist}</div>
+                          <div className={`font-bold text-xs truncate transition group-hover:text-md-primary`}>{alb.name}</div>
+                          <div className="text-[11px] text-md-on-surface-variant truncate mt-0.5">{alb.artist}</div>
                         </div>
                       </div>
                     ))}
@@ -523,7 +523,7 @@ export const LibraryPage: React.FC = () => {
                           if (isSelectMode) toggleSelectTrack(tr.path);
                           else playTrack(tr, sortedTracks);
                         }}
-                        className={`${card} rounded-2xl flex items-center justify-between gap-4 px-4 py-3 cursor-pointer group hover:bg-[#36343B] dark:hover:bg-[#36343B] transition my-0.5 ${isSelected ? 'ring-2 ring-[#39C5BB]' : ''}`}
+                        className={`${card} rounded-2xl flex items-center justify-between gap-4 px-4 py-3 cursor-pointer group hover:bg-md-surface-container-highest transition my-0.5 ${isSelected ? 'ring-2 ring-md-primary' : ''}`}
                       >
                         <div className="flex items-center space-x-3.5 min-w-0 flex-1">
                           {isSelectMode ? (
@@ -532,10 +532,10 @@ export const LibraryPage: React.FC = () => {
                               checked={isSelected}
                               onChange={() => {}}
                               onClick={e => toggleSelectTrack(tr.path, e)}
-                              className="w-4 h-4 accent-[#39C5BB] rounded cursor-pointer mr-1"
+                              className="w-4 h-4 accent-md-primary rounded cursor-pointer mr-1"
                             />
                           ) : (
-                            <span className="w-5 text-center text-xs font-mono text-gray-400">{idx + 1}</span>
+                            <span className="w-5 text-center text-xs text-md-on-surface-variant">{idx + 1}</span>
                           )}
                           <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0">
                             <M3CoverImage
@@ -556,7 +556,7 @@ export const LibraryPage: React.FC = () => {
                         {!isSelectMode && (
                           <div className="flex items-center space-x-2 shrink-0">
                             {tr.format && (
-                              <span className="text-[10px] font-mono text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
+                              <span className="text-[10px] font-semibold text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
                             )}
                             <button
                               onClick={e => { e.stopPropagation(); toggleFavorite(tr.path); }}
@@ -587,13 +587,13 @@ export const LibraryPage: React.FC = () => {
                   <div className="text-xs font-bold text-gray-400 flex items-center gap-2">
                     <i className="fa-solid fa-folder-tree" />
                     <span>{t.scannedFoldersTitle}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/5 font-mono text-[11px]">
+                    <span className="px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/5 text-[11px]">
                       {foldersList.length}
                     </span>
                   </div>
                   <button
                     onClick={addScanFolderAction}
-                    className="px-3 py-1.5 rounded-full bg-[#006A6B] dark:bg-[#39C5BB] text-white dark:text-[#003738] text-xs font-bold flex items-center gap-1.5 hover:scale-105 transition shadow-sm"
+                    className="px-3 py-1.5 rounded-full bg-md-primary text-md-on-primary text-xs font-bold flex items-center gap-1.5 hover:scale-105 transition shadow-sm"
                   >
                     <i className="fa-solid fa-folder-plus text-xs" />
                     <span>{t.addFolder}</span>
@@ -619,7 +619,7 @@ export const LibraryPage: React.FC = () => {
                           imageClassName="group-hover:scale-105 transition duration-300"
                         />
                       </div>
-                      <div className={`font-bold text-sm truncate w-full transition ${isDarkMode ? 'group-hover:text-[#39C5BB]' : 'group-hover:text-[#006A6B]'}`}>{art.name}</div>
+                      <div className="font-bold text-sm truncate w-full transition group-hover:text-md-primary">{art.name}</div>
                       <div className="text-xs text-gray-500 mt-1">{formatCount(art.count, 'track', lang)}</div>
                     </div>
                   ))}
@@ -643,7 +643,7 @@ export const LibraryPage: React.FC = () => {
                         </span>
                       </div>
                       <div>
-                        <div className={`font-bold text-xs truncate transition ${isDarkMode ? 'group-hover:text-[#39C5BB]' : 'group-hover:text-[#006A6B]'}`}>{alb.name}</div>
+                        <div className="font-bold text-xs truncate transition group-hover:text-md-primary">{alb.name}</div>
                         <div className="text-[11px] text-gray-500 truncate mt-0.5">{alb.artist}</div>
                       </div>
                     </div>
@@ -657,11 +657,11 @@ export const LibraryPage: React.FC = () => {
                       onClick={() => setSelectedGroup({ type: 'folder', name: fol.folderPath, subTitle: `${fol.folderPath} (${formatCount(fol.count, 'track', lang)})` })}
                       className={`${card} p-4 rounded-3xl cursor-pointer group flex flex-col justify-between hover:scale-[1.02] transition shadow-sm relative`}
                     >
-                      <div className={`h-20 rounded-2xl mb-2.5 ${isDarkMode ? 'bg-[#39C5BB]/20' : 'bg-[#39C5BB]/15'} flex items-center justify-center text-3xl`}>
+                      <div className="h-20 rounded-2xl mb-2.5 bg-md-primary-container text-md-on-primary-container flex items-center justify-center text-3xl">
                         <i className={`fa-solid fa-folder-open ${primaryText}`} />
                       </div>
                       <div className="pr-6">
-                        <div className={`font-bold text-xs truncate transition ${isDarkMode ? 'group-hover:text-[#39C5BB]' : 'group-hover:text-[#006A6B]'}`}>{fol.folderName}</div>
+                        <div className="font-bold text-xs truncate transition group-hover:text-md-primary">{fol.folderName}</div>
                         <div className="text-[10px] text-gray-500 truncate mt-0.5">{formatCount(fol.count, 'track', lang)}</div>
                       </div>
 
@@ -707,7 +707,7 @@ export const LibraryPage: React.FC = () => {
                                 if (isSelectMode) toggleSelectTrack(tr.path);
                                 else playTrack(tr, sortedTracks);
                               }}
-                              className={`${card} p-3.5 rounded-3xl cursor-pointer group hover:-translate-y-0.5 transition-all duration-200 relative ${isSelected ? 'ring-2 ring-[#39C5BB]' : ''}`}
+                              className={`${card} p-3.5 rounded-3xl cursor-pointer group hover:-translate-y-0.5 transition-all duration-200 relative ${isSelected ? 'ring-2 ring-md-primary' : ''}`}
                             >
                               <div className="relative aspect-square rounded-2xl overflow-hidden mb-3">
                                 <M3CoverImage
@@ -727,13 +727,13 @@ export const LibraryPage: React.FC = () => {
                                       type="checkbox"
                                       checked={isSelected}
                                       onChange={() => {}}
-                                      className="w-4 h-4 accent-[#39C5BB] rounded cursor-pointer"
+                                      className="w-4 h-4 accent-md-primary rounded cursor-pointer"
                                     />
                                   </div>
                                 )}
 
                                 {tr.format && !isSelectMode && (
-                                  <span className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] font-mono text-amber-300 border border-white/10">
+                                  <span className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] font-semibold text-amber-300 border border-white/10">
                                     {tr.format.split(' ')[0]}
                                   </span>
                                 )}
@@ -779,7 +779,7 @@ export const LibraryPage: React.FC = () => {
                           if (isSelectMode) toggleSelectTrack(tr.path);
                           else playTrack(tr, sortedTracks);
                         }}
-                        className={`${card} rounded-2xl flex items-center justify-between gap-4 px-4 py-3 cursor-pointer group hover:bg-[#36343B] dark:hover:bg-[#36343B] transition my-0.5 ${isSelected ? 'ring-2 ring-[#39C5BB]' : ''}`}
+                        className={`${card} rounded-2xl flex items-center justify-between gap-4 px-4 py-3 cursor-pointer group hover:bg-md-surface-container-highest transition my-0.5 ${isSelected ? 'ring-2 ring-md-primary' : ''}`}
                       >
                         <div className="flex items-center space-x-3.5 min-w-0 flex-1">
                           {isSelectMode && (
@@ -788,7 +788,7 @@ export const LibraryPage: React.FC = () => {
                               checked={isSelected}
                               onChange={() => {}}
                               onClick={e => toggleSelectTrack(tr.path, e)}
-                              className="w-4 h-4 accent-[#39C5BB] rounded cursor-pointer mr-1"
+                              className="w-4 h-4 accent-md-primary rounded cursor-pointer mr-1"
                             />
                           )}
                           <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0">
@@ -810,7 +810,7 @@ export const LibraryPage: React.FC = () => {
                         {!isSelectMode && (
                           <div className="flex items-center space-x-2 shrink-0">
                             {tr.format && (
-                              <span className="text-[10px] font-mono text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
+                              <span className="text-[10px] font-semibold text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
                             )}
                             <button
                               onClick={e => { e.stopPropagation(); toggleFavorite(tr.path); }}
@@ -840,9 +840,9 @@ export const LibraryPage: React.FC = () => {
 
       {/* Floating Multi-Select Action Bar */}
       {selectedPaths.size > 0 && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-[#1E1D24] text-white border border-white/10 px-6 py-3.5 rounded-full shadow-2xl flex items-center gap-4 animate-fade-in backdrop-blur-md">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-md-surface-variant text-md-on-surface-variant border border-white/10 px-6 py-3.5 rounded-full shadow-2xl flex items-center gap-4 animate-fade-in backdrop-blur-md">
           <span className="text-xs font-semibold">
-            {t.selectedCount} <b className="text-[#39C5BB]">{selectedPaths.size}</b> {t.trackCount}
+            {t.selectedCount} <b className="text-md-primary">{selectedPaths.size}</b> {t.trackCount}
           </span>
 
           <div className="h-4 w-px bg-white/20" />
@@ -856,7 +856,7 @@ export const LibraryPage: React.FC = () => {
 
           <button
             onClick={handleBatchPlay}
-            className="px-3.5 py-1.5 rounded-full bg-[#39C5BB] text-[#003738] text-xs font-bold hover:scale-105 transition flex items-center gap-1.5"
+            className="px-3.5 py-1.5 rounded-full bg-md-primary text-md-on-primary text-xs font-bold hover:scale-105 transition flex items-center gap-1.5"
           >
             <i className="fa-solid fa-play text-[10px]" />
             <span>{t.batchPlay}</span>
@@ -864,28 +864,28 @@ export const LibraryPage: React.FC = () => {
 
           <button
             onClick={handleBatchAddToQueue}
-            className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold transition"
+            className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold transition"
           >
             {t.batchAddToQueue}
           </button>
 
           <button
             onClick={() => setShowBatchPlaylistModal(true)}
-            className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold transition"
+            className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold transition"
           >
             {t.batchAddToPlaylist}
           </button>
 
           <button
             onClick={handleBatchRemoveFromLibrary}
-            className="px-3 py-1.5 rounded-full bg-red-500/20 text-red-300 hover:bg-red-500/30 text-xs font-semibold transition"
+            className="px-3.5 py-1.5 rounded-full bg-red-500/20 text-red-300 hover:bg-red-500/30 text-xs font-semibold transition"
           >
             {t.batchRemoveFromLibrary}
           </button>
 
           <button
-            onClick={() => setSelectedPaths(new Set())}
-            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition"
+            onClick={() => setIsSelectMode(false)}
+            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 hover:text-white transition"
           >
             <i className="fa-solid fa-xmark text-xs" />
           </button>
@@ -894,27 +894,27 @@ export const LibraryPage: React.FC = () => {
 
       {/* Batch Add to Playlist Modal */}
       {showBatchPlaylistModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className={`${isDarkMode ? 'bg-[#28272F]' : 'bg-white'} rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl`}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`${card} rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl animate-fade-in`}>
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-base">{t.batchAddTitle} ({selectedPaths.size})</h3>
-              <button onClick={() => setShowBatchPlaylistModal(false)} className="opacity-60 hover:opacity-100">
-                <i className="fa-solid fa-xmark text-sm" />
+              <h3 className="font-bold text-base">{t.batchAddToPlaylist}</h3>
+              <button
+                onClick={() => setShowBatchPlaylistModal(false)}
+                className="w-8 h-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition"
+              >
+                <i className="fa-solid fa-xmark" />
               </button>
             </div>
 
-            <div className="max-h-60 overflow-y-auto space-y-2 py-1">
+            <div className="space-y-2 max-h-48 overflow-y-auto">
               {playlists.map(pl => (
                 <button
                   key={pl.id}
                   onClick={() => handleBatchAddToPlaylist(pl.id)}
-                  className="w-full p-3 rounded-2xl text-left bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-between transition"
+                  className="w-full flex items-center justify-between p-3 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition text-left text-xs font-semibold"
                 >
-                  <div className="truncate">
-                    <div className="font-semibold text-xs truncate">{pl.name}</div>
-                    <div className="text-[10px] text-gray-500">{formatCount(pl.trackPaths.length, 'track', lang)}</div>
-                  </div>
-                  <i className="fa-solid fa-plus text-xs opacity-60" />
+                  <span className="truncate">{pl.name}</span>
+                  <span className="text-gray-400 text-[11px]">{pl.trackPaths.length}</span>
                 </button>
               ))}
             </div>
@@ -931,7 +931,7 @@ export const LibraryPage: React.FC = () => {
                 />
                 <button
                   onClick={handleCreateAndAddBatch}
-                  className="px-4 py-2 rounded-xl bg-[#39C5BB] text-[#003738] text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-md-primary text-md-on-primary text-xs font-bold"
                 >
                   {t.create}
                 </button>

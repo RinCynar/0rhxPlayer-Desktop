@@ -24,7 +24,7 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({ track, isOpen,
   if (!isOpen || !track) return null;
 
   const isFav = isFavorite(track.path);
-  const cardBg = isDarkMode ? 'bg-[#28272F]' : 'bg-white';
+  const cardBg = 'bg-md-surface-container-high';
   const itemHover = isDarkMode ? 'hover:bg-white/10' : 'hover:bg-black/5';
 
   const handleAddToPl = (plId: string) => {
@@ -92,7 +92,7 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({ track, isOpen,
             <span>{t.addToPlaylistAction}</span>
             <button
               onClick={() => setIsCreatingPl(!isCreatingPl)}
-              className="text-[#39C5BB] dark:text-[#39C5BB] text-[11px] hover:underline flex items-center gap-1 font-semibold"
+              className="text-md-primary text-[11px] hover:underline flex items-center gap-1 font-semibold"
             >
               <i className="fa-solid fa-plus text-[10px]" />
               <span>{t.newPlaylistAction}</span>
@@ -108,11 +108,11 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({ track, isOpen,
                 onKeyDown={e => e.key === 'Enter' && handleCreateAndAdd()}
                 placeholder={t.newPlaylistPlaceholder}
                 autoFocus
-                className={`flex-1 ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#39C5BB]`}
+                className={`flex-1 ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-md-primary`}
               />
               <button
                 onClick={handleCreateAndAdd}
-                className="px-3 py-1.5 rounded-xl bg-[#006A6B] dark:bg-[#39C5BB] text-white dark:text-[#003738] font-bold text-xs transition"
+                className="px-3 py-1.5 rounded-xl bg-md-primary text-md-on-primary font-bold text-xs transition"
               >
                 {t.confirm}
               </button>

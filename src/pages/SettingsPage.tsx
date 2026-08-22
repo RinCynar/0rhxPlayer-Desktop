@@ -26,6 +26,7 @@ export const SettingsPage: React.FC = () => {
     showTrans, setShowTrans,
     artistSeparators, setArtistSeparators,
     customSeedColor, setCustomSeedColor,
+    autoCollapseRailOnNowPlaying, setAutoCollapseRailOnNowPlaying,
     userProfile, setUserProfile,
     audioSettings, setAudioSettings,
     setActiveTab,
@@ -36,10 +37,10 @@ export const SettingsPage: React.FC = () => {
   const t = I18N[lang];
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const card = isDarkMode ? 'bg-[#28272F]' : 'bg-[#E2DBE8]';
-  const primaryText = isDarkMode ? 'text-[#39C5BB]' : 'text-[#006A6B]';
-  const primaryBg = isDarkMode ? 'bg-[#39C5BB] text-[#003738]' : 'bg-[#006A6B] text-white';
-  const primaryContainer = isDarkMode ? 'bg-[#39C5BB]/20 text-[#39C5BB]' : 'bg-[#39C5BB]/15 text-[#006A6B]';
+  const card = 'bg-md-surface-container-high';
+  const primaryText = 'text-md-primary';
+  const primaryBg = 'bg-md-primary text-md-on-primary';
+  const primaryContainer = 'bg-md-primary-container text-md-on-primary-container';
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -66,13 +67,13 @@ export const SettingsPage: React.FC = () => {
       {/* 胶囊轨道 Track */}
       <div
         className={`w-12 h-6 rounded-full transition-colors duration-200 relative p-0.5 ${
-          value ? (isDarkMode ? 'bg-[#39C5BB]' : 'bg-[#006A6B]') : isDarkMode ? 'bg-white/20' : 'bg-black/20'
+          value ? 'bg-md-primary' : 'bg-black/20 dark:bg-white/20'
         }`}
       >
-        {/* 滑块 Thumb：添加 pointer-events-none 避免阻挡点击 */}
+        {/* 滑块 Thumb */}
         <div
-          className={`w-5 h-5 bg-white rounded-full transition-transform duration-200 pointer-events-none shadow-sm ${
-            value ? 'translate-x-6' : 'translate-x-0'
+          className={`w-5 h-5 rounded-full transition-transform duration-200 pointer-events-none shadow-sm ${
+            value ? 'bg-md-on-primary translate-x-6' : 'bg-white translate-x-0'
           }`}
         />
       </div>
@@ -146,7 +147,7 @@ export const SettingsPage: React.FC = () => {
                   type="text"
                   value={userProfile.nickname}
                   onChange={e => setUserProfile({ ...userProfile, nickname: e.target.value })}
-                  className={`w-full ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#39C5BB]`}
+                  className={`w-full ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-md-primary`}
                 />
               </div>
               <div className="flex items-center space-x-3 pt-1">
@@ -249,7 +250,7 @@ export const SettingsPage: React.FC = () => {
                   value={artistSeparators}
                   onChange={e => setArtistSeparators(e.target.value)}
                   placeholder="/"
-                  className={`w-24 ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl px-3 py-1.5 text-center font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#39C5BB]`}
+                  className={`w-24 ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl px-3 py-1.5 text-center font-bold text-xs focus:outline-none focus:ring-2 focus:ring-md-primary`}
                 />
               </div>
             </div>
@@ -278,7 +279,7 @@ export const SettingsPage: React.FC = () => {
                     onClick={() => setCustomSeedColor(preset.hex)}
                     title={preset.name}
                     className={`w-8 h-8 rounded-full transition-transform flex items-center justify-center shadow-sm relative ${
-                      isSelected ? 'scale-110 ring-2 ring-white' : 'hover:scale-105'
+                      isSelected ? 'scale-110 ring-2 ring-white dark:ring-white' : 'hover:scale-105'
                     }`}
                     style={{ backgroundColor: preset.hex }}
                   >
@@ -300,7 +301,7 @@ export const SettingsPage: React.FC = () => {
                   type="text"
                   value={customSeedColor}
                   onChange={e => setCustomSeedColor(e.target.value)}
-                  className="w-20 bg-transparent text-xs font-mono font-bold outline-none"
+                  className="w-20 bg-transparent text-xs font-bold outline-none"
                   placeholder="#39C5BB"
                 />
               </div>
@@ -342,7 +343,7 @@ export const SettingsPage: React.FC = () => {
                 step="1"
                 value={lyricsFontSize}
                 onChange={e => setLyricsFontSize(parseInt(e.target.value, 10))}
-                className="w-32 accent-[#39C5BB] dark:accent-[#39C5BB] cursor-pointer"
+                className="w-32 accent-md-primary cursor-pointer"
               />
               <M3NumberInput
                 value={lyricsFontSize}
@@ -367,6 +368,18 @@ export const SettingsPage: React.FC = () => {
               <div className="text-gray-500 text-[11px]">{t.transSub}</div>
             </div>
             <Toggle value={showTrans} onChange={setShowTrans} />
+          </div>
+
+          {/* Auto collapse sidebar on Now Playing */}
+          <div
+            onClick={() => setAutoCollapseRailOnNowPlaying(!autoCollapseRailOnNowPlaying)}
+            className="flex items-center justify-between text-xs pt-2 border-t border-black/5 dark:border-white/5 cursor-pointer select-none py-1 hover:opacity-90 transition"
+          >
+            <div>
+              <div className="font-semibold">{t.autoCollapseRail}</div>
+              <div className="text-gray-500 text-[11px]">{t.autoCollapseRailSub}</div>
+            </div>
+            <Toggle value={autoCollapseRailOnNowPlaying} onChange={setAutoCollapseRailOnNowPlaying} />
           </div>
 
           {/* Language */}
@@ -425,13 +438,13 @@ export const SettingsPage: React.FC = () => {
         {/* 6. About 0rhxPlayer */}
         <div className={`${card} p-6 rounded-3xl space-y-5 text-xs shadow-sm`}>
           <div className="flex items-center space-x-4">
-            <div className={`w-14 h-14 rounded-2xl ${isDarkMode ? 'bg-[#39C5BB]/20 text-[#39C5BB]' : 'bg-[#006A6B]/15 text-[#006A6B]'} flex items-center justify-center shrink-0 shadow-inner`}>
+            <div className="w-14 h-14 rounded-2xl bg-md-primary-container text-md-on-primary-container flex items-center justify-center shrink-0 shadow-inner">
               <i className="fa-solid fa-compact-disc text-3xl animate-spin-slow" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center space-x-2">
-                <h3 className="font-brand font-bold text-base tracking-tight">{t.aboutTitle}</h3>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-[#39C5BB]/20 text-[#39C5BB]">
+                <h3 className="font-bold text-base tracking-tight">{t.aboutTitle}</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-md-primary-container text-md-on-primary-container">
                   v1.0.1
                 </span>
               </div>
@@ -489,7 +502,7 @@ export const SettingsPage: React.FC = () => {
             {/* License */}
             <div className="flex items-center justify-between">
               <span className="text-gray-500 dark:text-gray-400">{t.license}</span>
-              <span className="font-mono text-gray-400 font-medium">GPL-3.0 License</span>
+              <span className="text-gray-400 font-medium">GPL-3.0 License</span>
             </div>
           </div>
         </div>

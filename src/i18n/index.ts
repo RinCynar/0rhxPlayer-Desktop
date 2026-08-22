@@ -58,6 +58,8 @@ export interface I18NDict {
   cueAutoScan: string;
   sectionLibraryNav: string;
   sectionInterface: string;
+  autoCollapseRail: string;
+  autoCollapseRailSub: string;
   navRailCustom: string;
   navRailCustomDesc: string;
   artistSeparators: string;
@@ -266,6 +268,8 @@ export const I18N: Record<LangKey, I18NDict> = {
     "cueAutoScan": "CUE 关联分轨解析",
     "sectionLibraryNav": "曲库与标签检索管线",
     "sectionInterface": "界面与视觉定制",
+    "autoCollapseRail": "展开播放详情时自动折叠侧栏",
+    "autoCollapseRailSub": "展开全屏播放界面时自动收起导航栏以获得更大沉浸视野",
     "navRailCustom": "自定义",
     "navRailCustomDesc": "开启或勾选要在侧边栏中显示的导航项目",
     "artistSeparators": "歌手字段分隔符",
@@ -466,6 +470,8 @@ export const I18N: Record<LangKey, I18NDict> = {
     "cueAutoScan": "CUE Sheet Auto-indexing",
     "sectionLibraryNav": "Library & Metadata Pipeline",
     "sectionInterface": "Interface & Customization",
+    "autoCollapseRail": "Auto Collapse Sidebar on Now Playing",
+    "autoCollapseRailSub": "Collapse navigation rail when opening Now Playing for immersive view",
     "navRailCustom": "Customize",
     "navRailCustomDesc": "Select visible navigation items on the side rail",
     "artistSeparators": "Artist Separators",
@@ -665,6 +671,8 @@ export const I18N: Record<LangKey, I18NDict> = {
     "cueAutoScan": "CUE シート自動読み込み",
     "sectionLibraryNav": "ライブラリとタグ検索",
     "sectionInterface": "UI & テーマのカスタム",
+    "autoCollapseRail": "再生詳細を開く時にサイドバーを自動折りたたみ",
+    "autoCollapseRailSub": "再生詳細画面を開いた際にサイドバーを折りたたんで歌詞の表示領域を広げます",
     "navRailCustom": "カスタム",
     "navRailCustomDesc": "表示項目をカスタマイズできます",
     "artistSeparators": "歌手の区切り文字",

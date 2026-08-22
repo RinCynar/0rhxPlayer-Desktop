@@ -12,6 +12,7 @@ export interface TrackMetadata {
   year?: number;
   genre?: string;
   sampleRate?: number;
+  bitDepth?: number;
   channels?: number;
   bitrate?: number;
   format?: string;

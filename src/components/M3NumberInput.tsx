@@ -63,7 +63,7 @@ export function M3NumberInput({
     <div
       onDoubleClick={onDoubleClick}
       title={title}
-      className={`inline-flex items-center justify-center bg-black/10 dark:bg-white/10 rounded-xl px-2 py-1 transition border border-transparent focus-within:border-[#39C5BB] focus-within:ring-1 focus-within:ring-[#39C5BB] ${className}`}
+      className={`inline-flex items-center justify-center bg-black/10 dark:bg-white/10 rounded-xl px-2 py-1 transition border border-transparent focus-within:border-md-primary focus-within:ring-1 focus-within:ring-md-primary ${className}`}
     >
       <input
         type="number"
@@ -76,10 +76,10 @@ export function M3NumberInput({
           commitValue();
         }}
         onKeyDown={handleKeyDown}
-        className={`bg-transparent text-center font-mono font-bold text-xs outline-none w-12 text-gray-900 dark:text-gray-100 ${inputClassName}`}
+        className={`bg-transparent text-center font-bold text-xs outline-none w-12 text-gray-900 dark:text-gray-100 ${inputClassName}`}
       />
       {unit && (
-        <span className="text-[10px] text-gray-400 font-mono select-none pl-0.5">{unit}</span>
+        <span className="text-[10px] text-gray-400 select-none pl-0.5">{unit}</span>
       )}
     </div>
   );

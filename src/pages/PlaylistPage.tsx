@@ -33,9 +33,9 @@ export const PlaylistPage: React.FC = () => {
   const [menuTrack, setMenuTrack] = useState<TrackMetadata | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const card = isDarkMode ? 'bg-[#28272F]' : 'bg-[#E2DBE8]';
-  const primaryBg = isDarkMode ? 'bg-[#39C5BB] text-[#003738]' : 'bg-[#006A6B] text-white';
-  const primaryText = isDarkMode ? 'text-[#39C5BB]' : 'text-[#006A6B]';
+  const card = 'bg-md-surface-container-high';
+  const primaryBg = 'bg-md-primary text-md-on-primary';
+  const primaryText = 'text-md-primary';
 
 
   // Selected playlist tracks & metadata
@@ -224,7 +224,7 @@ export const PlaylistPage: React.FC = () => {
                     className={`${card} p-3 rounded-2xl flex items-center justify-between cursor-pointer group hover:bg-[#36343B] dark:hover:bg-[#36343B] transition`}
                   >
                     <div className="flex items-center space-x-3.5 min-w-0 flex-1">
-                      <span className="text-xs font-mono text-gray-400 w-5 text-center shrink-0">
+                      <span className="text-xs text-gray-400 w-5 text-center shrink-0">
                         {idx + 1}
                       </span>
                       <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0">
@@ -245,9 +245,9 @@ export const PlaylistPage: React.FC = () => {
 
                     <div className="flex items-center space-x-2 shrink-0">
                       {tr.format && (
-                        <span className="text-[10px] font-mono text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
+                        <span className="text-[10px] font-semibold text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
                       )}
-                      <span className="text-xs font-mono text-gray-400 w-12 text-right hidden sm:inline">
+                      <span className="text-xs text-gray-400 w-12 text-right hidden sm:inline">
                         {formatDuration(tr.durationMs)}
                       </span>
 
@@ -325,7 +325,7 @@ export const PlaylistPage: React.FC = () => {
                 onClick={() => setSelectedPlaylistId(pl.id)}
                 className={`${card} p-4 rounded-3xl cursor-pointer group flex flex-col justify-between hover:-translate-y-1 transition-all duration-200 shadow-sm relative`}
               >
-                <div className="w-full aspect-square rounded-2xl overflow-hidden relative mb-3 bg-gradient-to-br from-[#39C5BB]/20 to-[#006A6B]/20 flex items-center justify-center group-hover:scale-[1.02] transition">
+                <div className="w-full aspect-square rounded-2xl overflow-hidden relative mb-3 bg-md-primary-container text-md-on-primary-container flex items-center justify-center group-hover:scale-[1.02] transition">
                   <i className={`fa-solid fa-compact-disc text-4xl ${primaryText} opacity-50`} />
                   <span className="absolute bottom-2 left-2 text-white text-[11px] font-semibold bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-md">
                     {pl.trackPaths.length} {t.trackCount}
@@ -359,7 +359,7 @@ export const PlaylistPage: React.FC = () => {
       {/* Create Playlist Modal */}
       {isCreating && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className={`${isDarkMode ? 'bg-[#28272F]' : 'bg-white'} rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl`}>
+          <div className="bg-md-surface-container-high rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
             <h3 className={`text-base font-bold ${primaryText}`}>
               <i className="fa-solid fa-plus mr-2" />{t.createPlaylist}
             </h3>
@@ -370,7 +370,7 @@ export const PlaylistPage: React.FC = () => {
               onKeyDown={e => e.key === 'Enter' && handleCreate()}
               placeholder={t.myPlaylists}
               autoFocus
-              className={`w-full ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#39C5BB]`}
+              className={`w-full ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-md-primary`}
             />
 
 

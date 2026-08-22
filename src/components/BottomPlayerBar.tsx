@@ -7,7 +7,7 @@ export const BottomPlayerBar: React.FC = () => {
 
   const {
     currentTrack, playbackStatus, positionMs, durationMs,
-    isDarkMode, isNowPlayingOpen, setIsNowPlayingOpen,
+    isNowPlayingOpen, setIsNowPlayingOpen,
     playMode, cyclePlayMode,
     lang, showTrans, setShowTrans,
     togglePlayPause, playNext, playPrevious, seekTo,
@@ -24,8 +24,8 @@ export const BottomPlayerBar: React.FC = () => {
     seekTo(Math.floor(pct * durationMs));
   };
 
-  const surface = isDarkMode ? 'bg-[#1C1B20]' : 'bg-[#EDE7F0]';
-  const primaryText = isDarkMode ? 'text-[#39C5BB]' : 'text-[#006A6B]';
+  const surface = 'bg-md-surface-container-low';
+  const primaryText = 'text-md-primary';
 
   const getPlayModeIcon = () => {
     switch (playMode) {
@@ -33,7 +33,7 @@ export const BottomPlayerBar: React.FC = () => {
         return (
           <div className="relative inline-flex items-center justify-center">
             <i className={`fa-solid fa-repeat text-base ${primaryText}`} />
-            <span className="absolute -top-1 -right-1 text-[9px] font-extrabold bg-current text-white dark:text-black rounded-full px-0.5 leading-none">
+            <span className="absolute -top-1 -right-1 text-[9px] font-extrabold bg-md-primary text-md-on-primary rounded-full px-0.5 leading-none">
               1
             </span>
           </div>
@@ -73,7 +73,7 @@ export const BottomPlayerBar: React.FC = () => {
         ref={progressRef}
       >
         <div
-          className={`h-full ${isDarkMode ? 'bg-[#39C5BB]' : 'bg-[#006A6B]'} transition-all duration-100 relative`}
+          className="h-full bg-md-primary transition-all duration-100 relative"
           style={{ width: `${progress}%` }}
         >
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-current shadow opacity-0 group-hover:opacity-100 transition" />
@@ -88,9 +88,7 @@ export const BottomPlayerBar: React.FC = () => {
       >
         {isNowPlayingOpen ? (
           <div
-            className={`w-12 h-12 rounded-xl flex items-center justify-center transition shrink-0 ${
-              isDarkMode ? 'bg-white/10 group-hover:bg-[#39C5BB]/20 text-[#39C5BB]' : 'bg-black/5 group-hover:bg-[#006A6B]/15 text-[#006A6B]'
-            }`}
+            className="w-12 h-12 rounded-xl flex items-center justify-center transition shrink-0 bg-black/5 dark:bg-white/10 group-hover:bg-md-primary-container text-md-primary"
           >
             <i className="fa-solid fa-chevron-down text-base transition-transform group-hover:translate-y-0.5" />
           </div>
@@ -107,7 +105,7 @@ export const BottomPlayerBar: React.FC = () => {
           </div>
         )}
         <div className="truncate min-w-0">
-          <div className={`text-sm font-semibold truncate transition ${isDarkMode ? 'group-hover:text-[#39C5BB]' : 'group-hover:text-[#006A6B]'}`}>
+          <div className="text-sm font-semibold truncate transition group-hover:text-md-primary">
             {currentTrack?.title || '0rhxPlayer'}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
@@ -127,9 +125,7 @@ export const BottomPlayerBar: React.FC = () => {
               title={t.showTrans}
               className={`w-8 h-8 rounded-full text-xs font-semibold flex items-center justify-center transition active:scale-95 ${
                 showTrans
-                  ? isDarkMode
-                    ? 'bg-[#39C5BB]/20 text-[#39C5BB]'
-                    : 'bg-[#39C5BB]/15 text-[#006A6B]'
+                  ? 'bg-md-primary-container text-md-on-primary-container shadow-xs'
                   : 'bg-black/5 dark:bg-white/5 text-gray-400 hover:text-white'
               }`}
             >
@@ -158,11 +154,7 @@ export const BottomPlayerBar: React.FC = () => {
         {/* Play/Pause Main FAB */}
         <button
           onClick={togglePlayPause}
-          className={`w-11 h-11 rounded-full ${
-            isDarkMode
-              ? 'bg-[#39C5BB] text-[#003738] shadow-[0_0_14px_rgba(57,197,187,0.35)]'
-              : 'bg-[#006A6B] text-white shadow-md'
-          } flex items-center justify-center hover:scale-105 active:scale-95 transition-all`}
+          className="w-11 h-11 rounded-full bg-md-primary text-md-on-primary shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
         >
           <i className={`fa-solid ${playbackStatus === 'playing' ? 'fa-pause' : 'fa-play pl-0.5'} text-base`} />
         </button>
@@ -180,9 +172,7 @@ export const BottomPlayerBar: React.FC = () => {
           onClick={() => { setActiveTab('queue'); setIsNowPlayingOpen(false); }}
           className={`w-9 h-9 rounded-full hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center text-sm transition active:scale-95 ${
             activeTab === 'queue'
-              ? isDarkMode
-                ? 'text-[#39C5BB]'
-                : 'text-[#006A6B]'
+              ? 'text-md-primary font-bold'
               : 'text-gray-400 hover:text-gray-200'
           }`}
           title={t.queue}

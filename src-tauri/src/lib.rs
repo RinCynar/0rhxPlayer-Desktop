@@ -120,6 +120,37 @@ fn set_minimize_to_tray(state: State<'_, AppState>, enabled: bool) -> Result<(),
     Ok(())
 }
 
+#[tauri::command]
+fn update_tray_menu(app: AppHandle, lang: String) -> Result<(), String> {
+    let (show_text, play_pause_text, next_text, quit_text) = match lang.as_str() {
+        "en" => ("Show 0rhxPlayer", "Play / Pause", "Next Track", "Quit"),
+        "ja" => ("メイン画面を表示", "再生 / 一時停止", "次の曲", "完全に終了"),
+        _ => ("显示主界面", "播放/暂停", "下一首", "彻底退出"),
+    };
+
+    let show_item = MenuItem::with_id(&app, "show", show_text, true, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let play_pause_item = MenuItem::with_id(&app, "play_pause", play_pause_text, true, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let next_item = MenuItem::with_id(&app, "next", next_text, true, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let separator = PredefinedMenuItem::separator(&app)
+        .map_err(|e| e.to_string())?;
+    let quit_item = MenuItem::with_id(&app, "quit", quit_text, true, None::<&str>)
+        .map_err(|e| e.to_string())?;
+
+    let tray_menu = Menu::with_items(
+        &app,
+        &[&show_item, &play_pause_item, &next_item, &separator, &quit_item],
+    )
+    .map_err(|e| e.to_string())?;
+
+    if let Some(tray) = app.tray_by_id("main-tray") {
+        let _ = tray.set_menu(Some(tray_menu));
+    }
+    Ok(())
+}
+
 #[derive(serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct PositionUpdatePayload {
@@ -160,7 +191,7 @@ pub fn run() {
 
             // System Tray Setup
             let show_item = MenuItem::with_id(app, "show", "显示主界面", true, None::<&str>)?;
-            let play_pause_item = MenuItem::with_id(app, "play_pause", "播放 / 暂停", true, None::<&str>)?;
+            let play_pause_item = MenuItem::with_id(app, "play_pause", "播放/暂停", true, None::<&str>)?;
             let next_item = MenuItem::with_id(app, "next", "下一首", true, None::<&str>)?;
             let separator = PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItem::with_id(app, "quit", "彻底退出", true, None::<&str>)?;
@@ -180,7 +211,7 @@ pub fn run() {
                     tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")).ok()
                 });
 
-            let mut tray_builder = TrayIconBuilder::new()
+            let mut tray_builder = TrayIconBuilder::with_id("main-tray")
                 .menu(&tray_menu)
                 .show_menu_on_left_click(false)
                 .tooltip("0rhxPlayer Desktop")
@@ -304,6 +335,7 @@ pub fn run() {
             set_eq_bands,
             set_eq_preamp,
             set_minimize_to_tray,
+            update_tray_menu,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

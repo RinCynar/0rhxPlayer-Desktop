@@ -24,9 +24,9 @@ export const QueuePage: React.FC = () => {
   const [menuTrack, setMenuTrack] = useState<TrackMetadata | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const card = isDarkMode ? 'bg-[#28272F]' : 'bg-[#E2DBE8]';
-  const primaryBg = isDarkMode ? 'bg-[#39C5BB] text-[#003738]' : 'bg-[#006A6B] text-white';
-  const primaryText = isDarkMode ? 'text-[#39C5BB]' : 'text-[#006A6B]';
+  const card = 'bg-md-surface-container-high';
+  const primaryBg = 'bg-md-primary text-md-on-primary';
+  const primaryText = 'text-md-primary';
 
   const coverSrc = getCoverSrc(currentTrack?.coverUrl);
 
@@ -39,7 +39,7 @@ export const QueuePage: React.FC = () => {
   const rowVirtualizer = useVirtualizer({
     count: displayTracks.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 72,
+    estimateSize: () => 76,
     overscan: 5,
   });
 
@@ -47,7 +47,7 @@ export const QueuePage: React.FC = () => {
     <div ref={parentRef} className="h-full overflow-y-auto p-8 space-y-6 animate-fade-in">
       <div className="max-w-6xl w-full mx-auto space-y-6 pb-20">
         {/* Transparent Hero Banner */}
-        <div className="relative h-64 rounded-3xl overflow-hidden shadow-2xl bg-[#131317] p-8 flex flex-col justify-end">
+        <div className="relative h-64 rounded-3xl overflow-hidden shadow-2xl bg-md-surface-container-high p-8 flex flex-col justify-end">
           {coverSrc && (
             <img
               src={coverSrc}
@@ -73,7 +73,7 @@ export const QueuePage: React.FC = () => {
 
           {/* Queue count badge */}
           <div className="absolute top-6 right-6 flex items-center gap-3 z-10">
-            <span className="bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-3.5 py-1 text-xs text-white font-mono shadow-sm">
+            <span className="bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-3.5 py-1 text-xs text-white font-medium shadow-sm">
               {queue.length} {t.trackCount}
             </span>
             {queue.length > 0 && (
@@ -126,18 +126,23 @@ export const QueuePage: React.FC = () => {
 
               return (
                 <div
-                  key={tr.path + localIdx}
+                  key={virtualRow.key}
                   style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     width: '100%',
+                    height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
+                    paddingBottom: '8px',
                   }}
-                  className="py-1"
                 >
                   <div
-                    className={`${card} p-3.5 rounded-2xl flex items-center justify-between hover:bg-[#36343B] dark:hover:bg-[#36343B] transition group`}
+                    className={`flex items-center justify-between h-full px-4 rounded-2xl transition-colors duration-150 group ${
+                      isDarkMode
+                        ? 'bg-white/5 hover:bg-white/10 border border-white/5'
+                        : 'bg-black/5 hover:bg-black/10 border border-black/5'
+                    }`}
                   >
                     <div
                       className="flex items-center space-x-4 cursor-pointer flex-1 min-w-0"
@@ -153,7 +158,7 @@ export const QueuePage: React.FC = () => {
                         />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className={`font-semibold text-sm truncate ${isDarkMode ? 'group-hover:text-[#39C5BB]' : 'group-hover:text-[#006A6B]'} transition`}>
+                        <div className="font-semibold text-sm truncate group-hover:text-md-primary transition">
                           {tr.title || tr.path.split(/[/\\]/).pop()}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
@@ -162,7 +167,7 @@ export const QueuePage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Right Actions: Favorite, Menu, and Remove (Task 3: No ratings) */}
+                    {/* Right Actions: Favorite, Menu, and Remove */}
                     <div className="flex items-center space-x-2 shrink-0 ml-4">
                       {/* Favorite */}
                       <button

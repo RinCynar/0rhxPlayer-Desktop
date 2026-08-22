@@ -134,6 +134,14 @@ export async function setMinimizeToTray(enabled: boolean): Promise<void> {
   }
 }
 
+export async function updateTrayMenu(lang: string): Promise<void> {
+  try {
+    await invoke<void>('update_tray_menu', { lang });
+  } catch (e) {
+    console.warn('Failed to update tray menu:', e);
+  }
+}
+
 export async function scanDirectory(dirPath: string): Promise<void> {
   return await invoke<void>('scan_directory', { dirPath });
 }

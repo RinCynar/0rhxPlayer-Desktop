@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- 背景主渐变 (深邃 M3 Surface) -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E1F24" />
+      <stop offset="100%" stop-color="#121316" />
+    </linearGradient>
+
+    <!-- 顶部高光弧线微渐变 -->
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.02" />
+    </linearGradient>
+
+    <!-- 声波与核心主色渐变 (#39C5BB -> 亮青绿) -->
+    <linearGradient id="mikuGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5FE3D9" />
+      <stop offset="100%" stop-color="#39C5BB" />
+    </linearGradient>
+
+    <!-- 声波外环次级渐变 (带轻微深浅层次) -->
+    <linearGradient id="mikuGradSubtle" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#39C5BB" />
+      <stop offset="100%" stop-color="#238B83" />
+    </linearGradient>
+
+    <!-- 柔和中心光晕滤镜 -->
+    <filter id="coreGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- 1. 外层圆形底座 -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGrad)" stroke="url(#rimGrad)" stroke-width="3" />
+
+  <!-- 2. 声波轻微环境光晕 (提升暗色模式下的通透感) -->
+  <g opacity="0.25" filter="url(#coreGlow)">
+    <circle cx="256" cy="256" r="140" fill="none" stroke="#39C5BB" stroke-width="24" stroke-linecap="round" />
+  </g>
+
+  <!-- 3. 几何声波与播放内核 -->
+  <g stroke-linecap="round">
+    <!-- 右上声波组 (逆时针层叠) -->
+    <!-- 外环 -->
+    <path d="M 256 68 A 188 188 0 0 1 444 256" fill="none" stroke="url(#mikuGradSubtle)" stroke-width="26" />
+    <!-- 中环 -->
+    <path d="M 256 112 A 144 144 0 0 1 400 256" fill="none" stroke="url(#mikuGrad)" stroke-width="26" />
+    <!-- 内环 -->
+    <path d="M 256 156 A 100 100 0 0 1 356 256" fill="none" stroke="url(#mikuGrad)" stroke-width="26" />
+
+    <!-- 左下声波组 (对称呼应) -->
+    <!-- 外环 -->
+    <path d="M 256 444 A 188 188 0 0 1 68 256" fill="none" stroke="url(#mikuGradSubtle)" stroke-width="26" />
+    <!-- 中环 -->
+    <path d="M 256 400 A 144 144 0 0 1 112 256" fill="none" stroke="url(#mikuGrad)" stroke-width="26" />
+    <!-- 内环 -->
+    <path d="M 256 356 A 100 100 0 0 1 156 256" fill="none" stroke="url(#mikuGrad)" stroke-width="26" />
+
+    <!-- 4. 中心圆角播放三角内核 -->
+    <path d="M 235 208 C 235 200 244 195 251 200 L 298 238 C 304 243 304 253 298 258 L 251 296 C 244 301 235 296 235 288 Z" fill="url(#mikuGrad)" />
+  </g>
+</svg>

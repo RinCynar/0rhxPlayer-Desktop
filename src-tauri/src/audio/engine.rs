@@ -290,6 +290,7 @@ impl AudioEngine {
                                 let mut meta = fast_metadata(Path::new(&path));
                                 meta.duration_ms = dec.duration_ms();
                                 meta.sample_rate = Some(dec.sample_rate());
+                                meta.bit_depth = dec.bits_per_sample().map(|b| b as u8);
                                 meta.channels = Some(dec.channels() as u16);
 
                                 duration_ms.store(dec.duration_ms(), Ordering::SeqCst);

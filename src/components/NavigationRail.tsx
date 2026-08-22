@@ -14,10 +14,11 @@ export const NavigationRail: React.FC = () => {
     lang,
     visibleNavIds, setVisibleNavIds,
     isNowPlayingOpen, setIsNowPlayingOpen,
+    isNavCollapsed: isCollapsed,
+    setIsNavCollapsed: setIsCollapsed,
   } = usePlayer();
 
   const t = I18N[lang];
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isEditingNav, setIsEditingNav] = useState(false);
   const [tempOrder, setTempOrder] = useState<NavOrderItem[]>([]);
 
@@ -29,16 +30,11 @@ export const NavigationRail: React.FC = () => {
   };
 
 
-  const surface = isDarkMode ? 'bg-[#1C1B20]' : 'bg-[#EDE7F0]';
-  const primaryText = isDarkMode ? 'text-[#39C5BB]' : 'text-[#006A6B]';
+  const surface = 'bg-md-surface-container-low';
+  const primaryText = 'text-md-primary';
 
-  const activeClass = isDarkMode
-    ? 'bg-[#39C5BB]/20 text-[#39C5BB] font-bold'
-    : 'bg-[#39C5BB]/15 text-[#006A6B] font-bold';
-
-  const inactiveClass = isDarkMode
-    ? 'text-gray-400 hover:text-gray-100 hover:bg-white/5'
-    : 'text-gray-500 hover:text-gray-900 hover:bg-black/5';
+  const activeClass = 'bg-md-primary-container text-md-on-primary-container font-bold shadow-xs';
+  const inactiveClass = 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-black/5 dark:hover:bg-white/5';
 
   const openEditNav = () => {
     // Build ordered list: visible ones in current order first, followed by hidden ones
@@ -95,7 +91,7 @@ export const NavigationRail: React.FC = () => {
           {/* Brand & collapse toggle */}
           <div className="flex items-center justify-between px-2">
             {!isCollapsed && (
-              <span className={`font-brand font-extrabold text-base tracking-tight truncate pl-1 ${primaryText}`}>
+              <span className={`brand-text font-brand font-extrabold text-base tracking-tight truncate pl-1 ${primaryText}`}>
                 {t.appName}
               </span>
             )}
@@ -112,7 +108,7 @@ export const NavigationRail: React.FC = () => {
           <button
             onClick={openEditNav}
             title={t.navRailCustom}
-            className={`rounded-2xl ${isDarkMode ? 'bg-[#39C5BB]/20 text-[#39C5BB]' : 'bg-[#39C5BB]/15 text-[#006A6B]'} flex items-center hover:scale-[1.02] active:scale-95 transition shadow-sm ${isCollapsed ? 'w-11 h-11 justify-center mx-auto' : 'w-full px-4 py-2.5 space-x-3'}`}
+            className={`rounded-2xl bg-md-primary-container text-md-on-primary-container flex items-center hover:scale-[1.02] active:scale-95 transition shadow-sm ${isCollapsed ? 'w-11 h-11 justify-center mx-auto' : 'w-full px-4 py-2.5 space-x-3'}`}
           >
             <i className="fa-solid fa-pen text-sm" />
             {!isCollapsed && <span className="text-xs font-semibold">{t.navRailCustom}</span>}
@@ -130,7 +126,7 @@ export const NavigationRail: React.FC = () => {
                   onClick={() => handleTabClick(item.id)}
                   className={`flex items-center rounded-2xl transition ${isCollapsed ? 'justify-center py-2.5' : 'px-3.5 py-3 space-x-3 text-left'} ${isActive ? activeClass : inactiveClass}`}
                 >
-                  <div className={`w-9 h-7 rounded-full flex items-center justify-center shrink-0 ${isActive ? (isDarkMode ? 'bg-[#39C5BB] text-[#003738]' : 'bg-[#006A6B] text-white') : ''}`}>
+                  <div className={`w-9 h-7 rounded-full flex items-center justify-center shrink-0 ${isActive ? 'bg-md-primary text-md-on-primary' : ''}`}>
                     <i className={`fa-solid ${item.icon} text-sm`} />
                   </div>
                   {!isCollapsed && (
@@ -159,7 +155,7 @@ export const NavigationRail: React.FC = () => {
       {/* Nav Customizer Modal with Ordering & Visibility */}
       {isEditingNav && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className={`${isDarkMode ? 'bg-[#28272F]' : 'bg-white'} rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl`}>
+          <div className="bg-md-surface-container-high rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className={`text-base font-bold flex items-center gap-2 ${primaryText}`}>
                 <i className="fa-solid fa-pen-to-square" /> {t.navRailCustom}
@@ -176,7 +172,7 @@ export const NavigationRail: React.FC = () => {
                 return (
                   <div
                     key={entry.id}
-                    className={`flex items-center justify-between p-3 rounded-2xl transition ${entry.visible ? (isDarkMode ? 'bg-[#39C5BB]/20 text-white' : 'bg-[#39C5BB]/15 text-gray-900') : (isDarkMode ? 'bg-white/5 opacity-50' : 'bg-black/5 opacity-50')}`}
+                    className={`flex items-center justify-between p-3 rounded-2xl transition ${entry.visible ? 'bg-md-primary-container text-md-on-primary-container' : (isDarkMode ? 'bg-white/5 opacity-50' : 'bg-black/5 opacity-50')}`}
                   >
                     <div
                       onClick={() => toggleItemVisibility(entry.id)}
@@ -213,7 +209,7 @@ export const NavigationRail: React.FC = () => {
                         checked={entry.visible}
                         disabled={isHome}
                         onChange={() => toggleItemVisibility(entry.id)}
-                        className="w-4 h-4 accent-[#39C5BB] rounded cursor-pointer ml-1"
+                        className="w-4 h-4 accent-md-primary rounded cursor-pointer ml-1"
                       />
                     </div>
                   </div>
@@ -230,7 +226,7 @@ export const NavigationRail: React.FC = () => {
               </button>
               <button
                 onClick={saveNavCustomization}
-                className={`px-5 py-2 rounded-full font-bold text-xs hover:opacity-90 transition shadow ${isDarkMode ? 'bg-[#39C5BB] text-[#003738]' : 'bg-[#006A6B] text-white'}`}
+                className="px-5 py-2 rounded-full font-bold text-xs hover:opacity-90 transition shadow bg-md-primary text-md-on-primary"
               >
                 {t.saveNavCustom}
               </button>

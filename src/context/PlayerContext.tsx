@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { PlaybackStatus, Playlist, TrackMetadata, LyricLine } from '../types/audio';
 import * as audioService from '../services/tauriAudio';
 
-import { applyThemeColor } from '../theme/colorEngine';
+import { applyTheme, DEFAULT_SEED_HEX } from '../theme/theme';
 
 import { LangKey } from '../i18n';
 
@@ -109,6 +109,10 @@ interface PlayerContextType {
   setArtistSeparators: (separators: string) => void;
   customSeedColor: string;
   setCustomSeedColor: (color: string) => void;
+  isNavCollapsed: boolean;
+  setIsNavCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+  autoCollapseRailOnNowPlaying: boolean;
+  setAutoCollapseRailOnNowPlaying: (enabled: boolean) => void;
 
 
 
@@ -207,9 +211,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState<boolean>(false);
   const [isQueueOpen, setIsQueueOpen] = useState<boolean>(false);
 
-  // I18N & UI Preferences
   const [lang, setLang] = useState<LangKey>(() => {
-    return (localStorage.getItem('0rhx_lang') as LangKey) || 'zh';
+    const saved = localStorage.getItem('0rhx_lang') as LangKey;
+    const initialLang = (saved && (saved === 'zh' || saved === 'en' || saved === 'ja')) ? saved : 'zh';
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = initialLang;
+    }
+    return initialLang;
   });
   const [lyricsAlign, setLyricsAlign] = useState<LyricsAlign>(() => {
     return (localStorage.getItem('0rhx_lyrics_align') as LyricsAlign) || 'right';
@@ -220,6 +228,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
   const [showTrans, setShowTrans] = useState<boolean>(() => {
     return localStorage.getItem('0rhx_show_trans') !== 'false';
+  });
+  const [isNavCollapsed, setIsNavCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('0rhx_nav_collapsed') === 'true';
+  });
+  const [autoCollapseRailOnNowPlaying, setAutoCollapseRailOnNowPlaying] = useState<boolean>(() => {
+    return localStorage.getItem('0rhx_auto_collapse_rail') !== 'false';
   });
 
   // Equalizer State
@@ -306,8 +320,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [artistSeparators, setArtistSeparators] = useState<string>(() => {
     return localStorage.getItem('0rhx_artist_separators') || '/';
   });
-  const [customSeedColor, setCustomSeedColor] = useState<string>(() => {
-    return localStorage.getItem('0rhx_custom_seed_color') || '#39C5BB';
+  const [customSeedColor, setCustomSeedColorState] = useState<string>(() => {
+    return (
+      localStorage.getItem('theme_seed') ||
+      localStorage.getItem('0rhx_custom_seed_color') ||
+      DEFAULT_SEED_HEX
+    );
   });
 
   // Scanned Folders State
@@ -478,13 +496,38 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [favorites]);
 
   // Persist I18N prefs & player configs
-  useEffect(() => { localStorage.setItem('0rhx_lang', lang); }, [lang]);
+  useEffect(() => {
+    localStorage.setItem('0rhx_lang', lang);
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = lang;
+    }
+    audioService.updateTrayMenu(lang);
+  }, [lang]);
   useEffect(() => { localStorage.setItem('0rhx_lyrics_align', lyricsAlign); }, [lyricsAlign]);
   useEffect(() => { localStorage.setItem('0rhx_lyrics_font_size', String(lyricsFontSize)); }, [lyricsFontSize]);
   useEffect(() => { localStorage.setItem('0rhx_show_trans', String(showTrans)); }, [showTrans]);
+  useEffect(() => { localStorage.setItem('0rhx_nav_collapsed', String(isNavCollapsed)); }, [isNavCollapsed]);
+  useEffect(() => { localStorage.setItem('0rhx_auto_collapse_rail', String(autoCollapseRailOnNowPlaying)); }, [autoCollapseRailOnNowPlaying]);
   useEffect(() => { localStorage.setItem('0rhx_play_mode_v4', playMode); }, [playMode]);
   useEffect(() => { localStorage.setItem('0rhx_artist_separators', artistSeparators); }, [artistSeparators]);
   useEffect(() => { localStorage.setItem('0rhx_custom_seed_color', customSeedColor); }, [customSeedColor]);
+
+  // Auto collapse sidebar on NowPlaying open/close linkage
+  const preNowPlayingNavCollapsedRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!autoCollapseRailOnNowPlaying) return;
+    if (isNowPlayingOpen) {
+      preNowPlayingNavCollapsedRef.current = isNavCollapsed;
+      if (!isNavCollapsed) {
+        setIsNavCollapsed(true);
+      }
+    } else {
+      if (preNowPlayingNavCollapsedRef.current !== null) {
+        setIsNavCollapsed(preNowPlayingNavCollapsedRef.current);
+        preNowPlayingNavCollapsedRef.current = null;
+      }
+    }
+  }, [isNowPlayingOpen, autoCollapseRailOnNowPlaying]);
   useEffect(() => {
     try {
       localStorage.setItem('0rhx_eq_settings_v1', JSON.stringify(eqSettings));
@@ -524,22 +567,34 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [isDarkMode]);
 
+  const setCustomSeedColor = useCallback((hex: string) => {
+    setCustomSeedColorState(hex);
+    localStorage.setItem('theme_seed', hex);
+    localStorage.setItem('0rhx_custom_seed_color', hex);
+    applyTheme(hex, isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode((prev) => {
       const next = !prev;
-      localStorage.setItem('0rhx_theme_mode', next ? 'dark' : 'light');
+      const mode = next ? 'dark' : 'light';
+      localStorage.setItem('theme_mode', mode);
+      localStorage.setItem('0rhx_theme_mode', mode);
+      applyTheme(customSeedColor, mode);
       return next;
     });
-  }, []);
+  }, [customSeedColor]);
 
   const setThemeMode = useCallback((mode: 'dark' | 'light') => {
     setIsDarkMode(mode === 'dark');
+    localStorage.setItem('theme_mode', mode);
     localStorage.setItem('0rhx_theme_mode', mode);
-  }, []);
+    applyTheme(customSeedColor, mode);
+  }, [customSeedColor]);
 
   // Material You Custom Palette Application
   useEffect(() => {
-    applyThemeColor(customSeedColor, isDarkMode);
+    applyTheme(customSeedColor, isDarkMode ? 'dark' : 'light');
   }, [customSeedColor, isDarkMode]);
 
 
@@ -1102,6 +1157,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setArtistSeparators,
         customSeedColor,
         setCustomSeedColor,
+        isNavCollapsed,
+        setIsNavCollapsed,
+        autoCollapseRailOnNowPlaying,
+        setAutoCollapseRailOnNowPlaying,
 
         eqSettings,
 

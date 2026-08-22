@@ -22,6 +22,7 @@ pub struct TrackMetadata {
     pub year: Option<u32>,
     pub genre: Option<String>,
     pub sample_rate: Option<u32>,
+    pub bit_depth: Option<u8>,
     pub channels: Option<u16>,
     pub bitrate: Option<u32>,
     pub format: Option<String>,
@@ -87,6 +88,7 @@ pub fn fast_metadata<P: AsRef<Path>>(path: P) -> TrackMetadata {
         year: None,
         genre: None,
         sample_rate: None,
+        bit_depth: None,
         channels: None,
         bitrate: None,
         format: file_format,
@@ -121,6 +123,7 @@ pub fn parse_metadata<P: AsRef<Path>>(path: P) -> Result<TrackMetadata, String> 
             let properties = tagged_file.properties();
             let duration_ms = properties.duration().as_millis() as u64;
             let sample_rate = properties.sample_rate();
+            let bit_depth = properties.bit_depth();
             let channels = properties.channels().map(|c| c as u16);
             let bitrate = properties.audio_bitrate();
 
@@ -187,6 +190,7 @@ pub fn parse_metadata<P: AsRef<Path>>(path: P) -> Result<TrackMetadata, String> 
                 year,
                 genre,
                 sample_rate,
+                bit_depth,
                 channels,
                 bitrate,
                 format: file_format,

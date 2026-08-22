@@ -80,7 +80,7 @@ export function M3Dropdown<T extends string | number>({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between gap-2.5 px-3.5 py-2 rounded-2xl text-xs font-medium border transition-all duration-200 outline-none focus:ring-2 focus:ring-[#39C5BB] ${buttonBg} ${
+        className={`flex items-center justify-between gap-2.5 px-3.5 py-2 rounded-2xl text-xs font-medium border transition-all duration-200 outline-none focus:ring-2 focus:ring-md-primary ${buttonBg} ${
           disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
         } ${buttonClassName}`}
       >
@@ -115,9 +115,7 @@ export function M3Dropdown<T extends string | number>({
                 }}
                 className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-left text-xs transition duration-150 ${
                   isSelected
-                    ? isDarkMode
-                      ? 'bg-[#39C5BB]/20 text-[#39C5BB] font-semibold'
-                      : 'bg-[#39C5BB]/15 text-[#006A6B] font-semibold'
+                    ? 'bg-md-primary-container text-md-on-primary-container font-semibold'
                     : isDarkMode
                     ? 'hover:bg-white/5 text-gray-200'
                     : 'hover:bg-black/5 text-gray-800'
@@ -134,7 +132,7 @@ export function M3Dropdown<T extends string | number>({
                 </div>
 
                 {isSelected && (
-                  <i className="fa-solid fa-check text-[11px] text-[#39C5BB] shrink-0" />
+                  <i className="fa-solid fa-check text-[11px] text-md-primary shrink-0" />
                 )}
               </button>
             );

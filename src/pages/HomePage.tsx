@@ -93,10 +93,8 @@ export const HomePage: React.FC = () => {
     if (hour >= 12 && hour < 18) return t.greetingAfternoon;
     if (hour >= 18 && hour < 23) return t.greetingEvening;
     return t.greetingNight;
-  };
-
-  const card = isDarkMode ? 'bg-[#28272F]' : 'bg-[#E2DBE8]';
-  const primaryText = isDarkMode ? 'text-[#39C5BB]' : 'text-[#006A6B]';
+  };  const card = 'bg-md-surface-container-high';
+  const primaryText = 'text-md-primary';
 
   const playAlbum = (albumTracks: TrackMetadata[]) => {
     if (albumTracks.length > 0) {
@@ -119,7 +117,7 @@ export const HomePage: React.FC = () => {
             />
           ) : (
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition ${isDarkMode ? 'bg-[#39C5BB]/20' : 'bg-[#39C5BB]/15'}`}
+              className="w-12 h-12 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition bg-md-primary-container text-md-on-primary-container"
               onClick={() => setActiveTab('settings')}
             >
               <i className={`fa-solid fa-user text-lg ${primaryText}`} />
@@ -134,7 +132,7 @@ export const HomePage: React.FC = () => {
           onClick={toggleDarkMode}
           className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition"
         >
-          <i className={`fa-solid ${isDarkMode ? 'fa-sun text-amber-400' : 'fa-moon text-[#39C5BB]'}`} />
+          <i className={`fa-solid ${isDarkMode ? 'fa-sun text-amber-400' : 'fa-moon text-md-primary'}`} />
         </button>
       </div>
 
@@ -144,7 +142,7 @@ export const HomePage: React.FC = () => {
           <p className="text-sm text-gray-500 dark:text-gray-400">{t.emptyLibrary}</p>
           <button
             onClick={scanDirectoryAction}
-            className={`px-5 py-2.5 rounded-full ${isDarkMode ? 'bg-[#39C5BB] text-[#003738]' : 'bg-[#006A6B] text-white'} text-xs font-bold flex items-center gap-2 shadow hover:scale-105 transition`}
+            className="px-5 py-2.5 rounded-full bg-md-primary text-md-on-primary text-xs font-bold flex items-center gap-2 shadow hover:scale-105 transition"
           >
             <i className="fa-solid fa-folder-open" />
             <span>{t.openFolder}</span>
@@ -159,7 +157,7 @@ export const HomePage: React.FC = () => {
                 <div className="text-lg font-bold">{t.featuredTracksTitle}</div>
                 <button
                   onClick={handleRefreshRecommendations}
-                  className="px-3 py-1 text-xs rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-[#006A6B] dark:text-[#39C5BB] font-semibold transition flex items-center gap-1.5 active:scale-95 shadow-xs"
+                  className="px-3 py-1 text-xs rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-md-primary font-semibold transition flex items-center gap-1.5 active:scale-95 shadow-xs"
                   title={t.refreshRecommendations}
                 >
                   <i className={`fa-solid fa-arrows-rotate text-[11px] ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -168,12 +166,13 @@ export const HomePage: React.FC = () => {
               </div>
               <button
                 onClick={() => setActiveTab('library')}
-                className="px-3.5 py-1 text-xs rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-[#006A6B] dark:text-[#39C5BB] font-semibold transition flex items-center gap-1.5 active:scale-95 shadow-xs"
+                className="px-3.5 py-1 text-xs rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-md-primary font-semibold transition flex items-center gap-1.5 active:scale-95 shadow-xs"
               >
                 <span>{t.showAll}</span>
                 <i className="fa-solid fa-chevron-right text-[10px] opacity-70" />
               </button>
-            </div>            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
               {recommendedTracks.map(tr => (
                 <div
                   key={tr.path}
@@ -194,7 +193,7 @@ export const HomePage: React.FC = () => {
                     </div>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className={`font-bold text-xs truncate transition ${isDarkMode ? 'group-hover:text-[#39C5BB]' : 'group-hover:text-[#006A6B]'}`}>{tr.title}</div>
+                    <div className="font-bold text-xs truncate transition group-hover:text-md-primary">{tr.title}</div>
                     <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">{tr.artist}</div>
                   </div>
                 </div>
@@ -209,7 +208,7 @@ export const HomePage: React.FC = () => {
                 <div className="text-lg font-bold">{t.featuredAlbumsTitle}</div>
                 <button
                   onClick={() => setActiveTab('library')}
-                  className="px-3.5 py-1 text-xs rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-[#006A6B] dark:text-[#39C5BB] font-semibold transition flex items-center gap-1.5 active:scale-95 shadow-xs"
+                  className="px-3.5 py-1 text-xs rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-md-primary font-semibold transition flex items-center gap-1.5 active:scale-95 shadow-xs"
                 >
                   <span>{t.showAll}</span>
                   <i className="fa-solid fa-chevron-right text-[10px] opacity-70" />
@@ -235,7 +234,7 @@ export const HomePage: React.FC = () => {
                       </span>
 
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                          <div className="w-9 h-9 rounded-full bg-[#006A6B] dark:bg-[#39C5BB] text-white dark:text-[#003738] flex items-center justify-center shadow-lg">
+                          <div className="w-9 h-9 rounded-full bg-md-primary text-md-on-primary flex items-center justify-center shadow-lg">
                             <i className="fa-solid fa-play text-xs pl-0.5" />
                           </div>
                         </div>
