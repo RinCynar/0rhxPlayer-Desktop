@@ -122,47 +122,45 @@ export const NowPlayingDrawer: React.FC = () => {
           </div>
 
           {/* 2. Audio spec card: Width strictly bound to min(460px, 38vw, 44vh) */}
-          <div className={`w-[min(460px,38vw,44vh)] ${infoBoxBg} rounded-2xl p-3.5 sm:p-4 text-left shadow-sm space-y-2.5 shrink-0 transition-all duration-150`}>
+          <div className={`w-[min(460px,38vw,44vh)] ${infoBoxBg} rounded-2xl p-3.5 sm:p-4 text-left shadow-xs space-y-2.5 shrink-0 transition-all duration-150`}>
             <div>
-              <h2 className="text-sm sm:text-base font-bold tracking-tight truncate max-w-full leading-snug">
+              <h2 className="text-sm sm:text-base font-bold tracking-tight truncate max-w-full leading-snug text-md-on-surface">
                 {currentTrack?.title || '0rhxPlayer'}
               </h2>
-              <p
-                className="font-semibold text-xs mt-0.5 truncate max-w-full text-md-primary"
-              >
+              <p className="font-semibold text-xs mt-0.5 truncate max-w-full text-md-primary">
                 {artists.join(' / ')}
               </p>
-              <p className="text-[11px] text-gray-400 mt-0.5 truncate max-w-full">
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-full">
                 {currentTrack?.album || '—'}
               </p>
             </div>
 
-            <div className="h-px bg-white/10 dark:bg-white/10" />
+            <div className="h-px bg-black/5 dark:bg-white/5" />
 
             {/* Extended Foobar2000 Grade Audio Specs */}
             <div className="text-[11px] space-y-1.5 leading-normal">
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">{t.specFormat}:</span>
-                <span className="text-amber-300 font-semibold truncate ml-2">
+                <span className="text-gray-500 dark:text-gray-400 font-medium">{t.specFormat}:</span>
+                <span className="font-mono font-semibold truncate ml-2 text-amber-700 dark:text-amber-300">
                   {formatDisplay}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">{t.specBitrate}:</span>
-                <span className="text-cyan-300 font-semibold truncate ml-2">
+                <span className="text-gray-500 dark:text-gray-400 font-medium">{t.specBitrate}:</span>
+                <span className="font-mono font-semibold truncate ml-2 text-teal-800 dark:text-cyan-300">
                   {currentTrack?.bitrate ? `${currentTrack.bitrate} kbps` : '1001 kbps'} (
                   {currentTrack?.channels === 1 ? 'Mono 1.0' : 'Stereo 2.0'})
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">{t.specDriver}:</span>
-                <span className="font-semibold truncate ml-2 text-md-primary">
+                <span className="text-gray-500 dark:text-gray-400 font-medium">{t.specDriver}:</span>
+                <span className="font-mono font-semibold truncate ml-2 text-md-on-surface dark:text-md-primary">
                   {audioSettings.driver} / {audioSettings.bufferMs || 46}ms
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">{t.specReplayGain}:</span>
-                <span className="text-gray-300 truncate ml-2">
+                <span className="text-gray-500 dark:text-gray-400 font-medium">{t.specReplayGain}:</span>
+                <span className="font-mono text-gray-700 dark:text-gray-300 truncate ml-2">
                   {audioSettings.replayGain && audioSettings.replayGain !== 'Disabled'
                     ? 'ReplayGain: -4.8 dB (Peak 0.98)'
                     : 'ReplayGain: Bypass'}

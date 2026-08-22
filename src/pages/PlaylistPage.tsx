@@ -3,16 +3,12 @@ import { usePlayer } from '../context/PlayerContext';
 import { I18N } from '../i18n';
 import { M3CoverImage } from '../components/M3CoverImage';
 import { M3CoverPlaceholder } from '../components/M3CoverPlaceholder';
+import { M3MediaCard } from '../components/M3MediaCard';
+import { M3ListItem } from '../components/M3ListItem';
+import { M3MediaGrid } from '../components/M3MediaGrid';
 import { TrackMetadata } from '../types/audio';
 import { TrackActionMenu } from '../components/TrackActionMenu';
-
-function formatDuration(ms: number): string {
-  if (!ms || isNaN(ms)) return '0:00';
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-}
+import { formatDuration } from '../utils/formatters';
 
 export const PlaylistPage: React.FC = () => {
   const {
@@ -33,7 +29,7 @@ export const PlaylistPage: React.FC = () => {
   const [menuTrack, setMenuTrack] = useState<TrackMetadata | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const card = 'bg-md-surface-container-high';
+  const card = 'bg-md-surface-container hover:bg-md-surface-container-high shadow-sm';
   const primaryBg = 'bg-md-primary text-md-on-primary';
   const primaryText = 'text-md-primary';
 
@@ -214,72 +210,25 @@ export const PlaylistPage: React.FC = () => {
               <p className="text-sm text-gray-500">{t.emptyPlaylistHint}</p>
             </div>
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {selectedDetail.tracks.map((tr, idx) => {
                 const isFav = isFavorite(tr.path);
                 return (
-                  <div
+                  <M3ListItem
                     key={tr.path}
+                    coverUrl={tr.coverUrl}
+                    placeholderType="music"
+                    indexNumber={idx + 1}
+                    title={tr.title}
+                    subTitle={`${tr.artist} ${tr.album ? `• ${tr.album}` : ''}`}
+                    badge={tr.format}
+                    duration={formatDuration(tr.durationMs)}
+                    isFavorited={isFav}
+                    onFavorite={() => toggleFavorite(tr.path)}
+                    onDelete={!selectedDetail.isFavorites ? () => removeTrackFromPlaylist(selectedDetail.id, tr.path) : undefined}
+                    onMenu={() => { setMenuTrack(tr); setIsMenuOpen(true); }}
                     onClick={() => playTrack(tr, selectedDetail.tracks)}
-                    className={`${card} p-3 rounded-2xl flex items-center justify-between cursor-pointer group hover:bg-[#36343B] dark:hover:bg-[#36343B] transition`}
-                  >
-                    <div className="flex items-center space-x-3.5 min-w-0 flex-1">
-                      <span className="text-xs text-gray-400 w-5 text-center shrink-0">
-                        {idx + 1}
-                      </span>
-                      <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0">
-                        <M3CoverImage
-                          src={tr.coverUrl}
-                          alt={tr.title}
-                          placeholderType="music"
-                          className="w-10 h-10 rounded-xl"
-                          iconClassName="text-xs"
-                        />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-sm truncate">{tr.title}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{tr.artist} {tr.album ? `• ${tr.album}` : ''}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 shrink-0">
-                      {tr.format && (
-                        <span className="text-[10px] font-semibold text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
-                      )}
-                      <span className="text-xs text-gray-400 w-12 text-right hidden sm:inline">
-                        {formatDuration(tr.durationMs)}
-                      </span>
-
-                      {/* Favorite button */}
-                      <button
-                        onClick={e => { e.stopPropagation(); toggleFavorite(tr.path); }}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isFav ? 'text-red-500' : 'text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-400'}`}
-                      >
-                        <i className="fa-solid fa-heart text-xs" />
-                      </button>
-
-                      {/* Remove from playlist button */}
-                      {!selectedDetail.isFavorites && (
-                        <button
-                          onClick={e => { e.stopPropagation(); removeTrackFromPlaylist(selectedDetail.id, tr.path); }}
-                          className="w-8 h-8 rounded-full text-gray-400 hover:text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                          title={t.removeFromPlaylist}
-                        >
-                          <i className="fa-solid fa-xmark text-xs" />
-                        </button>
-                      )}
-
-
-                      {/* Menu */}
-                      <button
-                        onClick={e => { e.stopPropagation(); setMenuTrack(tr); setIsMenuOpen(true); }}
-                        className="w-8 h-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <i className="fa-solid fa-ellipsis-vertical text-xs opacity-70" />
-                      </button>
-                    </div>
-                  </div>
+                  />
                 );
               })}
             </div>
@@ -300,52 +249,41 @@ export const PlaylistPage: React.FC = () => {
           </div>
 
           {/* Playlists Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
+          <M3MediaGrid>
             {/* Favorites Card */}
-            <div
+            <M3MediaCard
+              icon="fa-solid fa-heart"
+              iconBgClass="bg-gradient-to-br from-red-500/30 to-pink-500/30 text-red-400"
+              title={t.favoritesPlaylist}
+              subTitle={t.updatedToday}
+              bottomBadge={`${favoriteCount} ${t.trackCount}`}
               onClick={() => setSelectedPlaylistId('__favorites__')}
-              className={`${card} p-4 rounded-3xl cursor-pointer group flex flex-col justify-between hover:-translate-y-1 transition-all duration-200 shadow-sm`}
-            >
-              <div className="w-full aspect-square rounded-2xl overflow-hidden relative mb-3 bg-gradient-to-br from-red-500/30 to-pink-500/30 flex items-center justify-center group-hover:scale-[1.02] transition">
-                <i className="fa-solid fa-heart text-4xl text-red-400 opacity-70" />
-                <span className="absolute bottom-2 left-2 text-white text-[11px] font-semibold bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-md">
-                  {favoriteCount} {t.trackCount}
-                </span>
-              </div>
-              <div>
-                <div className="font-bold text-sm truncate">{t.favoritesPlaylist}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t.updatedToday}</div>
-              </div>
-            </div>
+            />
 
             {/* User Playlists */}
             {playlists.map(pl => (
-              <div
+              <M3MediaCard
                 key={pl.id}
+                icon="fa-solid fa-compact-disc"
+                title={pl.name}
+                subTitle={t.updatedToday}
+                bottomBadge={`${pl.trackPaths.length} ${t.trackCount}`}
                 onClick={() => setSelectedPlaylistId(pl.id)}
-                className={`${card} p-4 rounded-3xl cursor-pointer group flex flex-col justify-between hover:-translate-y-1 transition-all duration-200 shadow-sm relative`}
-              >
-                <div className="w-full aspect-square rounded-2xl overflow-hidden relative mb-3 bg-md-primary-container text-md-on-primary-container flex items-center justify-center group-hover:scale-[1.02] transition">
-                  <i className={`fa-solid fa-compact-disc text-4xl ${primaryText} opacity-50`} />
-                  <span className="absolute bottom-2 left-2 text-white text-[11px] font-semibold bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-md">
-                    {pl.trackPaths.length} {t.trackCount}
-                  </span>
+                customActions={
                   <button
-                    onClick={e => { e.stopPropagation(); deletePlaylist(pl.id); }}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-red-500 transition opacity-0 group-hover:opacity-100"
+                    onClick={e => {
+                      e.stopPropagation();
+                      deletePlaylist(pl.id);
+                    }}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-red-500 transition opacity-0 group-hover:opacity-100 z-10"
                     title={t.deletePlaylist}
                   >
                     <i className="fa-solid fa-trash text-[11px]" />
                   </button>
-
-                </div>
-                <div>
-                  <div className="font-bold text-sm truncate">{pl.name}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t.updatedToday}</div>
-                </div>
-              </div>
+                }
+              />
             ))}
-          </div>
+          </M3MediaGrid>
 
           {playlists.length === 0 && (
             <div className={`${card} rounded-3xl p-16 flex flex-col items-center gap-4 text-center mt-4`}>

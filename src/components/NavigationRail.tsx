@@ -172,7 +172,7 @@ export const NavigationRail: React.FC = () => {
                 return (
                   <div
                     key={entry.id}
-                    className={`flex items-center justify-between p-3 rounded-2xl transition ${entry.visible ? 'bg-md-primary-container text-md-on-primary-container' : (isDarkMode ? 'bg-white/5 opacity-50' : 'bg-black/5 opacity-50')}`}
+                    className={`flex items-center justify-between p-3 rounded-2xl transition ${entry.visible ? 'bg-md-primary-container text-md-on-primary-container' : 'bg-md-surface-container-lowest opacity-50'}`}
                   >
                     <div
                       onClick={() => toggleItemVisibility(entry.id)}

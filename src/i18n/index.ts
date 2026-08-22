@@ -38,6 +38,7 @@ export interface I18NDict {
   language: string;
   languageSub: string;
   themeMode: string;
+  themeSystem: string;
   dark: string;
   light: string;
   audioEngine: string;
@@ -248,6 +249,7 @@ export const I18N: Record<LangKey, I18NDict> = {
     "language": "界面语言",
     "languageSub": "设置应用界面显示语言",
     "themeMode": "主题模式",
+    "themeSystem": "跟随系统",
     "dark": "深色模式",
     "light": "浅色模式",
     "audioEngine": "音频输出驱动引擎",
@@ -450,6 +452,7 @@ export const I18N: Record<LangKey, I18NDict> = {
     "language": "App Language",
     "languageSub": "Select application display language",
     "themeMode": "Theme Mode",
+    "themeSystem": "System",
     "dark": "Dark",
     "light": "Light",
     "audioEngine": "Audio Driver Engine",
@@ -651,6 +654,7 @@ export const I18N: Record<LangKey, I18NDict> = {
     "language": "表示言語",
     "languageSub": "アプリの表示言語を選択",
     "themeMode": "テーマモード",
+    "themeSystem": "システム連動",
     "dark": "ダーク",
     "light": "ライト",
     "audioEngine": "オーディオドライバー",

@@ -3,6 +3,7 @@ import { usePlayer, LyricsAlign } from '../context/PlayerContext';
 import { I18N, LangKey } from '../i18n';
 import { M3Dropdown, DropdownOption } from '../components/M3Dropdown';
 import { M3NumberInput } from '../components/M3NumberInput';
+import { M3Switch } from '../components/M3Switch';
 
 
 const SEED_COLOR_PRESETS = [
@@ -19,7 +20,7 @@ const SEED_COLOR_PRESETS = [
 
 export const SettingsPage: React.FC = () => {
   const {
-    isDarkMode, setThemeMode,
+    themeMode, setThemeMode,
     lang, setLang,
     lyricsAlign, setLyricsAlign,
     lyricsFontSize, setLyricsFontSize,
@@ -32,12 +33,10 @@ export const SettingsPage: React.FC = () => {
     setActiveTab,
   } = usePlayer();
 
-
-
   const t = I18N[lang];
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const card = 'bg-md-surface-container-high';
+  const card = 'bg-md-surface-container hover:bg-md-surface-container-high shadow-sm';
   const primaryText = 'text-md-primary';
   const primaryBg = 'bg-md-primary text-md-on-primary';
   const primaryContainer = 'bg-md-primary-container text-md-on-primary-container';
@@ -52,33 +51,6 @@ export const SettingsPage: React.FC = () => {
       reader.readAsDataURL(file);
     }
   };
-
-  const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void }> = ({ value, onChange }) => (
-    <label
-      onClick={e => e.stopPropagation()}
-      className="relative inline-flex items-center cursor-pointer p-2 -m-2 select-none"
-    >
-      <input
-        type="checkbox"
-        checked={value}
-        onChange={e => onChange(e.target.checked)}
-        className="sr-only peer"
-      />
-      {/* 胶囊轨道 Track */}
-      <div
-        className={`w-12 h-6 rounded-full transition-colors duration-200 relative p-0.5 ${
-          value ? 'bg-md-primary' : 'bg-black/20 dark:bg-white/20'
-        }`}
-      >
-        {/* 滑块 Thumb */}
-        <div
-          className={`w-5 h-5 rounded-full transition-transform duration-200 pointer-events-none shadow-sm ${
-            value ? 'bg-md-on-primary translate-x-6' : 'bg-white translate-x-0'
-          }`}
-        />
-      </div>
-    </label>
-  );
 
   const driverOptions: DropdownOption<string>[] = [
     { value: 'WASAPI Exclusive', label: 'WASAPI Exclusive', subLabel: lang === 'zh' ? '独占低延迟输出' : lang === 'ja' ? '排他低遅延モード' : 'Bit-perfect Low Latency' },
@@ -147,7 +119,7 @@ export const SettingsPage: React.FC = () => {
                   type="text"
                   value={userProfile.nickname}
                   onChange={e => setUserProfile({ ...userProfile, nickname: e.target.value })}
-                  className={`w-full ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-md-primary`}
+                  className="w-full bg-md-surface-container-low text-md-on-surface rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-md-primary"
                 />
               </div>
               <div className="flex items-center space-x-3 pt-1">
@@ -225,8 +197,8 @@ export const SettingsPage: React.FC = () => {
                 <div className="font-semibold">{t.cueAutoScan}</div>
                 <div className="text-gray-500 text-[11px]">{t.sectionLibraryNav}</div>
               </div>
-              <Toggle
-                value={audioSettings.cueAutoScan}
+              <M3Switch
+                checked={audioSettings.cueAutoScan}
                 onChange={v => setAudioSettings({ ...audioSettings, cueAutoScan: v })}
               />
             </div>
@@ -250,7 +222,7 @@ export const SettingsPage: React.FC = () => {
                   value={artistSeparators}
                   onChange={e => setArtistSeparators(e.target.value)}
                   placeholder="/"
-                  className={`w-24 ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl px-3 py-1.5 text-center font-bold text-xs focus:outline-none focus:ring-2 focus:ring-md-primary`}
+                  className="w-24 bg-md-surface-container-low text-md-on-surface rounded-xl px-3 py-1.5 text-center font-bold text-xs focus:outline-none focus:ring-2 focus:ring-md-primary"
                 />
               </div>
             </div>
@@ -289,7 +261,7 @@ export const SettingsPage: React.FC = () => {
               })}
 
               {/* Custom Color Input */}
-              <div className="flex items-center gap-2 bg-black/5 dark:bg-white/5 px-2.5 py-1 rounded-2xl">
+              <div className="flex items-center gap-2 bg-md-surface-container-low px-2.5 py-1 rounded-2xl">
                 <input
                   type="color"
                   value={customSeedColor}
@@ -301,7 +273,7 @@ export const SettingsPage: React.FC = () => {
                   type="text"
                   value={customSeedColor}
                   onChange={e => setCustomSeedColor(e.target.value)}
-                  className="w-20 bg-transparent text-xs font-bold outline-none"
+                  className="w-20 bg-transparent text-xs font-bold outline-none text-md-on-surface"
                   placeholder="#39C5BB"
                 />
               </div>
@@ -316,12 +288,12 @@ export const SettingsPage: React.FC = () => {
               <div className="font-semibold">{t.lyricAlign}</div>
               <div className="text-gray-500 text-[11px]">{t.lyricAlignSub}</div>
             </div>
-            <div className={`${isDarkMode ? 'bg-white/5' : 'bg-black/5'} p-1 rounded-2xl flex items-center space-x-1`}>
+            <div className="bg-md-surface-container-low p-1 rounded-2xl flex items-center space-x-1">
               {(['right', 'center', 'left'] as LyricsAlign[]).map(align => (
                 <button
                   key={align}
                   onClick={() => setLyricsAlign(align)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${lyricsAlign === align ? primaryBg : 'opacity-60'}`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${lyricsAlign === align ? primaryBg : 'opacity-60 hover:opacity-100'}`}
                 >
                   {align === 'right' ? t.alignRight : align === 'center' ? t.alignCenter : t.alignLeft}
                 </button>
@@ -367,7 +339,7 @@ export const SettingsPage: React.FC = () => {
               <div className="font-semibold">{t.showTrans}</div>
               <div className="text-gray-500 text-[11px]">{t.transSub}</div>
             </div>
-            <Toggle value={showTrans} onChange={setShowTrans} />
+            <M3Switch checked={showTrans} onChange={setShowTrans} />
           </div>
 
           {/* Auto collapse sidebar on Now Playing */}
@@ -379,7 +351,7 @@ export const SettingsPage: React.FC = () => {
               <div className="font-semibold">{t.autoCollapseRail}</div>
               <div className="text-gray-500 text-[11px]">{t.autoCollapseRailSub}</div>
             </div>
-            <Toggle value={autoCollapseRailOnNowPlaying} onChange={setAutoCollapseRailOnNowPlaying} />
+            <M3Switch checked={autoCollapseRailOnNowPlaying} onChange={setAutoCollapseRailOnNowPlaying} />
           </div>
 
           {/* Language */}
@@ -395,22 +367,29 @@ export const SettingsPage: React.FC = () => {
             />
           </div>
 
-          {/* Theme Mode (Dark / Light) */}
+          {/* Theme Mode (System / Dark / Light) */}
           <div className="flex items-center justify-between text-xs pt-2 border-t border-black/5 dark:border-white/5">
             <div>
               <div className="font-semibold">{t.themeMode}</div>
             </div>
-            <div className={`${isDarkMode ? 'bg-white/5' : 'bg-black/5'} p-1 rounded-2xl flex items-center space-x-1`}>
+            <div className="bg-md-surface-container-low p-1 rounded-2xl flex items-center space-x-1">
+              <button
+                onClick={() => setThemeMode('system')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${themeMode === 'system' ? primaryBg : 'opacity-60 hover:opacity-100'}`}
+              >
+                <i className="fa-solid fa-desktop text-[11px]" />
+                <span>{t.themeSystem}</span>
+              </button>
               <button
                 onClick={() => setThemeMode('dark')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${isDarkMode ? primaryBg : 'opacity-60 hover:opacity-100'}`}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${themeMode === 'dark' ? primaryBg : 'opacity-60 hover:opacity-100'}`}
               >
                 <i className="fa-solid fa-moon text-[11px]" />
                 <span>{t.dark}</span>
               </button>
               <button
                 onClick={() => setThemeMode('light')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${!isDarkMode ? primaryBg : 'opacity-60 hover:opacity-100'}`}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${themeMode === 'light' ? primaryBg : 'opacity-60 hover:opacity-100'}`}
               >
                 <i className="fa-solid fa-sun text-[11px]" />
                 <span>{t.light}</span>
@@ -429,8 +408,8 @@ export const SettingsPage: React.FC = () => {
             <div className="font-semibold">{t.systemTray}</div>
             <div className="text-gray-500 text-[11px]">{t.systemTraySub}</div>
           </div>
-          <Toggle
-            value={audioSettings.systemTray}
+          <M3Switch
+            checked={audioSettings.systemTray}
             onChange={v => setAudioSettings({ ...audioSettings, systemTray: v })}
           />
         </div>
@@ -445,7 +424,7 @@ export const SettingsPage: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <h3 className="font-bold text-base tracking-tight">{t.aboutTitle}</h3>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-md-primary-container text-md-on-primary-container">
-                  v1.0.1
+                  v1.0.2
                 </span>
               </div>
               <p className="text-gray-500 dark:text-gray-400 text-[11px] mt-0.5 truncate">

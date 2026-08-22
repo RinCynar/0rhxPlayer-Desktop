@@ -4,19 +4,56 @@ import {
   hexFromArgb,
 } from '@material/material-color-utilities';
 
+export type ThemeMode = 'system' | 'dark' | 'light';
+
 export const DEFAULT_SEED_HEX = '#39C5BB';
+export const DEFAULT_THEME_MODE: ThemeMode = 'system';
 
 export function isValidHexColor(hex: string): boolean {
   return /^#[0-9A-Fa-f]{6}$/.test(hex);
 }
 
 /**
+ * Resolves 'system' mode to actual 'dark' or 'light' mode based on OS preferences.
+ */
+export function resolveEffectiveTheme(mode: ThemeMode = 'system'): 'dark' | 'light' {
+  if (mode === 'system') {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return 'dark';
+  }
+  return mode;
+}
+
+/**
+ * Subscribes to OS color scheme changes (prefers-color-scheme).
+ * Returns an unlisten cleanup callback.
+ */
+export function initSystemThemeListener(onThemeChange: () => void): () => void {
+  if (typeof window === 'undefined' || !window.matchMedia) {
+    return () => {};
+  }
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const handler = () => onThemeChange();
+  if (mediaQuery.addEventListener) {
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  } else if ((mediaQuery as any).addListener) {
+    (mediaQuery as any).addListener(handler);
+    return () => (mediaQuery as any).removeListener(handler);
+  }
+  return () => {};
+}
+
+/**
  * Applies a dynamic Material 3 theme generated from a seed color to the document root.
  * Injects complete system tokens for primary, containers, surface levels, and outlines.
  */
-export function applyTheme(seedColor: string, mode: 'dark' | 'light' = 'dark') {
+export function applyTheme(seedColor: string, mode: ThemeMode | 'dark' | 'light' = 'system') {
   try {
-    const isDark = mode === 'dark';
+    const effectiveMode = resolveEffectiveTheme(mode as ThemeMode);
+    const isDark = effectiveMode === 'dark';
     const cleanSeed = seedColor && isValidHexColor(seedColor)
       ? seedColor
       : (seedColor && seedColor.startsWith('#') && seedColor.length >= 4 ? seedColor : DEFAULT_SEED_HEX);

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { I18N } from '../i18n';
 import { M3CoverImage } from '../components/M3CoverImage';
+import { M3MediaCard } from '../components/M3MediaCard';
+import { M3MediaGrid } from '../components/M3MediaGrid';
 import { TrackMetadata } from '../types/audio';
 
 interface RecommendedAlbum {
@@ -93,7 +95,9 @@ export const HomePage: React.FC = () => {
     if (hour >= 12 && hour < 18) return t.greetingAfternoon;
     if (hour >= 18 && hour < 23) return t.greetingEvening;
     return t.greetingNight;
-  };  const card = 'bg-md-surface-container-high';
+  };
+
+  const card = 'bg-md-surface-container hover:bg-md-surface-container-high shadow-sm';
   const primaryText = 'text-md-primary';
 
   const playAlbum = (albumTracks: TrackMetadata[]) => {
@@ -214,38 +218,20 @@ export const HomePage: React.FC = () => {
                   <i className="fa-solid fa-chevron-right text-[10px] opacity-70" />
                 </button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 sm:gap-5">
+              <M3MediaGrid>
                 {recommendedAlbums.map(album => (
-                  <div
+                  <M3MediaCard
                     key={album.name}
+                    coverUrl={album.coverUrl}
+                    placeholderType="album"
+                    title={album.name}
+                    subTitle={album.artist}
+                    bottomBadge={`${album.tracks.length} ${t.titles}`}
                     onClick={() => playAlbum(album.tracks)}
-                    className={`${card} p-3.5 rounded-3xl cursor-pointer group flex flex-col justify-between hover:-translate-y-1 transition-all duration-200 shadow-sm relative`}
-                  >
-                    <div className="w-full aspect-square rounded-2xl overflow-hidden relative mb-2.5">
-                      <M3CoverImage
-                        src={album.coverUrl}
-                        alt={album.name}
-                        placeholderType="album"
-                        imageClassName="group-hover:scale-105 transition duration-300"
-                      />
-
-                      <span className="absolute bottom-2 left-2 text-white text-[10px] font-semibold bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-md">
-                        {album.tracks.length} {t.titles}
-                      </span>
-
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                          <div className="w-9 h-9 rounded-full bg-md-primary text-md-on-primary flex items-center justify-center shadow-lg">
-                            <i className="fa-solid fa-play text-xs pl-0.5" />
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs truncate">{album.name}</div>
-                        <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">{album.artist}</div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
+                    onPlay={() => playAlbum(album.tracks)}
+                  />
+                ))}
+              </M3MediaGrid>
             </div>
           )}
 

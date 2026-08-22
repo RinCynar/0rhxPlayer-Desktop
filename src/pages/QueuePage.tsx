@@ -3,7 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePlayer } from '../context/PlayerContext';
 import { I18N } from '../i18n';
 import { getCoverSrc } from '../utils/assetUrl';
-import { M3CoverImage } from '../components/M3CoverImage';
+import { M3ListItem } from '../components/M3ListItem';
 import { TrackMetadata } from '../types/audio';
 import { TrackActionMenu } from '../components/TrackActionMenu';
 
@@ -11,7 +11,7 @@ type QueueSubTab = 'played' | 'nexts';
 
 export const QueuePage: React.FC = () => {
   const {
-    isDarkMode, lang,
+    lang,
     queue, currentTrackIndex, currentTrack,
     playTrackAtIndex, removeFromQueue, clearQueue,
     isFavorite, toggleFavorite,
@@ -24,7 +24,7 @@ export const QueuePage: React.FC = () => {
   const [menuTrack, setMenuTrack] = useState<TrackMetadata | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const card = 'bg-md-surface-container-high';
+  const card = 'bg-md-surface-container hover:bg-md-surface-container-high shadow-sm';
   const primaryBg = 'bg-md-primary text-md-on-primary';
   const primaryText = 'text-md-primary';
 
@@ -47,7 +47,7 @@ export const QueuePage: React.FC = () => {
     <div ref={parentRef} className="h-full overflow-y-auto p-8 space-y-6 animate-fade-in">
       <div className="max-w-6xl w-full mx-auto space-y-6 pb-20">
         {/* Transparent Hero Banner */}
-        <div className="relative h-64 rounded-3xl overflow-hidden shadow-2xl bg-md-surface-container-high p-8 flex flex-col justify-end">
+        <div className="relative h-64 rounded-3xl overflow-hidden shadow-2xl bg-md-surface-container p-8 flex flex-col justify-end">
           {coverSrc && (
             <img
               src={coverSrc}
@@ -73,13 +73,13 @@ export const QueuePage: React.FC = () => {
 
           {/* Queue count badge */}
           <div className="absolute top-6 right-6 flex items-center gap-3 z-10">
-            <span className="bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-3.5 py-1 text-xs text-white font-medium shadow-sm">
+            <span className="bg-black/50 backdrop-blur-md rounded-full px-3.5 py-1 text-xs text-white font-medium shadow-sm">
               {queue.length} {t.trackCount}
             </span>
             {queue.length > 0 && (
               <button
                 onClick={clearQueue}
-                className="bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-3.5 py-1 text-xs text-red-300 hover:text-red-200 hover:bg-red-500/20 transition cursor-pointer"
+                className="bg-black/50 backdrop-blur-md rounded-full px-3.5 py-1 text-xs text-red-300 hover:text-red-200 hover:bg-red-500/20 transition cursor-pointer"
               >
                 {t.clear}
               </button>
@@ -137,66 +137,17 @@ export const QueuePage: React.FC = () => {
                     paddingBottom: '8px',
                   }}
                 >
-                  <div
-                    className={`flex items-center justify-between h-full px-4 rounded-2xl transition-colors duration-150 group ${
-                      isDarkMode
-                        ? 'bg-white/5 hover:bg-white/10 border border-white/5'
-                        : 'bg-black/5 hover:bg-black/10 border border-black/5'
-                    }`}
-                  >
-                    <div
-                      className="flex items-center space-x-4 cursor-pointer flex-1 min-w-0"
-                      onClick={() => playTrackAtIndex(globalIdx)}
-                    >
-                      <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0">
-                        <M3CoverImage
-                          src={tr.coverUrl}
-                          alt={tr.title}
-                          placeholderType="music"
-                          className="w-12 h-12 rounded-xl"
-                          iconClassName="text-base"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-sm truncate group-hover:text-md-primary transition">
-                          {tr.title || tr.path.split(/[/\\]/).pop()}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                          {tr.artist || '—'} {tr.album ? `• ${tr.album}` : ''}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right Actions: Favorite, Menu, and Remove */}
-                    <div className="flex items-center space-x-2 shrink-0 ml-4">
-                      {/* Favorite */}
-                      <button
-                        onClick={() => toggleFavorite(tr.path)}
-                        className="w-8 h-8 rounded-full flex items-center justify-center transition hover:scale-110 cursor-pointer"
-                        title={isFav ? t.favorited : t.favorite}
-                      >
-                        <i className={`${isFav ? 'fa-solid text-red-500' : 'fa-regular opacity-40 hover:opacity-80'} fa-heart text-sm`} />
-                      </button>
-
-                      {/* Action Menu */}
-                      <button
-                        onClick={() => { setMenuTrack(tr); setIsMenuOpen(true); }}
-                        className="w-8 h-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"
-                        title={t.moreActions}
-                      >
-                        <i className="fa-solid fa-ellipsis-vertical text-xs opacity-70" />
-                      </button>
-
-                      {/* Remove from queue */}
-                      <button
-                        onClick={() => removeFromQueue(globalIdx)}
-                        className="w-8 h-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center opacity-40 hover:opacity-100 hover:text-red-400 transition cursor-pointer"
-                        title={t.removeFromQueue}
-                      >
-                        <i className="fa-solid fa-xmark text-sm" />
-                      </button>
-                    </div>
-                  </div>
+                  <M3ListItem
+                    coverUrl={tr.coverUrl}
+                    placeholderType="music"
+                    title={tr.title || tr.path.split(/[/\\]/).pop() || ''}
+                    subTitle={`${tr.artist || '—'}${tr.album ? ` • ${tr.album}` : ''}`}
+                    isFavorited={isFav}
+                    onFavorite={() => toggleFavorite(tr.path)}
+                    onMenu={() => { setMenuTrack(tr); setIsMenuOpen(true); }}
+                    onDelete={() => removeFromQueue(globalIdx)}
+                    onClick={() => playTrackAtIndex(globalIdx)}
+                  />
                 </div>
               );
             })}

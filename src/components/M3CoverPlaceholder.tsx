@@ -32,7 +32,7 @@ export const M3CoverPlaceholder: React.FC<M3CoverPlaceholderProps> = ({
 
   return (
     <div
-      className={`bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)]/30 flex items-center justify-center select-none overflow-hidden transition-colors duration-200 ${className}`}
+      className={`bg-[var(--md-sys-color-surface-container-high)] flex items-center justify-center select-none overflow-hidden transition-colors duration-200 ${className}`}
     >
       <i
         className={`${getIcon()} text-[var(--md-sys-color-primary)] opacity-60 transition-colors duration-200 ${

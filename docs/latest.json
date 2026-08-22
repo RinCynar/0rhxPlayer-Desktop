@@ -1,16 +1,16 @@
 {
-  "version": "1.0.1",
-  "tag": "v1.0.1",
-  "releaseDate": "2026-08-21",
-  "name": "0rhxPlayer v1.0.1",
-  "notes": "• 支持主窗口关闭后自动最小化挂起到系统托盘\n• 支持托盘图标左键点击快速唤醒置顶窗口\n• 新增系统托盘右键快捷操作菜单（主界面、播放/暂停、下一首、彻底退出）\n• 设置页面系统托盘开关即时同步生效",
+  "version": "1.0.2",
+  "tag": "v1.0.2",
+  "releaseDate": "2026-08-22",
+  "name": "0rhxPlayer v1.0.2",
+  "notes": "• 彻底剔除全应用卡片硬描边白线，回归 M3 Filled 卡片纯正质感与色阶层级\n• 主题模式三态化升级（跟随系统 / 深色模式 / 浅色模式），实时监听系统配色毫秒级动态重绘\n• 全局正文字体统一收敛归一至 Noto Sans CJK 双字体标准，优化中日英混合排版\n• 全新优化设计的 Miku 渐变矢量图标并全量重构多端应用图标与网页资产\n• M3 Switch 开关重构为原生无障碍架构，支持设置行整行点击联动\n• README 界面预览图全量更新为最新 Material 3 实机渲染图",
   "downloads": {
-    "windows_x64_exe": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.1/0rhxPlayer_1.0.1_x64-setup.exe",
-    "windows_x64_zip": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.1/0rhxPlayer_1.0.1_x86_64-pc-windows-msvc_portable.zip",
-    "windows_arm64_exe": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.1/0rhxPlayer_1.0.1_arm64-setup.exe",
-    "windows_arm64_zip": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.1/0rhxPlayer_1.0.1_aarch64-pc-windows-msvc_portable.zip",
-    "linux_x64_appimage": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.1/0rhxPlayer_1.0.1_amd64.AppImage",
-    "linux_x64_tar": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.1/0rhxPlayer_1.0.1_x86_64-unknown-linux-gnu.tar.gz"
+    "windows_x64_exe": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.2/0rhxPlayer_1.0.2_x64-setup.exe",
+    "windows_x64_zip": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.2/0rhxPlayer_1.0.2_x86_64-pc-windows-msvc_portable.zip",
+    "windows_arm64_exe": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.2/0rhxPlayer_1.0.2_arm64-setup.exe",
+    "windows_arm64_zip": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.2/0rhxPlayer_1.0.2_aarch64-pc-windows-msvc_portable.zip",
+    "linux_x64_appimage": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.2/0rhxPlayer_1.0.2_amd64.AppImage",
+    "linux_x64_tar": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.2/0rhxPlayer_1.0.2_x86_64-unknown-linux-gnu.tar.gz"
   },
   "vscode": {
     "marketplace": "https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer",

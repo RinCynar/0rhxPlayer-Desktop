@@ -2,6 +2,7 @@ import React from 'react';
 import { usePlayer, EQ_PRESETS } from '../context/PlayerContext';
 import { I18N } from '../i18n';
 import { M3NumberInput } from '../components/M3NumberInput';
+import { M3Switch } from '../components/M3Switch';
 
 
 const BAND_FREQUENCIES = [
@@ -29,12 +30,12 @@ export const EQPage: React.FC = () => {
   } = usePlayer();
 
   const t = I18N[lang];
-  const card = 'bg-md-surface-container-high border-black/5 dark:border-white/5 shadow-xs';
-  const containerCard = 'bg-md-surface-container';
+  const card = 'bg-md-surface-container hover:bg-md-surface-container-high shadow-sm';
+  const containerCard = 'bg-md-surface-container-low shadow-sm';
   const primaryBg = 'bg-md-primary text-md-on-primary';
   const primaryText = 'text-md-primary';
   const activePresetBg = 'bg-md-primary text-md-on-primary font-bold shadow-sm';
-  const inactivePresetBg = 'bg-black/5 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10';
+  const inactivePresetBg = 'bg-md-surface-container-low text-md-on-surface hover:bg-md-surface-container-highest shadow-xs';
 
   return (
     <div className="max-w-6xl w-full mx-auto p-8 space-y-8 animate-fade-in">
@@ -60,35 +61,23 @@ export const EQPage: React.FC = () => {
             {t.reset}
           </button>
 
-          <label className="flex items-center gap-3 cursor-pointer select-none p-1.5 -m-1.5">
+          <div
+            onClick={() => setEqEnabled(!eqSettings.enabled)}
+            className="flex items-center gap-3 cursor-pointer select-none p-1.5 -m-1.5 hover:opacity-90 transition"
+          >
             <span className="text-sm font-semibold">
               {eqSettings.enabled ? t.eqEnabled : t.eqBypass}
             </span>
-            <input
-              type="checkbox"
+            <M3Switch
               checked={eqSettings.enabled}
-              onChange={e => setEqEnabled(e.target.checked)}
-              className="sr-only peer"
+              onChange={v => setEqEnabled(v)}
             />
-            <div
-              className={`w-14 h-8 rounded-full transition-colors duration-200 relative p-1 ${
-                eqSettings.enabled
-                  ? 'bg-md-primary'
-                  : 'bg-black/20 dark:bg-white/20'
-              }`}
-            >
-              <div
-                className={`w-6 h-6 rounded-full shadow-md transform transition-transform duration-200 pointer-events-none ${
-                  eqSettings.enabled ? 'bg-md-on-primary translate-x-6' : 'bg-white translate-x-0'
-                }`}
-              />
-            </div>
-          </label>
+          </div>
         </div>
       </div>
 
       {/* Preset Chips */}
-      <div className={`${card} border rounded-3xl p-6 space-y-3`}>
+      <div className={`${card} rounded-3xl p-6 space-y-3`}>
         <div className="text-xs font-bold uppercase tracking-wider text-gray-400">
           {t.soundPresets}
         </div>
@@ -117,7 +106,7 @@ export const EQPage: React.FC = () => {
 
       {/* Preamp & 10 Bands Equalizer Box */}
       <div
-        className={`${card} border rounded-3xl p-8 space-y-8 transition-opacity ${
+        className={`${card} rounded-3xl p-8 space-y-8 transition-opacity ${
           eqSettings.enabled ? 'opacity-100' : 'opacity-50 pointer-events-none'
         }`}
       >

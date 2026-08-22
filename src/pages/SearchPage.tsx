@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { I18N, formatCount } from '../i18n';
-import { M3CoverImage } from '../components/M3CoverImage';
+import { M3ListItem } from '../components/M3ListItem';
 import { TrackMetadata } from '../types/audio';
 import { TrackActionMenu } from '../components/TrackActionMenu';
 
@@ -24,7 +24,7 @@ export const SearchPage: React.FC = () => {
   const [menuTrack, setMenuTrack] = useState<TrackMetadata | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const card = 'bg-md-surface-container-high';
+  const card = 'bg-md-surface-container hover:bg-md-surface-container-high shadow-sm';
   const primaryText = 'text-md-primary';
 
   // Save query to history on enter
@@ -106,7 +106,7 @@ export const SearchPage: React.FC = () => {
               <button
                 key={item}
                 onClick={() => setQuery(item)}
-                className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-md-surface-container-high hover:bg-md-surface-container-highest flex items-center gap-2 transition"
+                className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-md-surface-container hover:bg-md-surface-container-high shadow-xs flex items-center gap-2 transition"
               >
                 <span>{item}</span>
                 <i
@@ -135,46 +135,18 @@ export const SearchPage: React.FC = () => {
             results.map(tr => {
               const isFav = isFavorite(tr.path);
               return (
-                <div
+                <M3ListItem
                   key={tr.path}
+                  coverUrl={tr.coverUrl}
+                  placeholderType="music"
+                  title={tr.title || tr.path.split(/[/\\]/).pop() || ''}
+                  subTitle={`${tr.artist || '—'}${tr.album ? ` • ${tr.album}` : ''}`}
+                  badge={tr.format}
+                  isFavorited={isFav}
+                  onFavorite={() => toggleFavorite(tr.path)}
+                  onMenu={() => { setMenuTrack(tr); setIsMenuOpen(true); }}
                   onClick={() => playTrack(tr, results)}
-                  className={`${card} p-3.5 rounded-2xl flex items-center justify-between cursor-pointer group hover:bg-[#36343B] dark:hover:bg-[#36343B] transition`}
-                >
-                  <div className="flex items-center space-x-3.5 min-w-0 flex-1">
-                    <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0">
-                      <M3CoverImage
-                        src={tr.coverUrl}
-                        alt={tr.title}
-                        placeholderType="music"
-                        className="w-11 h-11 rounded-xl"
-                        iconClassName="text-base"
-                      />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-sm truncate">{tr.title}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{tr.artist} {tr.album ? `• ${tr.album}` : ''}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2 shrink-0">
-                    {tr.format && (
-                      <span className="text-[10px] font-semibold text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
-                    )}
-                    <button
-                      onClick={e => { e.stopPropagation(); toggleFavorite(tr.path); }}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isFav ? 'text-red-500' : 'text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-400'}`}
-                    >
-                      <i className="fa-solid fa-heart text-xs" />
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); setMenuTrack(tr); setIsMenuOpen(true); }}
-                      className="w-8 h-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                    >
-                      <i className="fa-solid fa-ellipsis-vertical text-xs opacity-70" />
-                    </button>
-                  </div>
-                </div>
+                />
               );
             })
           )}
@@ -189,50 +161,25 @@ export const SearchPage: React.FC = () => {
             <span className="text-xs text-gray-500">{formatCount(libraryTracks.length, 'track', lang)}</span>
           </div>
 
-          {libraryTracks.slice(0, 10).map(tr => {
-            const isFav = isFavorite(tr.path);
-            return (
-              <div
-                key={tr.path}
-                onClick={() => playTrack(tr, libraryTracks)}
-                className={`${card} p-3.5 rounded-2xl flex items-center justify-between cursor-pointer group hover:bg-[#36343B] dark:hover:bg-[#36343B] transition`}
-              >
-                <div className="flex items-center space-x-3.5 min-w-0 flex-1">
-                  <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0">
-                    <M3CoverImage
-                      src={tr.coverUrl}
-                      alt={tr.title}
-                      placeholderType="music"
-                      className="w-11 h-11 rounded-xl"
-                      iconClassName="text-base"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-sm truncate">{tr.title}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{tr.artist} {tr.album ? `• ${tr.album}` : ''}</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2 shrink-0">
-                  {tr.format && (
-                    <span className="text-[10px] font-semibold text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
-                  )}
-                  <button
-                    onClick={e => { e.stopPropagation(); toggleFavorite(tr.path); }}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isFav ? 'text-red-500' : 'text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-400'}`}
-                  >
-                    <i className="fa-solid fa-heart text-xs" />
-                  </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); setMenuTrack(tr); setIsMenuOpen(true); }}
-                    className="w-8 h-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                  >
-                    <i className="fa-solid fa-ellipsis-vertical text-xs opacity-70" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          <div className="space-y-2">
+            {libraryTracks.slice(0, 10).map(tr => {
+              const isFav = isFavorite(tr.path);
+              return (
+                <M3ListItem
+                  key={tr.path}
+                  coverUrl={tr.coverUrl}
+                  placeholderType="music"
+                  title={tr.title || tr.path.split(/[/\\]/).pop() || ''}
+                  subTitle={`${tr.artist || '—'}${tr.album ? ` • ${tr.album}` : ''}`}
+                  badge={tr.format}
+                  isFavorited={isFav}
+                  onFavorite={() => toggleFavorite(tr.path)}
+                  onMenu={() => { setMenuTrack(tr); setIsMenuOpen(true); }}
+                  onClick={() => playTrack(tr, libraryTracks)}
+                />
+              );
+            })}
+          </div>
         </div>
       )}
 

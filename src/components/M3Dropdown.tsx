@@ -32,7 +32,7 @@ export function M3Dropdown<T extends string | number>({
   align = 'right',
   disabled = false,
 }: M3DropdownProps<T>) {
-  const { isDarkMode, lang } = usePlayer();
+  const { lang } = usePlayer();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -66,10 +66,8 @@ export function M3Dropdown<T extends string | number>({
     };
   }, [isOpen]);
 
-  const panelBg = isDarkMode ? 'bg-[#1E1D24] border-white/10' : 'bg-white border-black/10 shadow-2xl';
-  const buttonBg = isDarkMode
-    ? 'bg-white/5 hover:bg-white/10 text-gray-200 border-white/5'
-    : 'bg-black/5 hover:bg-black/10 text-gray-800 border-black/5';
+  const panelBg = 'bg-md-surface-container-high shadow-2xl';
+  const buttonBg = 'bg-md-surface-container-low hover:bg-md-surface-container text-md-on-surface shadow-xs';
 
   return (
     <div ref={dropdownRef} className={`relative inline-block text-left ${className}`}>
@@ -80,7 +78,7 @@ export function M3Dropdown<T extends string | number>({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between gap-2.5 px-3.5 py-2 rounded-2xl text-xs font-medium border transition-all duration-200 outline-none focus:ring-2 focus:ring-md-primary ${buttonBg} ${
+        className={`flex items-center justify-between gap-2.5 px-3.5 py-2 rounded-2xl text-xs font-medium transition-all duration-200 outline-none focus:ring-2 focus:ring-md-primary ${buttonBg} ${
           disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
         } ${buttonClassName}`}
       >
@@ -101,7 +99,7 @@ export function M3Dropdown<T extends string | number>({
         <div
           className={`absolute ${
             align === 'right' ? 'right-0' : 'left-0'
-          } mt-2 min-w-[180px] max-w-[280px] w-max max-h-64 overflow-y-auto rounded-2xl border p-1.5 z-50 shadow-2xl animate-fade-in ${panelBg}`}
+          } mt-2 min-w-[180px] max-w-[280px] w-max max-h-64 overflow-y-auto rounded-2xl p-1.5 z-50 shadow-2xl animate-fade-in ${panelBg}`}
         >
           {options.map((opt) => {
             const isSelected = opt.value === value;
@@ -116,9 +114,7 @@ export function M3Dropdown<T extends string | number>({
                 className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-left text-xs transition duration-150 ${
                   isSelected
                     ? 'bg-md-primary-container text-md-on-primary-container font-semibold'
-                    : isDarkMode
-                    ? 'hover:bg-white/5 text-gray-200'
-                    : 'hover:bg-black/5 text-gray-800'
+                    : 'hover:bg-md-surface-container-highest text-md-on-surface'
                 }`}
               >
                 <div className="flex items-center gap-2.5 truncate min-w-0">

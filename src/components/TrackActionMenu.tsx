@@ -11,7 +11,7 @@ interface TrackActionMenuProps {
 
 export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({ track, isOpen, onClose }) => {
   const {
-    isDarkMode, lang,
+    lang,
     playlists, addTrackToPlaylist, createPlaylist,
     addToQueue, playNextTrack,
     isFavorite, toggleFavorite,
@@ -24,8 +24,8 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({ track, isOpen,
   if (!isOpen || !track) return null;
 
   const isFav = isFavorite(track.path);
-  const cardBg = 'bg-md-surface-container-high';
-  const itemHover = isDarkMode ? 'hover:bg-white/10' : 'hover:bg-black/5';
+  const cardBg = 'bg-md-surface-container-high shadow-2xl';
+  const itemHover = 'hover:bg-md-surface-container-highest';
 
   const handleAddToPl = (plId: string) => {
     addTrackToPlaylist(plId, track.path);
@@ -60,7 +60,7 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({ track, isOpen,
           </div>
           <button
             onClick={() => toggleFavorite(track.path)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isFav ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:text-red-400 bg-black/5 dark:bg-white/5'}`}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isFav ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:text-red-400 bg-md-surface-container-low'}`}
             title={isFav ? t.favorited : t.addToFavorites}
           >
             <i className="fa-solid fa-heart text-sm" />
@@ -108,7 +108,7 @@ export const TrackActionMenu: React.FC<TrackActionMenuProps> = ({ track, isOpen,
                 onKeyDown={e => e.key === 'Enter' && handleCreateAndAdd()}
                 placeholder={t.newPlaylistPlaceholder}
                 autoFocus
-                className={`flex-1 ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-md-primary`}
+                className="flex-1 bg-md-surface-container-low text-md-on-surface rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-md-primary"
               />
               <button
                 onClick={handleCreateAndAdd}

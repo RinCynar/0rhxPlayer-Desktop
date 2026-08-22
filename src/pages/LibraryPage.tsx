@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePlayer, splitArtists } from '../context/PlayerContext';
 import { I18N, formatCount } from '../i18n';
-import { M3CoverImage } from '../components/M3CoverImage';
+import { M3MediaCard } from '../components/M3MediaCard';
+import { M3ListItem } from '../components/M3ListItem';
+import { M3MediaGrid } from '../components/M3MediaGrid';
 import { TrackMetadata } from '../types/audio';
 import { TrackActionMenu } from '../components/TrackActionMenu';
 import { M3Dropdown, DropdownOption } from '../components/M3Dropdown';
@@ -35,7 +36,21 @@ export const LibraryPage: React.FC = () => {
 
   const t = I18N[lang];
   const [filterChip, setFilterChip] = useState<FilterChip>('titles');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    try {
+      const saved = localStorage.getItem('0rhx_library_view_mode');
+      return saved === 'list' || saved === 'grid' ? saved : 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('0rhx_library_view_mode', viewMode);
+    } catch { /* ignore */ }
+  }, [viewMode]);
+
   const [sortKey, setSortKey] = useState<SortKey>('title_asc');
   const [selectedGroup, setSelectedGroup] = useState<FilterGroupDetail | null>(null);
 
@@ -49,7 +64,7 @@ export const LibraryPage: React.FC = () => {
   const [menuTrack, setMenuTrack] = useState<TrackMetadata | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const card = 'bg-md-surface-container-high';
+  const card = 'bg-md-surface-container hover:bg-md-surface-container-high shadow-sm';
   const primaryText = 'text-md-primary';
   const primaryBg = 'bg-md-primary-container text-md-on-primary-container';
   const accentButton = 'bg-md-primary text-md-on-primary';
@@ -205,49 +220,7 @@ export const LibraryPage: React.FC = () => {
     return Array.from(map.values());
   }, [selectedGroup, baseTracks]);
 
-  // Virtualization columns calculation
-  const parentRef = useRef<HTMLDivElement>(null);
-  const [cols, setCols] = useState(() => {
-    if (typeof window === 'undefined') return 5;
-    const w = window.innerWidth;
-    if (w >= 1600) return 8;
-    if (w >= 1350) return 7;
-    if (w >= 1100) return 6;
-    if (w >= 850) return 5;
-    return 4;
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      const w = window.innerWidth;
-      if (w >= 1600) setCols(8);
-      else if (w >= 1350) setCols(7);
-      else if (w >= 1100) setCols(6);
-      else if (w >= 850) setCols(5);
-      else setCols(4);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   const isBrowsingAggregate = !selectedGroup && filterChip !== 'titles';
-  const aggregateItemCount = filterChip === 'artists'
-    ? artistsList.length
-    : filterChip === 'albums'
-    ? albumsList.length
-    : foldersList.length;
-
-  const currentDisplayCount = isBrowsingAggregate ? aggregateItemCount : sortedTracks.length;
-  const GRID_ROW_HEIGHT = 220;
-  const LIST_ROW_HEIGHT = 64;
-  const rowCount = viewMode === 'grid' ? Math.ceil(currentDisplayCount / cols) : currentDisplayCount;
-
-  const rowVirtualizer = useVirtualizer({
-    count: selectedGroup?.type === 'artist' ? 0 : rowCount,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => viewMode === 'grid' ? GRID_ROW_HEIGHT : LIST_ROW_HEIGHT,
-    overscan: 3,
-  });
 
   // Dynamic sort options based on filterChip & context (Task 4)
   const sortOptions = useMemo<DropdownOption<SortKey>[]>(() => {
@@ -290,6 +263,13 @@ export const LibraryPage: React.FC = () => {
     }
     return [];
   }, [filterChip, selectedGroup, t]);
+
+  // Keep sortKey aligned with available options across tab switches
+  useEffect(() => {
+    if (sortOptions.length > 0 && !sortOptions.some(opt => opt.value === sortKey)) {
+      setSortKey(sortOptions[0].value);
+    }
+  }, [sortOptions, sortKey]);
 
   // Multi-select handlers
   const toggleSelectTrack = useCallback((path: string, e?: React.MouseEvent) => {
@@ -401,6 +381,8 @@ export const LibraryPage: React.FC = () => {
                 value={sortKey}
                 onChange={v => setSortKey(v as SortKey)}
                 options={sortOptions}
+                className="shrink-0 whitespace-nowrap min-w-[130px]"
+                buttonClassName="min-w-[130px] whitespace-nowrap"
               />
 
               {/* Rescan Library Button (Task 2) */}
@@ -434,6 +416,10 @@ export const LibraryPage: React.FC = () => {
                   onClick={() => {
                     setFilterChip(chip);
                     setSelectedGroup(null);
+                    if (chip === 'titles') setSortKey('title_asc');
+                    else if (chip === 'artists') setSortKey('artist_asc');
+                    else if (chip === 'albums') setSortKey('album_asc');
+                    else if (chip === 'folders') setSortKey('folder_asc');
                   }}
                   className={`px-4 py-1.5 rounded-xl text-xs font-medium transition flex items-center space-x-1.5 shrink-0 ${filterChip === chip ? `${primaryBg} ${primaryText}` : `bg-black/5 dark:bg-white/5 opacity-70 hover:opacity-100`}`}
                 >
@@ -447,7 +433,7 @@ export const LibraryPage: React.FC = () => {
       </div>
 
       {/* Main Content Area */}
-      <div ref={parentRef} className="flex-1 overflow-auto px-8 pb-24">
+      <div className="flex-1 overflow-auto px-8 pb-24">
         <div className="max-w-7xl mx-auto">
           {libraryTracks.length === 0 ? (
             <div className={`${card} rounded-3xl p-16 flex flex-col items-center justify-center gap-4 text-center mt-4`}>
@@ -471,7 +457,7 @@ export const LibraryPage: React.FC = () => {
               </div>
             </div>
           ) : selectedGroup?.type === 'artist' ? (
-            /* Artist Details Refactor: Albums First, Then Tracks (Task 5) */
+            /* Artist Details: Albums First, Then Tracks */
             <div className="space-y-8 py-4 animate-fade-in">
               {/* 1. Artist's Albums Section */}
               {artistDetailAlbums.length > 0 && (
@@ -479,31 +465,36 @@ export const LibraryPage: React.FC = () => {
                   <div className="flex items-center justify-between text-sm font-bold">
                     <span>{t.featuredAlbums} ({artistDetailAlbums.length})</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
-                    {artistDetailAlbums.map(alb => (
-                      <div
-                        key={alb.name}
-                        onClick={() => setSelectedGroup({ type: 'album', name: alb.name, subTitle: `${alb.artist} • ${formatCount(alb.count, 'track', lang)}`, coverUrl: alb.coverUrl })}
-                        className={`${card} p-3.5 rounded-3xl cursor-pointer group flex flex-col justify-between hover:scale-[1.02] transition shadow-sm`}
-                      >
-                        <div className="aspect-square rounded-2xl overflow-hidden mb-2.5 relative">
-                          <M3CoverImage
-                            src={alb.coverUrl}
-                            alt={alb.name}
-                            placeholderType="album"
-                            imageClassName="group-hover:scale-105 transition duration-300"
-                          />
-                          <span className="absolute bottom-2 left-2 text-white text-[10px] font-semibold bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-md">
-                            {formatCount(alb.count, 'track', lang)}
-                          </span>
-                        </div>
-                        <div>
-                          <div className={`font-bold text-xs truncate transition group-hover:text-md-primary`}>{alb.name}</div>
-                          <div className="text-[11px] text-md-on-surface-variant truncate mt-0.5">{alb.artist}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {viewMode === 'grid' ? (
+                    <M3MediaGrid>
+                      {artistDetailAlbums.map(alb => (
+                        <M3MediaCard
+                          key={alb.name}
+                          coverUrl={alb.coverUrl}
+                          placeholderType="album"
+                          title={alb.name}
+                          subTitle={alb.artist}
+                          bottomBadge={formatCount(alb.count, 'track', lang)}
+                          onClick={() => setSelectedGroup({ type: 'album', name: alb.name, subTitle: `${alb.artist} • ${formatCount(alb.count, 'track', lang)}`, coverUrl: alb.coverUrl })}
+                        />
+                      ))}
+                    </M3MediaGrid>
+                  ) : (
+                    <div className="space-y-2">
+                      {artistDetailAlbums.map(alb => (
+                        <M3ListItem
+                          key={alb.name}
+                          coverUrl={alb.coverUrl}
+                          placeholderType="album"
+                          title={alb.name}
+                          subTitle={`${alb.artist} • ${formatCount(alb.count, 'track', lang)}`}
+                          onClick={() => setSelectedGroup({ type: 'album', name: alb.name, subTitle: `${alb.artist} • ${formatCount(alb.count, 'track', lang)}`, coverUrl: alb.coverUrl })}
+                          onPlay={alb.tracks.length > 0 ? () => playTrack(alb.tracks[0], alb.tracks) : undefined}
+                          showChevron
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -512,67 +503,30 @@ export const LibraryPage: React.FC = () => {
                 <div className="flex items-center justify-between text-sm font-bold">
                   <span>{t.allTracks} ({sortedTracks.length})</span>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {sortedTracks.map((tr, idx) => {
                     const isFav = isFavorite(tr.path);
                     const isSelected = selectedPaths.has(tr.path);
                     return (
-                      <div
+                      <M3ListItem
                         key={tr.path}
+                        coverUrl={tr.coverUrl}
+                        placeholderType="music"
+                        indexNumber={isSelectMode ? undefined : idx + 1}
+                        title={tr.title || tr.path.split(/[/\\]/).pop() || ''}
+                        subTitle={`${tr.artist || '—'}${tr.album ? ` • ${tr.album}` : ''}`}
+                        badge={tr.format}
+                        isSelected={isSelected}
+                        isSelectMode={isSelectMode}
+                        onSelectToggle={e => toggleSelectTrack(tr.path, e)}
+                        isFavorited={isFav}
+                        onFavorite={() => toggleFavorite(tr.path)}
+                        onMenu={() => { setMenuTrack(tr); setIsMenuOpen(true); }}
                         onClick={() => {
                           if (isSelectMode) toggleSelectTrack(tr.path);
                           else playTrack(tr, sortedTracks);
                         }}
-                        className={`${card} rounded-2xl flex items-center justify-between gap-4 px-4 py-3 cursor-pointer group hover:bg-md-surface-container-highest transition my-0.5 ${isSelected ? 'ring-2 ring-md-primary' : ''}`}
-                      >
-                        <div className="flex items-center space-x-3.5 min-w-0 flex-1">
-                          {isSelectMode ? (
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => {}}
-                              onClick={e => toggleSelectTrack(tr.path, e)}
-                              className="w-4 h-4 accent-md-primary rounded cursor-pointer mr-1"
-                            />
-                          ) : (
-                            <span className="w-5 text-center text-xs text-md-on-surface-variant">{idx + 1}</span>
-                          )}
-                          <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0">
-                            <M3CoverImage
-                              src={tr.coverUrl}
-                              alt={tr.title}
-                              placeholderType="music"
-                              className="w-11 h-11 rounded-xl"
-                              iconClassName="text-base"
-                            />
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-sm truncate">{tr.title || tr.path.split(/[/\\]/).pop()}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{tr.artist || '—'} {tr.album ? `• ${tr.album}` : ''}</div>
-                          </div>
-                        </div>
-
-                        {!isSelectMode && (
-                          <div className="flex items-center space-x-2 shrink-0">
-                            {tr.format && (
-                              <span className="text-[10px] font-semibold text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
-                            )}
-                            <button
-                              onClick={e => { e.stopPropagation(); toggleFavorite(tr.path); }}
-                              className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isFav ? 'text-red-500' : 'text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-400'}`}
-                            >
-                              <i className="fa-solid fa-heart text-xs" />
-                            </button>
-                            <button
-                              onClick={e => { e.stopPropagation(); setMenuTrack(tr); setIsMenuOpen(true); }}
-                              className="w-8 h-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                            >
-                              <i className="fa-solid fa-ellipsis-vertical text-xs opacity-70" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      />
                     );
                   })}
                 </div>
@@ -581,7 +535,7 @@ export const LibraryPage: React.FC = () => {
           ) : isBrowsingAggregate ? (
             /* Browsing Aggregate Artists / Albums / Folders */
             <div className="space-y-6 py-4">
-              {/* Folders Management Header Toolbar (Task 2) */}
+              {/* Folders Management Header Toolbar */}
               {filterChip === 'folders' && (
                 <div className="flex items-center justify-between pb-2 border-b border-black/5 dark:border-white/5">
                   <div className="text-xs font-bold text-gray-400 flex items-center gap-2">
@@ -601,246 +555,187 @@ export const LibraryPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
-                {filterChip === 'artists' &&
-                  artistsList.map(art => (
-                    <div
-                      key={art.name}
-                      onClick={() => setSelectedGroup({ type: 'artist', name: art.name, subTitle: formatCount(art.count, 'track', lang), coverUrl: art.coverUrl })}
-                      className={`${card} p-4 rounded-3xl cursor-pointer group flex flex-col items-center text-center hover:scale-[1.02] transition shadow-sm`}
-                    >
-                      <div className="w-24 h-24 rounded-full overflow-hidden mb-3 relative">
-                        <M3CoverImage
-                          src={art.coverUrl}
-                          alt={art.name}
-                          placeholderType="artist"
-                          className="w-24 h-24 rounded-full"
-                          iconClassName="text-3xl"
-                          imageClassName="group-hover:scale-105 transition duration-300"
-                        />
-                      </div>
-                      <div className="font-bold text-sm truncate w-full transition group-hover:text-md-primary">{art.name}</div>
-                      <div className="text-xs text-gray-500 mt-1">{formatCount(art.count, 'track', lang)}</div>
-                    </div>
-                  ))}
+              {/* Artists View */}
+              {filterChip === 'artists' && (
+                viewMode === 'grid' ? (
+                  <M3MediaGrid>
+                    {artistsList.map(art => (
+                      <M3MediaCard
+                        key={art.name}
+                        type="circle"
+                        coverUrl={art.coverUrl}
+                        placeholderType="artist"
+                        title={art.name}
+                        subTitle={formatCount(art.count, 'track', lang)}
+                        onClick={() => setSelectedGroup({ type: 'artist', name: art.name, subTitle: formatCount(art.count, 'track', lang), coverUrl: art.coverUrl })}
+                      />
+                    ))}
+                  </M3MediaGrid>
+                ) : (
+                  <div className="space-y-2">
+                    {artistsList.map(art => (
+                      <M3ListItem
+                        key={art.name}
+                        coverUrl={art.coverUrl}
+                        coverShape="circle"
+                        placeholderType="artist"
+                        title={art.name}
+                        subTitle={formatCount(art.count, 'track', lang)}
+                        onClick={() => setSelectedGroup({ type: 'artist', name: art.name, subTitle: formatCount(art.count, 'track', lang), coverUrl: art.coverUrl })}
+                        showChevron
+                      />
+                    ))}
+                  </div>
+                )
+              )}
 
-                {filterChip === 'albums' &&
-                  albumsList.map(alb => (
-                    <div
-                      key={alb.name}
-                      onClick={() => setSelectedGroup({ type: 'album', name: alb.name, subTitle: `${alb.artist} • ${formatCount(alb.count, 'track', lang)}`, coverUrl: alb.coverUrl })}
-                      className={`${card} p-3.5 rounded-3xl cursor-pointer group flex flex-col justify-between hover:scale-[1.02] transition shadow-sm`}
-                    >
-                      <div className="aspect-square rounded-2xl overflow-hidden mb-2.5 relative">
-                        <M3CoverImage
-                          src={alb.coverUrl}
-                          alt={alb.name}
-                          placeholderType="album"
-                          imageClassName="group-hover:scale-105 transition duration-300"
-                        />
-                        <span className="absolute bottom-2 left-2 text-white text-[10px] font-semibold bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded-md">
-                          {formatCount(alb.count, 'track', lang)}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs truncate transition group-hover:text-md-primary">{alb.name}</div>
-                        <div className="text-[11px] text-gray-500 truncate mt-0.5">{alb.artist}</div>
-                      </div>
-                    </div>
-                  ))}
+              {/* Albums View */}
+              {filterChip === 'albums' && (
+                viewMode === 'grid' ? (
+                  <M3MediaGrid>
+                    {albumsList.map(alb => (
+                      <M3MediaCard
+                        key={alb.name}
+                        coverUrl={alb.coverUrl}
+                        placeholderType="album"
+                        title={alb.name}
+                        subTitle={alb.artist}
+                        bottomBadge={formatCount(alb.count, 'track', lang)}
+                        onClick={() => setSelectedGroup({ type: 'album', name: alb.name, subTitle: `${alb.artist} • ${formatCount(alb.count, 'track', lang)}`, coverUrl: alb.coverUrl })}
+                      />
+                    ))}
+                  </M3MediaGrid>
+                ) : (
+                  <div className="space-y-2">
+                    {albumsList.map(alb => (
+                      <M3ListItem
+                        key={alb.name}
+                        coverUrl={alb.coverUrl}
+                        placeholderType="album"
+                        title={alb.name}
+                        subTitle={`${alb.artist} • ${formatCount(alb.count, 'track', lang)}`}
+                        onClick={() => setSelectedGroup({ type: 'album', name: alb.name, subTitle: `${alb.artist} • ${formatCount(alb.count, 'track', lang)}`, coverUrl: alb.coverUrl })}
+                        onPlay={alb.tracks.length > 0 ? () => playTrack(alb.tracks[0], alb.tracks) : undefined}
+                        showChevron
+                      />
+                    ))}
+                  </div>
+                )
+              )}
 
-
-                {filterChip === 'folders' &&
-                  foldersList.map(fol => (
-                    <div
-                      key={fol.folderPath}
-                      onClick={() => setSelectedGroup({ type: 'folder', name: fol.folderPath, subTitle: `${fol.folderPath} (${formatCount(fol.count, 'track', lang)})` })}
-                      className={`${card} p-4 rounded-3xl cursor-pointer group flex flex-col justify-between hover:scale-[1.02] transition shadow-sm relative`}
-                    >
-                      <div className="h-20 rounded-2xl mb-2.5 bg-md-primary-container text-md-on-primary-container flex items-center justify-center text-3xl">
-                        <i className={`fa-solid fa-folder-open ${primaryText}`} />
-                      </div>
-                      <div className="pr-6">
-                        <div className="font-bold text-xs truncate transition group-hover:text-md-primary">{fol.folderName}</div>
-                        <div className="text-[10px] text-gray-500 truncate mt-0.5">{formatCount(fol.count, 'track', lang)}</div>
-                      </div>
-
-                      {/* Remove Folder Button (Task 2) */}
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
+              {/* Folders View */}
+              {filterChip === 'folders' && (
+                viewMode === 'grid' ? (
+                  <M3MediaGrid>
+                    {foldersList.map(fol => (
+                      <M3MediaCard
+                        key={fol.folderPath}
+                        icon="fa-solid fa-folder-open"
+                        title={fol.folderName}
+                        subTitle={formatCount(fol.count, 'track', lang)}
+                        onClick={() => setSelectedGroup({ type: 'folder', name: fol.folderPath, subTitle: `${fol.folderPath} (${formatCount(fol.count, 'track', lang)})` })}
+                        customActions={
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              if (window.confirm(t.removeFolderConfirm)) {
+                                removeScanFolder(fol.folderPath);
+                              }
+                            }}
+                            className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center transition opacity-0 group-hover:opacity-100 z-10"
+                            title={t.removeFolder}
+                          >
+                            <i className="fa-solid fa-trash-can text-xs" />
+                          </button>
+                        }
+                      />
+                    ))}
+                  </M3MediaGrid>
+                ) : (
+                  <div className="space-y-2">
+                    {foldersList.map(fol => (
+                      <M3ListItem
+                        key={fol.folderPath}
+                        icon="fa-solid fa-folder-open"
+                        title={fol.folderName}
+                        subTitle={`${fol.folderPath} • ${formatCount(fol.count, 'track', lang)}`}
+                        onClick={() => setSelectedGroup({ type: 'folder', name: fol.folderPath, subTitle: `${fol.folderPath} (${formatCount(fol.count, 'track', lang)})` })}
+                        onDelete={() => {
                           if (window.confirm(t.removeFolderConfirm)) {
                             removeScanFolder(fol.folderPath);
                           }
                         }}
-                        className="absolute bottom-3 right-3 w-7 h-7 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
-                        title={t.removeFolder}
-                      >
-                        <i className="fa-solid fa-trash-can text-xs" />
-                      </button>
-                    </div>
-                  ))}
-              </div>
+                        showChevron
+                      />
+                    ))}
+                  </div>
+                )
+              )}
             </div>
           ) : (
-            /* Virtualized Song List / Grid */
-            <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
-              {rowVirtualizer.getVirtualItems().map(vRow => {
-                if (viewMode === 'grid') {
-                  const rowTracks = sortedTracks.slice(vRow.index * cols, vRow.index * cols + cols);
-                  return (
-                    <div
-                      key={vRow.key}
-                      style={{ position: 'absolute', top: vRow.start, left: 0, right: 0 }}
-                    >
-                      <div
-                        className="py-2"
-                        style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: '1.25rem' }}
-                      >
-                        {rowTracks.map(tr => {
-                          const isFav = isFavorite(tr.path);
-                          const isSelected = selectedPaths.has(tr.path);
-                          return (
-                            <div
-                              key={tr.path}
-                              onClick={() => {
-                                if (isSelectMode) toggleSelectTrack(tr.path);
-                                else playTrack(tr, sortedTracks);
-                              }}
-                              className={`${card} p-3.5 rounded-3xl cursor-pointer group hover:-translate-y-0.5 transition-all duration-200 relative ${isSelected ? 'ring-2 ring-md-primary' : ''}`}
-                            >
-                              <div className="relative aspect-square rounded-2xl overflow-hidden mb-3">
-                                <M3CoverImage
-                                  src={tr.coverUrl}
-                                  alt={tr.title}
-                                  placeholderType="music"
-                                  imageClassName="group-hover:scale-105 transition duration-300"
-                                />
-
-                                {/* Checkbox for select mode */}
-                                {isSelectMode && (
-                                  <div
-                                    onClick={e => toggleSelectTrack(tr.path, e)}
-                                    className="absolute top-2 left-2 z-10 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={isSelected}
-                                      onChange={() => {}}
-                                      className="w-4 h-4 accent-md-primary rounded cursor-pointer"
-                                    />
-                                  </div>
-                                )}
-
-                                {tr.format && !isSelectMode && (
-                                  <span className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] font-semibold text-amber-300 border border-white/10">
-                                    {tr.format.split(' ')[0]}
-                                  </span>
-                                )}
-
-                                {!isSelectMode && (
-                                  <>
-                                    <button
-                                      onClick={e => { e.stopPropagation(); setMenuTrack(tr); setIsMenuOpen(true); }}
-                                      className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/80 transition"
-                                      title={t.moreActions}
-                                    >
-                                      <i className="fa-solid fa-ellipsis-vertical text-[11px]" />
-                                    </button>
-                                    <button
-                                      onClick={e => { e.stopPropagation(); toggleFavorite(tr.path); }}
-                                      className={`absolute bottom-2 left-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center transition ${isFav ? 'text-red-500 opacity-100' : 'text-white opacity-0 group-hover:opacity-100 hover:text-red-400'}`}
-                                      title={isFav ? t.favorited : t.favorite}
-                                    >
-                                      <i className="fa-solid fa-heart text-[11px]" />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                              <div className="font-semibold text-sm truncate">{tr.title || tr.path.split(/[/\\]/).pop()}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{tr.artist || '—'}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                } else {
-                  const tr = sortedTracks[vRow.index];
+            /* Song List / Grid (Native CSS Grid 1:1 with Albums) */
+            viewMode === 'grid' ? (
+              <M3MediaGrid>
+                {sortedTracks.map(tr => {
                   const isFav = isFavorite(tr.path);
                   const isSelected = selectedPaths.has(tr.path);
                   return (
-                    <div
-                      key={vRow.key}
-                      style={{ position: 'absolute', top: vRow.start, left: 0, right: 0 }}
-                    >
-                      <div
-                        onClick={() => {
-                          if (isSelectMode) toggleSelectTrack(tr.path);
-                          else playTrack(tr, sortedTracks);
-                        }}
-                        className={`${card} rounded-2xl flex items-center justify-between gap-4 px-4 py-3 cursor-pointer group hover:bg-md-surface-container-highest transition my-0.5 ${isSelected ? 'ring-2 ring-md-primary' : ''}`}
-                      >
-                        <div className="flex items-center space-x-3.5 min-w-0 flex-1">
-                          {isSelectMode && (
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => {}}
-                              onClick={e => toggleSelectTrack(tr.path, e)}
-                              className="w-4 h-4 accent-md-primary rounded cursor-pointer mr-1"
-                            />
-                          )}
-                          <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0">
-                            <M3CoverImage
-                              src={tr.coverUrl}
-                              alt={tr.title}
-                              placeholderType="music"
-                              className="w-11 h-11 rounded-xl"
-                              iconClassName="text-base"
-                            />
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-sm truncate">{tr.title || tr.path.split(/[/\\]/).pop()}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{tr.artist || '—'} {tr.album ? `• ${tr.album}` : ''}</div>
-                          </div>
-                        </div>
-
-                        {!isSelectMode && (
-                          <div className="flex items-center space-x-2 shrink-0">
-                            {tr.format && (
-                              <span className="text-[10px] font-semibold text-amber-400 hidden sm:inline mr-2">{tr.format.split(' ')[0]}</span>
-                            )}
-                            <button
-                              onClick={e => { e.stopPropagation(); toggleFavorite(tr.path); }}
-                              className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isFav ? 'text-red-500' : 'text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-400'}`}
-                              title={isFav ? t.favorited : t.favorite}
-                            >
-                              <i className="fa-solid fa-heart text-xs" />
-                            </button>
-                            <button
-                              onClick={e => { e.stopPropagation(); setMenuTrack(tr); setIsMenuOpen(true); }}
-                              className="w-8 h-8 rounded-full hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                              title={t.moreActions}
-                            >
-                              <i className="fa-solid fa-ellipsis-vertical text-xs opacity-70" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <M3MediaCard
+                      key={tr.path}
+                      coverUrl={tr.coverUrl}
+                      placeholderType="music"
+                      title={tr.title || tr.path.split(/[/\\]/).pop() || ''}
+                      subTitle={tr.artist || 'Unknown Artist'}
+                      badge={tr.format}
+                      isSelected={isSelected}
+                      isSelectMode={isSelectMode}
+                      onSelectToggle={e => toggleSelectTrack(tr.path, e)}
+                      isFavorited={isFav}
+                      onFavorite={() => toggleFavorite(tr.path)}
+                      onMenu={() => { setMenuTrack(tr); setIsMenuOpen(true); }}
+                      onClick={() => {
+                        if (isSelectMode) toggleSelectTrack(tr.path);
+                        else playTrack(tr, sortedTracks);
+                      }}
+                    />
                   );
-                }
-              })}
-            </div>
+                })}
+              </M3MediaGrid>
+            ) : (
+              <div className="space-y-2">
+                {sortedTracks.map(tr => {
+                  const isFav = isFavorite(tr.path);
+                  const isSelected = selectedPaths.has(tr.path);
+                  return (
+                    <M3ListItem
+                      key={tr.path}
+                      coverUrl={tr.coverUrl}
+                      placeholderType="music"
+                      title={tr.title || tr.path.split(/[/\\]/).pop() || ''}
+                      subTitle={`${tr.artist || 'Unknown Artist'} • ${tr.album || 'Single'}`}
+                      badge={tr.format}
+                      isSelected={isSelected}
+                      isSelectMode={isSelectMode}
+                      onSelectToggle={e => toggleSelectTrack(tr.path, e)}
+                      isFavorited={isFav}
+                      onFavorite={() => toggleFavorite(tr.path)}
+                      onMenu={() => { setMenuTrack(tr); setIsMenuOpen(true); }}
+                      onClick={() => {
+                        if (isSelectMode) toggleSelectTrack(tr.path);
+                        else playTrack(tr, sortedTracks);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )
           )}
         </div>
       </div>
 
       {/* Floating Multi-Select Action Bar */}
       {selectedPaths.size > 0 && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-md-surface-variant text-md-on-surface-variant border border-white/10 px-6 py-3.5 rounded-full shadow-2xl flex items-center gap-4 animate-fade-in backdrop-blur-md">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 bg-md-surface-variant text-md-on-surface-variant px-6 py-3.5 rounded-full shadow-2xl flex items-center gap-4 animate-fade-in backdrop-blur-md">
           <span className="text-xs font-semibold">
             {t.selectedCount} <b className="text-md-primary">{selectedPaths.size}</b> {t.trackCount}
           </span>

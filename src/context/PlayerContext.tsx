@@ -2,7 +2,14 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { PlaybackStatus, Playlist, TrackMetadata, LyricLine } from '../types/audio';
 import * as audioService from '../services/tauriAudio';
 
-import { applyTheme, DEFAULT_SEED_HEX } from '../theme/theme';
+import {
+  applyTheme,
+  DEFAULT_SEED_HEX,
+  ThemeMode,
+  DEFAULT_THEME_MODE,
+  resolveEffectiveTheme,
+  initSystemThemeListener,
+} from '../theme/theme';
 
 import { LangKey } from '../i18n';
 
@@ -82,6 +89,7 @@ interface PlayerContextType {
   cyclePlayMode: () => void;
   setPlayMode: (mode: PlayMode) => void;
   isDarkMode: boolean;
+  themeMode: ThemeMode;
   isNowPlayingOpen: boolean;
   setIsNowPlayingOpen: (open: boolean) => void;
   isQueueOpen: boolean;
@@ -137,7 +145,7 @@ interface PlayerContextType {
   setVisibleNavIds: (ids: NavTab[]) => void;
 
   toggleDarkMode: () => void;
-  setThemeMode: (mode: 'dark' | 'light') => void;
+  setThemeMode: (mode: ThemeMode) => void;
   playTrack: (track: TrackMetadata, newQueue?: TrackMetadata[]) => Promise<void>;
   playTrackAtIndex: (index: number) => Promise<void>;
   playNext: () => Promise<void>;
@@ -200,11 +208,15 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [playMode, setPlayMode] = useState<PlayMode>(() => {
     return (localStorage.getItem('0rhx_play_mode_v4') as PlayMode) || 'all';
   });
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    const saved = (localStorage.getItem('theme_mode') || localStorage.getItem('0rhx_theme_mode')) as ThemeMode;
+    if (saved === 'dark' || saved === 'light' || saved === 'system') return saved;
+    return DEFAULT_THEME_MODE;
+  });
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem('0rhx_theme_mode');
-    if (saved === 'dark') return true;
-    if (saved === 'light') return false;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const saved = (localStorage.getItem('theme_mode') || localStorage.getItem('0rhx_theme_mode')) as ThemeMode;
+    const mode = (saved === 'dark' || saved === 'light' || saved === 'system') ? saved : DEFAULT_THEME_MODE;
+    return resolveEffectiveTheme(mode) === 'dark';
   });
 
 
@@ -556,46 +568,57 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [visibleNavIds]);
 
 
-  // Dark mode effect
+  // Sync HTML root classes for Tailwind dark: selector
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.remove('light');
       document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
     } else {
       document.documentElement.classList.remove('dark');
       document.documentElement.classList.add('light');
+      document.documentElement.style.colorScheme = 'light';
     }
   }, [isDarkMode]);
+
+  // Listen for system theme changes when in 'system' mode, and apply theme
+  useEffect(() => {
+    const updateEffectiveTheme = () => {
+      const effective = resolveEffectiveTheme(themeMode);
+      setIsDarkMode(effective === 'dark');
+      applyTheme(customSeedColor, effective);
+    };
+
+    updateEffectiveTheme();
+
+    if (themeMode === 'system') {
+      const unlisten = initSystemThemeListener(updateEffectiveTheme);
+      return unlisten;
+    }
+  }, [themeMode, customSeedColor]);
 
   const setCustomSeedColor = useCallback((hex: string) => {
     setCustomSeedColorState(hex);
     localStorage.setItem('theme_seed', hex);
     localStorage.setItem('0rhx_custom_seed_color', hex);
-    applyTheme(hex, isDarkMode ? 'dark' : 'light');
-  }, [isDarkMode]);
+    const effective = resolveEffectiveTheme(themeMode);
+    applyTheme(hex, effective);
+  }, [themeMode]);
 
-  const toggleDarkMode = useCallback(() => {
-    setIsDarkMode((prev) => {
-      const next = !prev;
-      const mode = next ? 'dark' : 'light';
-      localStorage.setItem('theme_mode', mode);
-      localStorage.setItem('0rhx_theme_mode', mode);
-      applyTheme(customSeedColor, mode);
-      return next;
-    });
-  }, [customSeedColor]);
-
-  const setThemeMode = useCallback((mode: 'dark' | 'light') => {
-    setIsDarkMode(mode === 'dark');
+  const setThemeMode = useCallback((mode: ThemeMode) => {
+    setThemeModeState(mode);
     localStorage.setItem('theme_mode', mode);
     localStorage.setItem('0rhx_theme_mode', mode);
-    applyTheme(customSeedColor, mode);
+    const effective = resolveEffectiveTheme(mode);
+    setIsDarkMode(effective === 'dark');
+    applyTheme(customSeedColor, effective);
   }, [customSeedColor]);
 
-  // Material You Custom Palette Application
-  useEffect(() => {
-    applyTheme(customSeedColor, isDarkMode ? 'dark' : 'light');
-  }, [customSeedColor, isDarkMode]);
+  const toggleDarkMode = useCallback(() => {
+    const effective = resolveEffectiveTheme(themeMode);
+    const nextMode: ThemeMode = effective === 'dark' ? 'light' : 'dark';
+    setThemeMode(nextMode);
+  }, [themeMode, setThemeMode]);
 
 
 
@@ -1129,6 +1152,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         cyclePlayMode,
         setPlayMode,
         isDarkMode,
+        themeMode,
         isNowPlayingOpen,
         setIsNowPlayingOpen,
         isQueueOpen,
