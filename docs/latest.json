@@ -1,16 +1,16 @@
 {
-  "version": "1.0.3",
-  "tag": "v1.0.3",
+  "version": "1.0.4",
+  "tag": "v1.0.4",
   "releaseDate": "2026-08-22",
-  "name": "0rhxPlayer v1.0.3",
-  "notes": "• 修复 Windows 应用图标未正确更新的问题，彻底替换旧版黄色螺旋图标\n• CI 构建加入图标资产缓存失效机制，确保每次发布图标完整嵌入可执行文件\n• NSIS 安装包图标同步更新为新版 Miku 渐变矢量图标",
+  "name": "0rhxPlayer v1.0.4",
+  "notes": "• 彻底修复 NSIS 安装包图标绑定问题：显式配置 installerIcon 与 uninstallerIcon 杜绝 Windows 注册表 DisplayIcon 残留旧图标\n• 安装模式统一为 currentUser，避免系统级安装造成的图标缓存混乱\n• CI 构建强制刷新图标资产缓存，确保新版 Miku 渐变图标完整嵌入",
   "downloads": {
-    "windows_x64_exe": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.3/0rhxPlayer_1.0.3_x64-setup.exe",
-    "windows_x64_zip": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.3/0rhxPlayer_1.0.3_x86_64-pc-windows-msvc_portable.zip",
-    "windows_arm64_exe": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.3/0rhxPlayer_1.0.3_arm64-setup.exe",
-    "windows_arm64_zip": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.3/0rhxPlayer_1.0.3_aarch64-pc-windows-msvc_portable.zip",
-    "linux_x64_appimage": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.3/0rhxPlayer_1.0.3_amd64.AppImage",
-    "linux_x64_tar": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.3/0rhxPlayer_1.0.3_x86_64-unknown-linux-gnu.tar.gz"
+    "windows_x64_exe": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.4/0rhxPlayer_1.0.4_x64-setup.exe",
+    "windows_x64_zip": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.4/0rhxPlayer_1.0.4_x86_64-pc-windows-msvc_portable.zip",
+    "windows_arm64_exe": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.4/0rhxPlayer_1.0.4_arm64-setup.exe",
+    "windows_arm64_zip": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.4/0rhxPlayer_1.0.4_aarch64-pc-windows-msvc_portable.zip",
+    "linux_x64_appimage": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.4/0rhxPlayer_1.0.4_amd64.AppImage",
+    "linux_x64_tar": "https://github.com/RinCynar/0rhxPlayer-Desktop/releases/download/v1.0.4/0rhxPlayer_1.0.4_x86_64-unknown-linux-gnu.tar.gz"
   },
   "vscode": {
     "marketplace": "https://marketplace.visualstudio.com/items?itemName=RinCynar.0rhxplayer",
