@@ -1049,7 +1049,7 @@
         <!-- Screenshot 1 -->
         <div class="screenshot-card">
           <div class="screenshot-frame">
-            <img src="https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Desktop/main/info-pic/Screenshot%202026-08-21%20120003.png" alt="主页与曲库" loading="lazy" decoding="async" />
+            <img id="ss1Img" src="info-pic/Dark-HomePage.png" alt="主页与曲库" loading="lazy" decoding="async" />
           </div>
           <div class="screenshot-caption">
             <h4 id="ss1Title">主页与曲库视图</h4>
@@ -1060,7 +1060,7 @@
         <!-- Screenshot 2 -->
         <div class="screenshot-card">
           <div class="screenshot-frame">
-            <img src="https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Desktop/main/info-pic/Screenshot%202026-08-21%20120150.png" alt="播放详情与双语歌词" loading="lazy" decoding="async" />
+            <img id="ss2Img" src="info-pic/Dark-NowPlaying.png" alt="播放详情与双语歌词" loading="lazy" decoding="async" />
           </div>
           <div class="screenshot-caption">
             <h4 id="ss2Title">播放详情与双语歌词</h4>
@@ -1394,6 +1394,12 @@
         // Moon icon
         themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
       }
+
+      // Dynamically switch screenshots to match current website theme
+      const ss1 = document.getElementById('ss1Img');
+      const ss2 = document.getElementById('ss2Img');
+      if (ss1) ss1.src = isDark ? 'info-pic/Dark-HomePage.png' : 'info-pic/Light-HomePage.png';
+      if (ss2) ss2.src = isDark ? 'info-pic/Dark-NowPlaying.png' : 'info-pic/Light-NowPlaying.png';
     }
 
     themeToggle.addEventListener('click', () => {
