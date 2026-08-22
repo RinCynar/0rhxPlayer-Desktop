@@ -4,6 +4,7 @@ version = "1.0.2"
 description = "0rhxPlayer Desktop"
 authors = ["RinCynar"]
 edition = "2021"
+license = "GPL-3.0"
 
 [[bin]]
 name = "0rhxPlayer"
