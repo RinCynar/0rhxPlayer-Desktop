@@ -54,6 +54,7 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
+          key: ${{ matrix.target }}-v1.0.2
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -63,6 +64,10 @@ jobs:
 
       - name: Install frontend dependencies
         run: pnpm install
+
+      - name: Clean app crate resource cache
+        run: cargo clean -p app
+        working-directory: src-tauri
 
       - name: Build Tauri bundles
         run: pnpm tauri build ${{ matrix.args }}
