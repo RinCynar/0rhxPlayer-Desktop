@@ -15,6 +15,8 @@
 
 [🌐 官方主页 (Official Website)](https://0rhxplayer.rincynar.top) • [📦 版本下载 (Releases)](https://github.com/RinCynar/0rhxPlayer-Desktop/releases/latest) • [🧩 VSCode 插件版](https://github.com/RinCynar/0rhxPlayer)
 
+[English](README.md) | **简体中文**
+
 </div>
 
 ---
