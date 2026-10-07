@@ -1,0 +1,9 @@
+build/
+.cache/
+CMakeUserPresets.json
+*.user
+
+# Local runtime logs
+*.log
+stderr.txt
+stdout.txt

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- 0rhxPlayer 品牌核心矢量 Logo (声波与播放内核，支持动态着色) -->
+  <g stroke="currentColor" stroke-linecap="round" fill="none">
+    <!-- 右上主声波 -->
+    <path d="M 256 90 A 166 166 0 0 1 422 256" stroke-width="38" />
+    <path d="M 256 150 A 106 106 0 0 1 362 256" stroke-width="36" />
+
+    <!-- 左下主声波 -->
+    <path d="M 256 422 A 166 166 0 0 1 90 256" stroke-width="38" />
+    <path d="M 256 362 A 106 106 0 0 1 150 256" stroke-width="36" />
+  </g>
+
+  <!-- 中心圆角播放内核 -->
+  <path d="M 232 200 C 232 192 242 186 250 192 L 306 238 C 314 244 314 256 306 262 L 250 308 C 242 314 232 308 232 300 Z" fill="currentColor" />
+</svg>
