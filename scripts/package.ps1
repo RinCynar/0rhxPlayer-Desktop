@@ -18,20 +18,21 @@ Write-Host "=== Packaging 0rhxPlayer v$Version ===" -ForegroundColor Cyan
 
 # 1. Locate ISCC (Inno Setup Compiler)
 if (-not $IsccPath) {
-    $isccCmd = Get-Command iscc -ErrorAction SilentlyContinue
-    if ($isccCmd) {
-        $IsccPath = if ($isccCmd.Path) { $isccCmd.Path } else { $isccCmd.Source }
+    $candidates = @(
+        "C:\InnoSetup\ISCC.exe",
+        "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+        "C:\Program Files\Inno Setup 6\ISCC.exe",
+        "C:\Program Files (x86)\Inno Setup 7\ISCC.exe",
+        "C:\Program Files\Inno Setup 7\ISCC.exe",
+        "C:\ProgramData\chocolatey\bin\iscc.exe"
+    )
+    foreach ($c in $candidates) {
+        if (Test-Path $c) { $IsccPath = $c; break }
     }
-    if (-not $IsccPath -or -not (Test-Path $IsccPath)) {
-        $candidates = @(
-            "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
-            "C:\Program Files\Inno Setup 6\ISCC.exe",
-            "C:\Program Files (x86)\Inno Setup 7\ISCC.exe",
-            "C:\Program Files\Inno Setup 7\ISCC.exe",
-            "C:\ProgramData\chocolatey\bin\iscc.exe"
-        )
-        foreach ($c in $candidates) {
-            if (Test-Path $c) { $IsccPath = $c; break }
+    if (-not $IsccPath) {
+        $isccCmd = Get-Command iscc -ErrorAction SilentlyContinue
+        if ($isccCmd) {
+            $IsccPath = if ($isccCmd.Path) { $isccCmd.Path } else { $isccCmd.Source }
         }
     }
     if (-not $IsccPath -or -not (Test-Path $IsccPath)) {
