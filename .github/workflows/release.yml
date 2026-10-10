@@ -42,7 +42,6 @@ jobs:
         with:
           version: '6.8.2'
           arch: 'win64_mingw'
-          modules: 'qtdeclarative qtsvg qtshadertools'
           cache: true
 
       - name: Configure CMake
