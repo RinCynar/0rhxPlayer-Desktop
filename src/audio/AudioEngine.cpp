@@ -27,7 +27,7 @@ AudioEngineWorker::~AudioEngineWorker()
 void AudioEngineWorker::initialize()
 {
     qDebug() << "[AudioEngineWorker] Initializing on native thread:" << QThread::currentThread();
-    bool ok = initBassAndWasapi();
+    bool ok = initAudioOutput();
     m_initialized = ok;
 
     m_tickTimer = new QTimer(this);
@@ -37,9 +37,9 @@ void AudioEngineWorker::initialize()
     emit initialized(ok);
 }
 
-bool AudioEngineWorker::initBassAndWasapi()
+bool AudioEngineWorker::initAudioOutput()
 {
-    // Initialize standard BASS output (-1 = default device, natively uses WASAPI Shared Mode on Windows)
+    // Initialize standard BASS output (-1 = default device)
     BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
     if (!BASS_Init(-1, 44100, 0, nullptr, nullptr)) {
         int err = BASS_ErrorGetCode();
@@ -50,13 +50,23 @@ bool AudioEngineWorker::initBassAndWasapi()
     }
 
     // Load FLAC plugin
+#if defined(_WIN32)
     m_flacPlugin = BASS_PluginLoad("bassflac.dll", 0);
+#elif defined(__APPLE__)
+    m_flacPlugin = BASS_PluginLoad("libbassflac.dylib", 0);
+#else
+    m_flacPlugin = BASS_PluginLoad("libbassflac.so", 0);
+#endif
     if (!m_flacPlugin) {
-        qWarning() << "[AudioEngineWorker] BASS_PluginLoad bassflac.dll returned 0. Built-in formats only.";
+        qWarning() << "[AudioEngineWorker] BASS_PluginLoad flac plugin returned 0. Built-in formats only.";
     }
 
+#if defined(_WIN32)
     // Since we use standard BASS output, it handles shared mode via WASAPI natively on Windows
-    qDebug() << "[AudioEngineWorker] BASS initialized successfully in Shared Mode.";
+    qDebug() << "[AudioEngineWorker] BASS initialized successfully in Windows WASAPI Shared Mode.";
+#else
+    qDebug() << "[AudioEngineWorker] BASS initialized successfully with platform audio output.";
+#endif
 
     // Detect actual default audio output device
     BASS_DEVICEINFO devInfo;

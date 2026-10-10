@@ -8,10 +8,12 @@
 #include <cmath>
 #include <algorithm>
 
+#if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "bass.h"
 #include "basswasapi.h"
+#endif
+#include "bass.h"
 #include "bassflac.h"
 
 #include <mutex>
@@ -106,7 +108,8 @@ private slots:
     void onTick();
 
 private:
-    bool initBassAndWasapi();
+    bool initAudioOutput();
+    bool initBassAndWasapi() { return initAudioOutput(); }
     void freeCurrentStream();
     void recalculateEqFilters();
 
@@ -114,7 +117,9 @@ private:
 
     HSTREAM m_decodeStream = 0;
     HPLUGIN m_flacPlugin = 0;
+#if defined(_WIN32)
     int m_wasapiDevice = -1;
+#endif
     bool m_isExclusive = false;
     bool m_initialized = false;
     float m_volume = 1.0f;
