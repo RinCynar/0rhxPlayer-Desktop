@@ -6,7 +6,10 @@ param(
     [string]$IsccPath = ""
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
 
 $RootDir = Split-Path -Parent $PSScriptRoot
 Set-Location $RootDir
