@@ -22,7 +22,7 @@ if (-not $IsccPath) {
     if ($isccCmd) {
         $IsccPath = if ($isccCmd.Path) { $isccCmd.Path } else { $isccCmd.Source }
     }
-    if (-not $IsccPath) {
+    if (-not $IsccPath -or -not (Test-Path $IsccPath)) {
         $candidates = @(
             "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
             "C:\Program Files\Inno Setup 6\ISCC.exe",
@@ -33,6 +33,10 @@ if (-not $IsccPath) {
         foreach ($c in $candidates) {
             if (Test-Path $c) { $IsccPath = $c; break }
         }
+    }
+    if (-not $IsccPath -or -not (Test-Path $IsccPath)) {
+        $foundIscc = Get-ChildItem -Path "C:\Program Files*", "C:\ProgramData\chocolatey" -Filter "ISCC.exe" -Recurse -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($foundIscc) { $IsccPath = $foundIscc.FullName }
     }
 }
 Write-Host "Using Inno Setup compiler: $IsccPath" -ForegroundColor Green
@@ -69,22 +73,49 @@ New-Item -ItemType Directory -Force -Path (Join-Path $StageDir "translations") |
 Copy-Item (Join-Path $RootDir "translations\*.qm") (Join-Path $StageDir "translations") -Force -ErrorAction SilentlyContinue
 
 # 6. Run windeployqt
-if (-not $QtBinDir -and $env:QT_ROOT) {
-    $QtBinDir = Join-Path $env:QT_ROOT "bin"
-}
 $WindeployqtCmd = ""
-if ($QtBinDir -and (Test-Path (Join-Path $QtBinDir "windeployqt.exe"))) {
-    $WindeployqtCmd = Join-Path $QtBinDir "windeployqt.exe"
-} else {
+$qtDirs = @(
+    $QtBinDir,
+    (if ($env:QT_DIR) { Join-Path $env:QT_DIR "bin" } else { $null }),
+    (if ($env:QT_ROOT) { Join-Path $env:QT_ROOT "bin" } else { $null }),
+    (if ($env:QT_ROOT_DIR) { Join-Path $env:QT_ROOT_DIR "bin" } else { $null }),
+    (if ($env:Qt6_DIR) { (Resolve-Path "$env:Qt6_DIR\..\..\..\bin" -ErrorAction SilentlyContinue).Path } else { $null }),
+    (if ($env:CMAKE_PREFIX_PATH) { Join-Path $env:CMAKE_PREFIX_PATH "bin" } else { $null })
+)
+foreach ($qd in $qtDirs) {
+    if ($qd -and (Test-Path (Join-Path $qd "windeployqt.exe"))) {
+        $WindeployqtCmd = Join-Path $qd "windeployqt.exe"
+        break
+    }
+}
+if (-not $WindeployqtCmd) {
     $qtCmd = Get-Command windeployqt -ErrorAction SilentlyContinue
     if ($qtCmd) {
         $WindeployqtCmd = if ($qtCmd.Path) { $qtCmd.Path } else { $qtCmd.Source }
-    } elseif (Test-Path "C:\Users\RinCynar\Qt\6.11.2\mingw_64\bin\windeployqt.exe") {
-        $WindeployqtCmd = "C:\Users\RinCynar\Qt\6.11.2\mingw_64\bin\windeployqt.exe"
     }
 }
+if (-not $WindeployqtCmd -or -not (Test-Path $WindeployqtCmd)) {
+    $qtWildcards = @(
+        "C:\Qt\*\mingw_64\bin\windeployqt.exe",
+        "D:\a\*\Qt\*\mingw_64\bin\windeployqt.exe",
+        "C:\hostedtoolcache\windows\Qt\*\mingw_64\bin\windeployqt.exe",
+        "C:\Users\RinCynar\Qt\6.11.2\mingw_64\bin\windeployqt.exe"
+    )
+    foreach ($w in $qtWildcards) {
+        $matched = Get-Item $w -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($matched -and (Test-Path $matched.FullName)) {
+            $WindeployqtCmd = $matched.FullName
+            break
+        }
+    }
+}
+if (-not $WindeployqtCmd -or -not (Test-Path $WindeployqtCmd)) {
+    $foundQt = Get-ChildItem -Path "C:\", "D:\" -Filter "windeployqt.exe" -Recurse -Depth 5 -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($foundQt) { $WindeployqtCmd = $foundQt.FullName }
+}
 
-if (-not $WindeployqtCmd) {
+Write-Host "Using windeployqt: $WindeployqtCmd" -ForegroundColor Green
+if (-not $WindeployqtCmd -or -not (Test-Path $WindeployqtCmd)) {
     throw "windeployqt.exe not found!"
 }
 
