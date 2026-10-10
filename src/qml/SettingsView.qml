@@ -50,9 +50,14 @@ Item {
         id: palettePopup
         objectName: "palettePopup"
         parent: Overlay.overlay
-        width: 310
-        readonly property real estimatedHeight: 216
-        height: palettePopupCol.implicitHeight > 0 ? (palettePopupCol.implicitHeight + 24) : estimatedHeight
+        width: 320
+        padding: 16
+        topPadding: 16
+        bottomPadding: 16
+        leftPadding: 16
+        rightPadding: 16
+        readonly property real estimatedHeight: 236
+        height: palettePopupCol.implicitHeight > 0 ? (palettePopupCol.implicitHeight + topPadding + bottomPadding) : estimatedHeight
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
@@ -129,15 +134,12 @@ Item {
         }
 
         contentItem: Item {
-            implicitWidth: 310
+            implicitWidth: palettePopup.width - palettePopup.leftPadding - palettePopup.rightPadding
             implicitHeight: palettePopupCol.implicitHeight
 
             ColumnLayout {
                 id: palettePopupCol
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: 12
+                anchors.fill: parent
                 spacing: 8
 
                 // Header Row
@@ -1897,7 +1899,7 @@ Item {
                                     color: Theme.primaryContainer
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "v1.0.4"
+                                        text: "v1.1.0"
                                         font.pixelSize: 10
                                         font.bold: true
                                         color: Theme.colorOnPrimaryContainer

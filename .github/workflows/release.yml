@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version tag (e.g. 1.1.0)'
+        required: false
+        default: '1.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build & Package Windows x64
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+
+      - name: Install Inno Setup & Ninja
+        shell: pwsh
+        run: |
+          choco install ninja innosetup -y --no-progress
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.2'
+          arch: 'win64_mingw'
+          modules: 'qtdeclarative qtsvg qtshadertools'
+          cache: true
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake -B build -S . -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_CXX_COMPILER="g++" `
+            -DCMAKE_C_COMPILER="gcc"
+
+      - name: Build Target
+        shell: pwsh
+        run: |
+          ninja -C build
+
+      - name: Run Regression Self-Tests
+        shell: pwsh
+        run: |
+          ./build/0rhxPlayer.exe --test-phase9
+          ./build/0rhxPlayer.exe --test-phase8
+          ./build/0rhxPlayer.exe --test-queue
+
+      - name: Package Dual Release Artifacts (Portable Zip & Inno Setup)
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $inputVer = "${{ github.event.inputs.version }}"
+          $ver = "1.1.0"
+          if ($inputVer) {
+              $ver = $inputVer
+          } elseif ($tag -match '^v?([0-9]+\.[0-9]+\.[0-9]+)') {
+              $ver = $matches[1]
+          }
+          Write-Host "Packaging 0rhxPlayer version $ver..."
+          powershell -ExecutionPolicy Bypass -File scripts/package.ps1 -Version $ver -BuildDir "build" -DistDir "dist"
+
+      - name: Verify Distributables
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path "dist" -File | Format-Table Name, Length
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref_name, 'v') && github.ref_name || format('v{0}', github.event.inputs.version || '1.1.0') }}
+          name: "0rhxPlayer ${{ startsWith(github.ref_name, 'v') && github.ref_name || format('v{0}', github.event.inputs.version || '1.1.0') }}"
+          body: |
+            ## 0rhxPlayer ${{ startsWith(github.ref_name, 'v') && github.ref_name || format('v{0}', github.event.inputs.version || '1.1.0') }}
+
+            Local music player built with Qt 6 and WASAPI.
+
+            ### Release Assets
+            - **Installer**: `0rhxPlayer-v1.1.0-windows-x64-setup.exe`
+            - **Portable**: `0rhxPlayer-v1.1.0-windows-x64-portable.zip`
+
+            ### Links
+            - Website: https://0rhxplayer.rincynar.top
+            - Repository: https://github.com/RinCynar/0rhxPlayer-Desktop
+          draft: false
+          prerelease: false
+          files: |
+            dist/*.zip
+            dist/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

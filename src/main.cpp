@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
     app.setApplicationName("0rhxPlayer");
     app.setOrganizationName("0rhx");
-    app.setApplicationVersion("1.0.0");
+    app.setApplicationVersion("1.1.0");
     app.setWindowIcon(QIcon(":/assets/icons/icon.svg"));
 
     // ------------------------------------------------------------------------
@@ -2069,6 +2069,37 @@ int main(int argc, char *argv[])
                 pass = false;
             }
             qInfo() << "[Test-Phase9.7] Live seed color change and immediate QSettings auto-save verified.";
+
+            // Phase 9.8 Automated Assertions: Symmetrical Palette Padding & Bottom Inset
+            QObject *palPopup = mainWindow->findChild<QObject*>("palettePopup");
+            if (!palPopup) {
+                qWarning() << "[Test-Phase9.8] palettePopup not found in QML hierarchy!";
+                pass = false;
+            } else {
+                qreal pPad = palPopup->property("padding").toReal();
+                qreal pTopPad = palPopup->property("topPadding").toReal();
+                qreal pBottomPad = palPopup->property("bottomPadding").toReal();
+                qreal pLeftPad = palPopup->property("leftPadding").toReal();
+                qreal pRightPad = palPopup->property("rightPadding").toReal();
+                qreal pWidth = palPopup->property("width").toReal();
+                qInfo() << "[Test-Phase9.8] palettePopup geometry verified - padding:" << pPad
+                        << "topPadding:" << pTopPad << "bottomPadding:" << pBottomPad
+                        << "leftPadding:" << pLeftPad << "rightPadding:" << pRightPad
+                        << "width:" << pWidth;
+                if (pPad != 16.0 || pTopPad != 16.0 || pBottomPad != 16.0 ||
+                    pLeftPad != 16.0 || pRightPad != 16.0) {
+                    qWarning() << "[Test-Phase9.8] palettePopup does not have symmetrical 16px padding!";
+                    pass = false;
+                }
+            }
+
+            // Phase 10 Automated Assertions: Application Version 1.1.0
+            if (QCoreApplication::applicationVersion() != "1.1.0") {
+                qWarning() << "[Test-Phase10] Application version is not 1.1.0! Current:" << QCoreApplication::applicationVersion();
+                pass = false;
+            } else {
+                qInfo() << "[Test-Phase10] Application version verified:" << QCoreApplication::applicationVersion();
+            }
 
             // Phase 9.4 Automated Assertions:
             // 1. Inline playlist creation with returned ID
