@@ -1,6 +1,7 @@
 #include "ConfigManager.h"
 #include "../library/LibraryManager.h"
 #include "../audio/AudioEngine.h"
+#include "../core/PathManager.h"
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -79,7 +80,7 @@ QVariantList ConfigManager::defaultNavItems() const
 
 void ConfigManager::loadSettings()
 {
-    QSettings settings;
+    QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
 
     // Navigation items
     QByteArray rawJson = settings.value("Navigation/ItemsJson").toByteArray();
@@ -123,6 +124,24 @@ void ConfigManager::loadSettings()
     // User Profile
     m_nickname = settings.value("User/Nickname", "RinCynar").toString();
     m_avatar = settings.value("User/Avatar", "").toString();
+    if (!m_avatar.isEmpty() && !m_avatar.startsWith("qrc:")) {
+        QUrl url(m_avatar);
+        QString localPath = url.isLocalFile() ? url.toLocalFile() : m_avatar;
+        if (!QFileInfo::exists(localPath)) {
+            QString avatarsDir = PathManager::instance()->avatarsDir();
+            QDir dir(avatarsDir);
+            if (dir.exists()) {
+                QStringList entries = dir.entryList({"user_avatar.*"}, QDir::Files);
+                if (!entries.isEmpty()) {
+                    m_avatar = QUrl::fromLocalFile(avatarsDir + "/" + entries.first()).toString();
+                } else {
+                    m_avatar = "";
+                }
+            } else {
+                m_avatar = "";
+            }
+        }
+    }
 
     // Appearance & Themes
     m_themeMode = settings.value("Appearance/ThemeMode", "system").toString();
@@ -187,7 +206,7 @@ void ConfigManager::loadSettings()
 
 void ConfigManager::saveSettings()
 {
-    QSettings settings;
+    QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
     QJsonArray arr;
     for (const auto &itemVal : m_allNavItems) {
         QVariantMap m = itemVal.toMap();
@@ -234,7 +253,7 @@ void ConfigManager::setNickname(const QString &nick)
     if (trimmed.isEmpty()) trimmed = "RinCynar";
     if (m_nickname != trimmed) {
         m_nickname = trimmed;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("User/Nickname", m_nickname);
         emit nicknameChanged(m_nickname);
     }
@@ -242,9 +261,36 @@ void ConfigManager::setNickname(const QString &nick)
 
 void ConfigManager::setAvatar(const QString &avatarPath)
 {
-    if (m_avatar != avatarPath) {
-        m_avatar = avatarPath;
-        QSettings settings;
+    QString target = avatarPath;
+    if (!avatarPath.isEmpty() && !avatarPath.startsWith("qrc:")) {
+        QUrl url(avatarPath);
+        QString localPath = url.isLocalFile() ? url.toLocalFile() : avatarPath;
+        QFileInfo fi(localPath);
+        if (fi.exists() && fi.isFile()) {
+            QString avatarsDir = PathManager::instance()->avatarsDir();
+            QDir().mkpath(avatarsDir);
+            QString ext = fi.suffix().toLower();
+            if (ext.isEmpty()) ext = "png";
+            QString destFile = avatarsDir + "/user_avatar." + ext;
+
+            if (QDir::cleanPath(localPath) != QDir::cleanPath(destFile)) {
+                QDir dir(avatarsDir);
+                QStringList oldFiles = dir.entryList({"user_avatar.*"}, QDir::Files);
+                for (const QString &old : oldFiles) {
+                    dir.remove(old);
+                }
+                if (QFile::copy(localPath, destFile)) {
+                    target = QUrl::fromLocalFile(destFile).toString();
+                }
+            } else {
+                target = QUrl::fromLocalFile(destFile).toString();
+            }
+        }
+    }
+
+    if (m_avatar != target) {
+        m_avatar = target;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("User/Avatar", m_avatar);
         emit avatarChanged(m_avatar);
     }
@@ -265,6 +311,14 @@ void ConfigManager::openSelectAvatarDialog()
 
 void ConfigManager::resetAvatar()
 {
+    QString avatarsDir = PathManager::instance()->avatarsDir();
+    QDir dir(avatarsDir);
+    if (dir.exists()) {
+        QStringList oldFiles = dir.entryList({"user_avatar.*"}, QDir::Files);
+        for (const QString &old : oldFiles) {
+            dir.remove(old);
+        }
+    }
     setAvatar("");
 }
 
@@ -277,7 +331,7 @@ void ConfigManager::setThemeMode(const QString &mode)
     }
     if (m_themeMode != m) {
         m_themeMode = m;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Appearance/ThemeMode", m_themeMode);
         emit themeModeChanged(m_themeMode);
     }
@@ -291,7 +345,7 @@ void ConfigManager::setSeedColor(const QString &hex)
     }
     if (m_seedColor.compare(clean, Qt::CaseInsensitive) != 0) {
         m_seedColor = clean;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Appearance/SeedColor", m_seedColor);
         emit seedColorChanged(m_seedColor);
     }
@@ -306,7 +360,7 @@ void ConfigManager::setLyricsAlign(const QString &align)
     }
     if (m_lyricsAlign != val) {
         m_lyricsAlign = val;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Lyrics/Align", m_lyricsAlign);
         emit lyricsAlignChanged(m_lyricsAlign);
     }
@@ -318,7 +372,7 @@ void ConfigManager::setLyricsFontSize(int size)
     if (size > 64) size = 64;
     if (m_lyricsFontSize != size) {
         m_lyricsFontSize = size;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Lyrics/FontSize", m_lyricsFontSize);
         emit lyricsFontSizeChanged(m_lyricsFontSize);
     }
@@ -328,7 +382,7 @@ void ConfigManager::setShowTrans(bool show)
 {
     if (m_showTrans != show) {
         m_showTrans = show;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Lyrics/ShowTrans", m_showTrans);
         emit showTransChanged(m_showTrans);
     }
@@ -338,7 +392,7 @@ void ConfigManager::setAutoCollapseRail(bool collapse)
 {
     if (m_autoCollapseRail != collapse) {
         m_autoCollapseRail = collapse;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Interface/AutoCollapseRail", m_autoCollapseRail);
         emit autoCollapseRailChanged(m_autoCollapseRail);
     }
@@ -349,7 +403,7 @@ void ConfigManager::setAudioDriver(const QString &driver)
 {
     if (m_audioDriver != driver) {
         m_audioDriver = driver;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Audio/Driver", m_audioDriver);
         if (AudioEngine::instance()) {
             AudioEngine::instance()->setExclusiveMode(m_audioDriver == "WASAPI Exclusive");
@@ -362,7 +416,7 @@ void ConfigManager::setResampler(const QString &resampler)
 {
     if (m_resampler != resampler) {
         m_resampler = resampler;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Audio/Resampler", m_resampler);
         emit resamplerChanged(m_resampler);
     }
@@ -372,7 +426,7 @@ void ConfigManager::setReplayGain(const QString &replayGain)
 {
     if (m_replayGain != replayGain) {
         m_replayGain = replayGain;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Audio/ReplayGain", m_replayGain);
         emit replayGainChanged(m_replayGain);
     }
@@ -382,7 +436,7 @@ void ConfigManager::setCueAutoScan(bool cue)
 {
     if (m_cueAutoScan != cue) {
         m_cueAutoScan = cue;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Audio/CueAutoScan", m_cueAutoScan);
         emit cueAutoScanChanged(m_cueAutoScan);
     }
@@ -392,7 +446,7 @@ void ConfigManager::setSystemTray(bool tray)
 {
     if (m_systemTray != tray) {
         m_systemTray = tray;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Audio/SystemTray", m_systemTray);
         emit systemTrayChanged(m_systemTray);
     }
@@ -405,7 +459,7 @@ void ConfigManager::setArtistSeparators(const QString &separators)
     if (clean.isEmpty()) clean = "/";
     if (m_artistSeparators != clean) {
         m_artistSeparators = clean;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Library/ArtistSeparators", m_artistSeparators);
         emit artistSeparatorsChanged(m_artistSeparators);
         rescanLibrary();
@@ -418,7 +472,7 @@ void ConfigManager::addScannedFolder(const QString &folderPath)
     if (clean.isEmpty()) return;
     if (!m_scannedFolders.contains(clean)) {
         m_scannedFolders.append(clean);
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Library/ScannedFolders", m_scannedFolders);
         emit scannedFoldersChanged(m_scannedFolders);
         rescanLibrary();
@@ -443,7 +497,7 @@ void ConfigManager::removeScannedFolder(const QString &folderPath)
     }
 
     if (removed > 0) {
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Library/ScannedFolders", m_scannedFolders);
         emit scannedFoldersChanged(m_scannedFolders);
         rescanLibrary();
@@ -473,7 +527,7 @@ void ConfigManager::setLibraryViewMode(const QString &mode)
     QString m = (mode == "grid") ? "grid" : "list";
     if (m_libraryViewMode != m) {
         m_libraryViewMode = m;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Library/ViewMode", m_libraryViewMode);
         emit libraryViewModeChanged(m_libraryViewMode);
     }
@@ -484,7 +538,7 @@ void ConfigManager::setTracksViewMode(const QString &mode)
     QString m = (mode == "list" || mode == "card" || mode == "compact") ? mode : "compact";
     if (m_tracksViewMode != m) {
         m_tracksViewMode = m;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Library/TracksViewMode", m_tracksViewMode);
         settings.setValue("Library/TitlesViewMode", m_tracksViewMode);
         emit tracksViewModeChanged(m_tracksViewMode);
@@ -502,7 +556,7 @@ void ConfigManager::setAlbumsViewMode(const QString &mode)
     QString m = (mode == "list" || mode == "card" || mode == "compact") ? mode : "compact";
     if (m_albumsViewMode != m) {
         m_albumsViewMode = m;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Library/AlbumsViewMode", m_albumsViewMode);
         emit albumsViewModeChanged(m_albumsViewMode);
     }
@@ -513,7 +567,7 @@ void ConfigManager::setArtistsViewMode(const QString &mode)
     QString m = (mode == "list" || mode == "card" || mode == "compact") ? mode : "compact";
     if (m_artistsViewMode != m) {
         m_artistsViewMode = m;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Library/ArtistsViewMode", m_artistsViewMode);
         emit artistsViewModeChanged(m_artistsViewMode);
     }
@@ -524,7 +578,7 @@ void ConfigManager::setFoldersViewMode(const QString &mode)
     QString m = (mode == "list" || mode == "card" || mode == "compact") ? mode : "compact";
     if (m_foldersViewMode != m) {
         m_foldersViewMode = m;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Library/FoldersViewMode", m_foldersViewMode);
         emit foldersViewModeChanged(m_foldersViewMode);
     }
@@ -576,7 +630,7 @@ void ConfigManager::setLanguage(const QString &lang)
     }
     if (m_language != l) {
         m_language = l;
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("General/Language", m_language);
         emit languageChanged(m_language);
     }
@@ -593,7 +647,7 @@ void ConfigManager::addSearchHistory(const QString &query)
         m_searchHistory.removeLast();
     }
 
-    QSettings settings;
+    QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
     settings.setValue("Search/History", m_searchHistory);
     emit searchHistoryChanged();
 }
@@ -604,7 +658,7 @@ void ConfigManager::removeSearchHistory(const QString &query)
     if (trimmed.isEmpty()) return;
 
     if (m_searchHistory.removeAll(trimmed) > 0) {
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Search/History", m_searchHistory);
         emit searchHistoryChanged();
     }
@@ -614,7 +668,7 @@ void ConfigManager::clearSearchHistory()
 {
     if (!m_searchHistory.isEmpty()) {
         m_searchHistory.clear();
-        QSettings settings;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.remove("Search/History");
         emit searchHistoryChanged();
     }

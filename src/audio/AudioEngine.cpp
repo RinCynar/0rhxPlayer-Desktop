@@ -2,6 +2,7 @@
 #include "AudioEngineWorker.h"
 #include "../library/LibraryManager.h"
 #include "../model/LyricModel.h"
+#include "../core/PathManager.h"
 
 #include <QDebug>
 #include <QFileInfo>
@@ -1147,7 +1148,7 @@ void AudioEngine::resetEq()
 
 void AudioEngine::loadEqSettings()
 {
-    QSettings settings("rhxPlayer", "0rhxPlayer");
+    QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
     settings.beginGroup("Equalizer");
     m_eqEnabled = settings.value("enabled", false).toBool();
     m_eqPreamp = settings.value("preamp", 0.0f).toFloat();
@@ -1176,7 +1177,7 @@ void AudioEngine::loadEqSettings()
 
 void AudioEngine::saveEqSettings()
 {
-    QSettings settings("rhxPlayer", "0rhxPlayer");
+    QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
     settings.beginGroup("Equalizer");
     settings.setValue("enabled", m_eqEnabled);
     settings.setValue("preamp", m_eqPreamp);

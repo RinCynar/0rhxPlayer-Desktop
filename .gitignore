@@ -8,3 +8,5 @@ CMakeUserPresets.json
 *.log
 stderr.txt
 stdout.txt
+portable/
+portable.dat

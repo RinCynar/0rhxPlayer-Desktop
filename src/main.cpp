@@ -17,6 +17,7 @@
 #include <QTranslator>
 #include <QPointer>
 #include <QTimer>
+#include "core/PathManager.h"
 #include "audio/AudioEngine.h"
 #include "ui/SvgIcon.h"
 #include "ui/RoundedImage.h"
@@ -73,11 +74,10 @@ void customLogHandler(QtMsgType type, const QMessageLogContext &context, const Q
     Q_UNUSED(context);
     static QFile logFile;
     if (!logFile.isOpen()) {
-        QString appDir = QCoreApplication::applicationDirPath();
-        if (appDir.isEmpty()) {
-            appDir = QDir::currentPath();
-        }
-        logFile.setFileName(appDir + "/app.log");
+        QString logPath = PathManager::instance()->appLogFile();
+        QFileInfo fi(logPath);
+        QDir().mkpath(fi.dir().absolutePath());
+        logFile.setFileName(logPath);
         logFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text);
     }
     if (logFile.isOpen()) {
@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
 {
     // High DPI scaling is enabled by default in Qt 6
     QApplication app(argc, argv);
+    PathManager::instance()->ensureDirsExist();
     qInstallMessageHandler(customLogHandler);
 
     app.setApplicationName("0rhxPlayer");
@@ -142,7 +143,7 @@ int main(int argc, char *argv[])
 
     // ------------------------------------------------------------------------
     // Step 5: Register native AudioEngine & LibraryManager singletons to QML
-    // ------------------------------------------------------------------------
+    qmlRegisterSingletonInstance("rhx.core", 1, 0, "PathManager", PathManager::instance());
     qmlRegisterSingletonInstance("rhx.audio", 1, 0, "AudioEngine", AudioEngine::instance());
     qmlRegisterSingletonInstance("rhx.library", 1, 0, "LibraryManager", LibraryManager::instance());
     qmlRegisterSingletonInstance("rhx.config", 1, 0, "ConfigManager", ConfigManager::instance());
@@ -217,6 +218,7 @@ int main(int argc, char *argv[])
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
         &app, []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
+    engine.rootContext()->setContextProperty("PathManager", PathManager::instance());
 
     // ------------------------------------------------------------------------
     // Multi-language Application & Qt Translator with Dynamic Hot Retranslation
@@ -2057,7 +2059,7 @@ int main(int argc, char *argv[])
 
             // Test Dynamic Seed Color Changing & Automatic QSettings Persistence (No Save button needed)
             ConfigManager::instance()->setSeedColor("#DE3730");
-            QSettings testSettings;
+            QSettings testSettings(PathManager::instance()->configFile(), QSettings::IniFormat);
             if (ConfigManager::instance()->seedColor().toUpper() != "#DE3730" ||
                 testSettings.value("Appearance/SeedColor").toString().toUpper() != "#DE3730") {
                 qWarning() << "[Test-Phase9] Dynamic seed color change or auto-save failed!";
@@ -2069,6 +2071,77 @@ int main(int argc, char *argv[])
                 pass = false;
             }
             qInfo() << "[Test-Phase9.7] Live seed color change and immediate QSettings auto-save verified.";
+
+            // Phase 10.1 Automated Assertions: PathManager Directory Topology & Portable Mode Isolation
+            auto *pm = PathManager::instance();
+            if (pm->configDir().isEmpty() || pm->dataDir().isEmpty() || pm->cacheDir().isEmpty()) {
+                qWarning() << "[Test-Phase10.1] Standard directories are empty!";
+                pass = false;
+            }
+            if (!pm->configFile().endsWith("/config.ini")) {
+                qWarning() << "[Test-Phase10.1] configFile does not end with config.ini! Actual:" << pm->configFile();
+                pass = false;
+            }
+            if (!pm->libraryCacheFile().endsWith("/library_cache.json")) {
+                qWarning() << "[Test-Phase10.1] libraryCacheFile does not end with library_cache.json!";
+                pass = false;
+            }
+            if (!pm->playlistsFile().endsWith("/playlists.json")) {
+                qWarning() << "[Test-Phase10.1] playlistsFile does not end with playlists.json!";
+                pass = false;
+            }
+            if (!pm->favoritesFile().endsWith("/favorites.json")) {
+                qWarning() << "[Test-Phase10.1] favoritesFile does not end with favorites.json!";
+                pass = false;
+            }
+
+            // Verify directories exist on disk
+            pm->ensureDirsExist();
+            if (!QDir(pm->configDir()).exists() || !QDir(pm->dataDir()).exists() || !QDir(pm->cacheDir()).exists()) {
+                qWarning() << "[Test-Phase10.1] ensureDirsExist failed to create directories!";
+                pass = false;
+            }
+
+            // Verify Portable Mode simulation
+            bool originalPortable = pm->isPortable();
+            QString originalConfigDir = pm->configDir();
+            pm->setPortableMode(true);
+            if (!pm->isPortable()) {
+                qWarning() << "[Test-Phase10.1] Failed to toggle portable mode!";
+                pass = false;
+            }
+            if (!pm->configDir().contains("portable")) {
+                qWarning() << "[Test-Phase10.1] Portable configDir does not contain 'portable'!";
+                pass = false;
+            }
+            pm->setPortableMode(originalPortable);
+            if (pm->configDir() != originalConfigDir) {
+                qWarning() << "[Test-Phase10.1] Failed to restore standard paths!";
+                pass = false;
+            }
+
+            // Verify Avatar Local Copy & Reset
+            {
+                QString dummyAvatar = QDir::tempPath() + "/0rhx_dummy_avatar.png";
+                QFile dummyFile(dummyAvatar);
+                if (dummyFile.open(QIODevice::WriteOnly)) {
+                    dummyFile.write("DUMMY_AVATAR_IMAGE");
+                    dummyFile.close();
+                    ConfigManager::instance()->setAvatar(dummyAvatar);
+                    QString setAv = ConfigManager::instance()->avatar();
+                    if (setAv.isEmpty() || !setAv.contains("user_avatar")) {
+                        qWarning() << "[Test-Phase10.1] setAvatar did not copy avatar to avatarsDir! Current:" << setAv;
+                        pass = false;
+                    }
+                    ConfigManager::instance()->resetAvatar();
+                    if (!ConfigManager::instance()->avatar().isEmpty()) {
+                        qWarning() << "[Test-Phase10.1] resetAvatar failed to clear avatar!";
+                        pass = false;
+                    }
+                    QFile::remove(dummyAvatar);
+                }
+            }
+            qInfo() << "[Test-Phase10.1] PathManager topology, portable mode isolation & avatar persistence verified.";
 
             // Phase 9.8 Automated Assertions: Symmetrical Palette Padding & Bottom Inset
             QObject *palPopup = mainWindow->findChild<QObject*>("palettePopup");

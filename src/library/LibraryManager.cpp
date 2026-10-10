@@ -2,6 +2,7 @@
 #include "LibraryScanWorker.h"
 #include "../audio/AudioEngine.h"
 #include "../config/ConfigManager.h"
+#include "../core/PathManager.h"
 #include <QFileDialog>
 #include <QDirIterator>
 #include <QFileInfo>
@@ -9,7 +10,6 @@
 #include <QMap>
 #include <QRegularExpression>
 #include <QCoreApplication>
-#include <QStandardPaths>
 #include <QCryptographicHash>
 #include <QFile>
 #include <QUrl>
@@ -299,7 +299,7 @@ static void extractTagsAndCoverDirect(const QString &audioPath,
                                       QString &title, QString &artist, QString &album, QString &albumArtist,
                                       QString &coverUrl)
 {
-    QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/covers";
+    QString cacheDir = PathManager::instance()->coversDir();
     QDir().mkpath(cacheDir);
 
     QByteArray hash = QCryptographicHash::hash(audioPath.toUtf8(), QCryptographicHash::Md5).toHex();
@@ -697,8 +697,7 @@ void LibraryManager::onScanFinished(const QList<TrackItem> &allTracks)
 
 void LibraryManager::loadLibraryCache()
 {
-    QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QString cachePath = cacheDir + "/library_cache.json";
+    QString cachePath = PathManager::instance()->libraryCacheFile();
     QFile file(cachePath);
     if (!file.open(QIODevice::ReadOnly)) return;
 
@@ -747,9 +746,9 @@ void LibraryManager::loadLibraryCache()
 
 void LibraryManager::saveLibraryCache()
 {
-    QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir().mkpath(cacheDir);
-    QString cachePath = cacheDir + "/library_cache.json";
+    QString cachePath = PathManager::instance()->libraryCacheFile();
+    QFileInfo fi(cachePath);
+    QDir().mkpath(fi.dir().absolutePath());
 
     QJsonArray arr;
     for (const auto &item : m_allTracks) {
@@ -894,8 +893,7 @@ void LibraryManager::clearLibrary()
     m_allTracks.clear();
     emit trackCountChanged();
 
-    QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QFile::remove(cacheDir + "/library_cache.json");
+    QFile::remove(PathManager::instance()->libraryCacheFile());
 
     rebuildLibraryModels();
     generateRecommendations();
@@ -1793,8 +1791,7 @@ bool LibraryManager::isFavorite(const QString &trackPath) const
 
 void LibraryManager::loadFavorites()
 {
-    QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QFile file(cacheDir + "/favorites.json");
+    QFile file(PathManager::instance()->favoritesFile());
     if (!file.open(QIODevice::ReadOnly)) return;
 
     QByteArray data = file.readAll();
@@ -1811,9 +1808,10 @@ void LibraryManager::loadFavorites()
 
 void LibraryManager::saveFavorites()
 {
-    QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir().mkpath(cacheDir);
-    QFile file(cacheDir + "/favorites.json");
+    QString favPath = PathManager::instance()->favoritesFile();
+    QFileInfo fi(favPath);
+    QDir().mkpath(fi.dir().absolutePath());
+    QFile file(favPath);
     if (!file.open(QIODevice::WriteOnly)) return;
 
     QJsonArray arr;
@@ -1826,8 +1824,7 @@ void LibraryManager::saveFavorites()
 
 void LibraryManager::loadPlaylists()
 {
-    QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QFile file(cacheDir + "/playlists.json");
+    QFile file(PathManager::instance()->playlistsFile());
     if (!file.open(QIODevice::ReadOnly)) return;
 
     QByteArray data = file.readAll();
@@ -1865,9 +1862,10 @@ void LibraryManager::loadPlaylists()
 
 void LibraryManager::savePlaylists()
 {
-    QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir().mkpath(cacheDir);
-    QFile file(cacheDir + "/playlists.json");
+    QString plPath = PathManager::instance()->playlistsFile();
+    QFileInfo fi(plPath);
+    QDir().mkpath(fi.dir().absolutePath());
+    QFile file(plPath);
     if (!file.open(QIODevice::WriteOnly)) return;
 
     QJsonArray arr;

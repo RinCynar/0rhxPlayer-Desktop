@@ -130,9 +130,12 @@ if ($LASTEXITCODE -ne 0) {
 $ZipName = "0rhxPlayer-v$Version-windows-x64-portable.zip"
 $ZipPath = Join-Path $DistFullPath $ZipName
 if (Test-Path $ZipPath) { Remove-Item -Force $ZipPath }
+Write-Host "Creating portable marker in staging directory..." -ForegroundColor Cyan
+New-Item -ItemType File -Path (Join-Path $StageDir "portable.dat") -Force | Out-Null
 Write-Host "Compressing portable zip: $ZipPath ..." -ForegroundColor Cyan
 Compress-Archive -Path "$StageDir\*" -DestinationPath $ZipPath -Force
 Write-Host "Created $ZipName (Size: $((Get-Item $ZipPath).Length) bytes)" -ForegroundColor Green
+Remove-Item -Force (Join-Path $StageDir "portable.dat") -ErrorAction SilentlyContinue
 
 # 8. Compile Inno Setup Installer
 $SetupName = "0rhxPlayer-v$Version-windows-x64-setup"

@@ -13,6 +13,8 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml Svg Widgets)
 
 set(PROJECT_SOURCES
     src/main.cpp
+    src/core/PathManager.h
+    src/core/PathManager.cpp
     src/audio/AudioEngine.h
     src/audio/AudioEngineWorker.h
     src/audio/AudioEngine.cpp
