@@ -101,12 +101,12 @@ add_custom_command(TARGET 0rhxPlayer POST_BUILD
     COMMENT "Copying translation files to output directory..."
 )
 
-# Automated windeployqt deployment step
+# Automated windeployqt deployment step (local development only; CI packages via scripts/package.ps1)
 find_program(WINDEPLOYQT_EXECUTABLE NAMES windeployqt HINTS "C:/Users/RinCynar/Qt/6.11.2/mingw_64/bin" "${Qt6_DIR}/../../../bin")
-if(WINDEPLOYQT_EXECUTABLE)
+if(WINDEPLOYQT_EXECUTABLE AND NOT DEFINED ENV{CI})
     add_custom_command(TARGET 0rhxPlayer POST_BUILD
         COMMAND "${WINDEPLOYQT_EXECUTABLE}"
-            --qmldir "${CMAKE_CURRENT_SOURCE_DIR}"
+            --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/src/qml"
             --compiler-runtime
             "$<TARGET_FILE:0rhxPlayer>"
         COMMENT "Running windeployqt to deploy runtime dependencies..."

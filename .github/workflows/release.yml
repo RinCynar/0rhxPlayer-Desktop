@@ -23,39 +23,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Toolchain (MinGW, Ninja, Inno Setup)
+      - name: Install Inno Setup & Ninja
         shell: pwsh
         run: |
-          choco install mingw ninja innosetup -y --no-progress
-          $gcc = Get-Command gcc -ErrorAction SilentlyContinue
-          if (-not $gcc) {
-              $mingwBin = (Get-ChildItem -Path "C:\ProgramData\chocolatey\lib\mingw" -Recurse -Filter "gcc.exe" -ErrorAction SilentlyContinue | Select-Object -First 1).DirectoryName
-              if ($mingwBin) {
-                  Write-Host "Found MinGW bin at: $mingwBin"
-                  "$mingwBin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-                  $env:PATH = "$mingwBin;$env:PATH"
-              }
-          }
+          choco install ninja innosetup -y --no-progress
 
-      - name: Install Qt 6.8
+      - name: Install Qt 6.8 & MinGW Toolchain
         uses: jurplel/install-qt-action@v4
         with:
           version: '6.8.2'
           arch: 'win64_mingw'
+          tools: 'tools_mingw1310,qt.tools.win64_mingw1310'
           cache: true
 
       - name: Configure CMake
         shell: pwsh
         run: |
           cmake -B build -S . -G Ninja `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_CXX_COMPILER="g++" `
-            -DCMAKE_C_COMPILER="gcc"
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build Target
         shell: pwsh
         run: |
-          ninja -C build
+          ninja -C build -v
 
       - name: Run Regression Self-Tests
         shell: pwsh
