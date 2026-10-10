@@ -18,30 +18,27 @@ Write-Host "=== Packaging 0rhxPlayer v$Version ===" -ForegroundColor Cyan
 
 # 1. Locate ISCC (Inno Setup Compiler)
 if (-not $IsccPath) {
-    if (Get-Command iscc -ErrorAction SilentlyContinue) {
-        $IsccPath = (Get-Command iscc).Source
-    } else {
+    $isccCmd = Get-Command iscc -ErrorAction SilentlyContinue
+    if ($isccCmd) {
+        $IsccPath = if ($isccCmd.Path) { $isccCmd.Path } else { $isccCmd.Source }
+    }
+    if (-not $IsccPath) {
         $candidates = @(
-            "C:\Program Files\Inno Setup 7\ISCC.exe",
-            "C:\Program Files (x86)\Inno Setup 7\ISCC.exe",
-            "C:\Program Files\Inno Setup 6\ISCC.exe",
             "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+            "C:\Program Files\Inno Setup 6\ISCC.exe",
+            "C:\Program Files (x86)\Inno Setup 7\ISCC.exe",
+            "C:\Program Files\Inno Setup 7\ISCC.exe",
             "C:\ProgramData\chocolatey\bin\iscc.exe"
         )
         foreach ($c in $candidates) {
             if (Test-Path $c) { $IsccPath = $c; break }
         }
-        if (-not $IsccPath) {
-            $searched = Get-ChildItem -Path "C:\Program Files*", "C:\ProgramData\chocolatey" -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($searched) {
-                $IsccPath = $searched.FullName
-            } else {
-                $IsccPath = "iscc"
-            }
-        }
     }
 }
 Write-Host "Using Inno Setup compiler: $IsccPath" -ForegroundColor Green
+if (-not $IsccPath -or -not (Test-Path $IsccPath)) {
+    throw "Inno Setup compiler (ISCC.exe) not found!"
+}
 
 # 2. Prepare staging directory
 $StageDir = Join-Path $RootDir "$DistDir\0rhxPlayer"
@@ -72,17 +69,27 @@ New-Item -ItemType Directory -Force -Path (Join-Path $StageDir "translations") |
 Copy-Item (Join-Path $RootDir "translations\*.qm") (Join-Path $StageDir "translations") -Force -ErrorAction SilentlyContinue
 
 # 6. Run windeployqt
-$WindeployqtCmd = "windeployqt"
+if (-not $QtBinDir -and $env:QT_ROOT) {
+    $QtBinDir = Join-Path $env:QT_ROOT "bin"
+}
+$WindeployqtCmd = ""
 if ($QtBinDir -and (Test-Path (Join-Path $QtBinDir "windeployqt.exe"))) {
     $WindeployqtCmd = Join-Path $QtBinDir "windeployqt.exe"
-} elseif (Get-Command windeployqt -ErrorAction SilentlyContinue) {
-    $WindeployqtCmd = "windeployqt"
-} elseif (Test-Path "C:\Users\RinCynar\Qt\6.11.2\mingw_64\bin\windeployqt.exe") {
-    $WindeployqtCmd = "C:\Users\RinCynar\Qt\6.11.2\mingw_64\bin\windeployqt.exe"
+} else {
+    $qtCmd = Get-Command windeployqt -ErrorAction SilentlyContinue
+    if ($qtCmd) {
+        $WindeployqtCmd = if ($qtCmd.Path) { $qtCmd.Path } else { $qtCmd.Source }
+    } elseif (Test-Path "C:\Users\RinCynar\Qt\6.11.2\mingw_64\bin\windeployqt.exe") {
+        $WindeployqtCmd = "C:\Users\RinCynar\Qt\6.11.2\mingw_64\bin\windeployqt.exe"
+    }
 }
 
-Write-Host "Running windeployqt on $StageDir\0rhxPlayer.exe ..." -ForegroundColor Cyan
-& $WindeployqtCmd --qmldir "$RootDir\src\qml" --compiler-runtime "$StageDir\0rhxPlayer.exe"
+if (-not $WindeployqtCmd) {
+    throw "windeployqt.exe not found!"
+}
+
+Write-Host "Running windeployqt ($WindeployqtCmd) on $StageDir\0rhxPlayer.exe ..." -ForegroundColor Cyan
+& $WindeployqtCmd --qmldir "$RootDir\src\qml" --compiler-runtime "$StageDir\0rhxPlayer.exe" 2>&1 | Out-Host
 if ($LASTEXITCODE -ne 0) {
     Write-Warning "windeployqt completed with exit code: $LASTEXITCODE"
 }
@@ -98,7 +105,7 @@ Write-Host "Created $ZipName (Size: $((Get-Item $ZipPath).Length) bytes)" -Foreg
 # 8. Compile Inno Setup Installer
 $SetupName = "0rhxPlayer-v$Version-windows-x64-setup"
 Write-Host "Compiling Inno Setup installer..." -ForegroundColor Cyan
-& $IsccPath "-dSourceDir=$StageDir" "-o$DistFullPath" "-f$SetupName" "$RootDir\installer\setup.iss"
+& $IsccPath "-dSourceDir=$StageDir" "-o$DistFullPath" "-f$SetupName" "$RootDir\installer\setup.iss" 2>&1 | Out-Host
 if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup compilation failed with exit code $LASTEXITCODE"
 }
