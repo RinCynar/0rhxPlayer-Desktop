@@ -23,15 +23,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up MinGW
-        uses: egor-tensin/setup-mingw@v2
-        with:
-          platform: x64
-
-      - name: Install Inno Setup & Ninja
+      - name: Install Toolchain (MinGW, Ninja, Inno Setup)
         shell: pwsh
         run: |
-          choco install ninja innosetup -y --no-progress
+          choco install mingw ninja innosetup -y --no-progress
+          $gcc = Get-Command gcc -ErrorAction SilentlyContinue
+          if (-not $gcc) {
+              $mingwBin = (Get-ChildItem -Path "C:\ProgramData\chocolatey\lib\mingw" -Recurse -Filter "gcc.exe" -ErrorAction SilentlyContinue | Select-Object -First 1).DirectoryName
+              if ($mingwBin) {
+                  Write-Host "Found MinGW bin at: $mingwBin"
+                  "$mingwBin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+                  $env:PATH = "$mingwBin;$env:PATH"
+              }
+          }
 
       - name: Install Qt 6.8
         uses: jurplel/install-qt-action@v4
