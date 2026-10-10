@@ -16,18 +16,29 @@ Write-Host "=== Packaging 0rhxPlayer v$Version ===" -ForegroundColor Cyan
 # 1. Locate ISCC (Inno Setup Compiler)
 if (-not $IsccPath) {
     if (Get-Command iscc -ErrorAction SilentlyContinue) {
-        $IsccPath = "iscc"
-    } elseif (Test-Path "C:\Program Files\Inno Setup 7\ISCC.exe") {
-        $IsccPath = "C:\Program Files\Inno Setup 7\ISCC.exe"
-    } elseif (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") {
-        $IsccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-    } elseif (Test-Path "C:\Program Files\Inno Setup 6\ISCC.exe") {
-        $IsccPath = "C:\Program Files\Inno Setup 6\ISCC.exe"
+        $IsccPath = (Get-Command iscc).Source
     } else {
-        Write-Warning "ISCC.exe not found in standard paths. Attempting default call."
-        $IsccPath = "iscc"
+        $candidates = @(
+            "C:\Program Files\Inno Setup 7\ISCC.exe",
+            "C:\Program Files (x86)\Inno Setup 7\ISCC.exe",
+            "C:\Program Files\Inno Setup 6\ISCC.exe",
+            "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+            "C:\ProgramData\chocolatey\bin\iscc.exe"
+        )
+        foreach ($c in $candidates) {
+            if (Test-Path $c) { $IsccPath = $c; break }
+        }
+        if (-not $IsccPath) {
+            $searched = Get-ChildItem -Path "C:\Program Files*", "C:\ProgramData\chocolatey" -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($searched) {
+                $IsccPath = $searched.FullName
+            } else {
+                $IsccPath = "iscc"
+            }
+        }
     }
 }
+Write-Host "Using Inno Setup compiler: $IsccPath" -ForegroundColor Green
 
 # 2. Prepare staging directory
 $StageDir = Join-Path $RootDir "$DistDir\0rhxPlayer"
@@ -84,7 +95,7 @@ Write-Host "Created $ZipName (Size: $((Get-Item $ZipPath).Length) bytes)" -Foreg
 # 8. Compile Inno Setup Installer
 $SetupName = "0rhxPlayer-v$Version-windows-x64-setup"
 Write-Host "Compiling Inno Setup installer..." -ForegroundColor Cyan
-& $IsccPath "/DSourceDir=$StageDir" "/DOutputDir=$DistFullPath" "/DOutputBaseFilename=$SetupName" "$RootDir\installer\setup.iss"
+& $IsccPath "-dSourceDir=$StageDir" "-o$DistFullPath" "-f$SetupName" "$RootDir\installer\setup.iss"
 if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup compilation failed with exit code $LASTEXITCODE"
 }
