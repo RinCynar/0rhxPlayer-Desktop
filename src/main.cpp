@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 
     app.setApplicationName("0rhxPlayer");
     app.setOrganizationName("0rhx");
-    app.setApplicationVersion("1.1.0");
+    app.setApplicationVersion("1.1.1");
     app.setWindowIcon(QIcon(":/assets/icons/icon.svg"));
 
     // ------------------------------------------------------------------------
@@ -2168,9 +2168,9 @@ int main(int argc, char *argv[])
                 }
             }
 
-            // Phase 10 Automated Assertions: Application Version 1.1.0
-            if (QCoreApplication::applicationVersion() != "1.1.0") {
-                qWarning() << "[Test-Phase10] Application version is not 1.1.0! Current:" << QCoreApplication::applicationVersion();
+            // Phase 10 / 12 Automated Assertions: Application Version 1.1.1
+            if (QCoreApplication::applicationVersion() != "1.1.1") {
+                qWarning() << "[Test-Phase10] Application version is not 1.1.1! Current:" << QCoreApplication::applicationVersion();
                 pass = false;
             } else {
                 qInfo() << "[Test-Phase10] Application version verified:" << QCoreApplication::applicationVersion();

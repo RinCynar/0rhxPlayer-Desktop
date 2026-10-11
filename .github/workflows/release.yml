@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version tag (e.g. 1.1.0)'
+        description: 'Release version tag (e.g. 1.1.1)'
         required: false
-        default: '1.1.0'
+        default: '1.1.1'
 
 permissions:
   contents: write
@@ -65,7 +65,7 @@ jobs:
           }
           $tag = "${{ github.ref_name }}"
           $inputVer = "${{ github.event.inputs.version }}"
-          $ver = "1.1.0"
+          $ver = "1.1.1"
           if ($inputVer) {
               $ver = $inputVer
           } elseif ($tag -match '^v?([0-9]+\.[0-9]+\.[0-9]+)') {
@@ -128,7 +128,7 @@ jobs:
           }
           $tag = "${{ github.ref_name }}"
           $inputVer = "${{ github.event.inputs.version }}"
-          $ver = "1.1.0"
+          $ver = "1.1.1"
           if ($inputVer) {
               $ver = $inputVer
           } elseif ($tag -match '^v?([0-9]+\.[0-9]+\.[0-9]+)') {
@@ -191,7 +191,7 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           INPUT_VER="${{ github.event.inputs.version }}"
-          VER="1.1.0"
+          VER="1.1.1"
           if [ -n "$INPUT_VER" ]; then
             VER="$INPUT_VER"
           elif [[ "$TAG" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+) ]]; then
@@ -221,7 +221,7 @@ jobs:
         run: |
           TAG="${{ github.ref_name }}"
           INPUT_VER="${{ github.event.inputs.version }}"
-          VER="1.1.0"
+          VER="1.1.1"
           if [ -n "$INPUT_VER" ]; then
             VER="$INPUT_VER"
           elif [[ "$TAG" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+) ]]; then

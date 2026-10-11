@@ -2,7 +2,7 @@
 ; Generates Windows x64 modern installer with multi-language support, desktop shortcut, and clean uninstall
 
 #define MyAppName "0rhxPlayer"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.1.1"
 #define MyAppPublisher "RinCynar"
 #define MyAppURL "https://0rhxplayer.rincynar.top"
 #define MyAppExeName "0rhxPlayer.exe"
@@ -20,7 +20,7 @@
 #endif
 
 #ifndef OutputBaseFilename
-  #define OutputBaseFilename "0rhxPlayer-v1.1.0-windows-x64-setup"
+  #define OutputBaseFilename "0rhxPlayer-v1.1.1-windows-x64-setup"
 #endif
 
 [Setup]
@@ -48,11 +48,11 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 CloseApplications=yes
 RestartApplications=no
-VersionInfoVersion=1.1.0.0
+VersionInfoVersion=1.1.1.0
 VersionInfoCompany=RinCynar
 VersionInfoDescription=0rhxPlayer Setup
 VersionInfoProductName=0rhxPlayer
-VersionInfoProductVersion=1.1.0.0
+VersionInfoProductVersion=1.1.1.0
 VersionInfoCopyright=Copyright (C) 2026 RinCynar
 
 [Languages]
