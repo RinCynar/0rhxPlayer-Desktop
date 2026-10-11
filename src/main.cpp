@@ -18,6 +18,7 @@
 #include <QTranslator>
 #include <QPointer>
 #include <QTimer>
+#include <QPixmapCache>
 #include "core/PathManager.h"
 #include "audio/AudioEngine.h"
 #include "ui/SvgIcon.h"
@@ -94,6 +95,17 @@ void customLogHandler(QtMsgType type, const QMessageLogContext &context, const Q
 
 int main(int argc, char *argv[])
 {
+#if defined(_WIN32)
+    // On Windows with Direct3D11, Qt Quick's default threaded render loop
+    // fails to throttle when the window is occluded/minimized (DXGI_STATUS_OCCLUDED),
+    // causing a 23% GPU spin loop and deadlocking GUI event queues on memory trim.
+    // Switching to the basic render loop binds rendering to WM_PAINT on the main thread,
+    // dropping GPU to 0.0% when occluded/minimized and preventing deadlocks.
+    if (qEnvironmentVariableIsEmpty("QSG_RENDER_LOOP")) {
+        qputenv("QSG_RENDER_LOOP", "basic");
+    }
+#endif
+
     // High DPI scaling is enabled by default in Qt 6
     QApplication app(argc, argv);
     app.setApplicationName("0rhxPlayer");
@@ -295,6 +307,45 @@ int main(int argc, char *argv[])
     if (!engine.rootObjects().isEmpty()) {
         mainWindow = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
     }
+
+    auto trimDeepMemory = [&engine]() {
+        engine.trimComponentCache();
+        QPixmapCache::clear();
+        RoundedImage::trimCache();
+#if defined(_WIN32)
+        SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
+#endif
+    };
+
+    // Settle working set after startup burst (font loading, D3D pipeline, initial QML compilation)
+    QTimer::singleShot(2500, trimDeepMemory);
+
+    // After library scanning finishes, purge compilation and image caches
+    QObject::connect(LibraryManager::instance(), &LibraryManager::isScanningChanged, [trimDeepMemory]() {
+        if (!LibraryManager::instance()->isScanning()) {
+            QTimer::singleShot(500, trimDeepMemory);
+        }
+    });
+
+    if (mainWindow) {
+        QObject::connect(mainWindow, &QWindow::visibilityChanged, [mainWindow, trimDeepMemory](QWindow::Visibility v) {
+            if (v == QWindow::Minimized || v == QWindow::Hidden) {
+                trimDeepMemory();
+            } else if (v == QWindow::Windowed || v == QWindow::Maximized) {
+                mainWindow->requestUpdate();
+            }
+        });
+    }
+
+    // Periodic idle component cache trim every 45 seconds to keep baseline RAM low
+    QTimer *idleTrimTimer = new QTimer(&app);
+    idleTrimTimer->setInterval(45000);
+    QObject::connect(idleTrimTimer, &QTimer::timeout, [&engine]() {
+        if (!LibraryManager::instance()->isScanning()) {
+            engine.trimComponentCache();
+        }
+    });
+    idleTrimTimer->start();
 
     if (mainWindow && app.arguments().contains("--tab-settings")) {
         mainWindow->setProperty("currentTab", "settings");
@@ -2367,13 +2418,6 @@ int main(int argc, char *argv[])
             qDebug() << "[Viewport] Root window initialized successfully.";
         }
     }
-#endif
-
-#if defined(_WIN32)
-    // Settle working set after startup burst (font loading, D3D pipeline, initial QML compilation)
-    QTimer::singleShot(2500, []() {
-        SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
-    });
 #endif
 
     return app.exec();

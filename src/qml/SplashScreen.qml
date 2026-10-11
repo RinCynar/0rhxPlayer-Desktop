@@ -102,7 +102,7 @@ Rectangle {
 
                     SequentialAnimation on opacity {
                         loops: Animation.Infinite
-                        running: splashRoot.visible
+                        running: splashRoot.visible && (typeof window !== "undefined" ? window.isForegroundActive : true)
                         PauseAnimation { duration: index * 180 }
                         NumberAnimation { to: 1.0; duration: 350; easing.type: Easing.InOutQuad }
                         NumberAnimation { to: 0.3; duration: 350; easing.type: Easing.InOutQuad }

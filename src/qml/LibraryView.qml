@@ -350,7 +350,7 @@ Item {
                                     NumberAnimation on rotation {
                                         id: spinAnim
                                         property real rot: 0
-                                        running: LibraryManager.isScanning
+                                        running: LibraryManager.isScanning && (typeof window !== "undefined" ? window.isForegroundActive : true)
                                         loops: Animation.Infinite
                                         from: 0; to: 360; duration: 1000
                                     }

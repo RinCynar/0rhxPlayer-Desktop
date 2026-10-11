@@ -89,6 +89,9 @@ public slots:
     void setEqBands(const QList<float> &bands);
     void setEqBand(int index, float gainDb);
 
+    // Window active throttle slot
+    void setWindowActive(bool active);
+
 signals:
     void stateChanged(int state); // 0=Stopped, 1=Playing, 2=Paused
     void positionUpdated(qint64 positionMs);
@@ -127,6 +130,7 @@ private:
     qint64 m_currentDurationMs = 0;
     QString m_currentPath;
     bool m_eosTriggered = false;
+    bool m_windowActive = true;
 
     // Equalizer state with strict mutex protection
     mutable std::mutex m_eqMutex;

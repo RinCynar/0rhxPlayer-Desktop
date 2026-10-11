@@ -48,6 +48,8 @@ public:
     void setImage(const QImage &img);
     quint64 requestId() const { return m_requestId.load(std::memory_order_relaxed); }
 
+    Q_INVOKABLE static void trimCache();
+
     void paint(QPainter *painter) override;
 
 protected:

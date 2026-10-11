@@ -32,7 +32,7 @@ void AudioEngineWorker::initialize()
     m_initialized = ok;
 
     m_tickTimer = new QTimer(this);
-    m_tickTimer->setInterval(100);
+    m_tickTimer->setInterval(66); // 15Hz throttle for smooth progress and zero queue flooding
     connect(m_tickTimer, &QTimer::timeout, this, &AudioEngineWorker::onTick);
 
     emit initialized(ok);
@@ -338,6 +338,18 @@ void AudioEngineWorker::setExclusive(bool exclusive)
     emit exclusiveStatusChanged(m_isExclusive);
 }
 
+void AudioEngineWorker::setWindowActive(bool active)
+{
+    if (m_windowActive == active) return;
+    m_windowActive = active;
+    if (m_tickTimer) {
+        m_tickTimer->setInterval(m_windowActive ? 66 : 1000);
+        if (m_windowActive && m_decodeStream && BASS_ChannelIsActive(m_decodeStream) == BASS_ACTIVE_PLAYING) {
+            onTick();
+        }
+    }
+}
+
 void AudioEngineWorker::onTick()
 {
     if (!m_decodeStream) return;
@@ -525,12 +537,16 @@ AudioEngine::AudioEngine(QObject *parent)
     }, Qt::QueuedConnection);
 
     connect(m_worker, &AudioEngineWorker::positionUpdated, this, [this](qint64 pos) {
+        if (!m_windowActive && std::abs(pos - m_positionMs) < 1000 && pos < m_durationMs - 2000) {
+            return;
+        }
         if (m_positionMs != pos) {
             m_positionMs = pos;
             emit positionChanged(m_positionMs);
         }
-        if (m_lyricsModel) {
+        if (m_lyricsModel && (m_windowActive || std::abs(pos - m_lastLyricUpdatePos) >= 1000)) {
             m_lyricsModel->updatePosition(pos);
+            m_lastLyricUpdatePos = pos;
         }
     }, Qt::QueuedConnection);
 
@@ -581,6 +597,7 @@ AudioEngine::AudioEngine(QObject *parent)
     connect(this, &AudioEngine::requestSetEqPreamp, m_worker, &AudioEngineWorker::setEqPreamp, Qt::QueuedConnection);
     connect(this, &AudioEngine::requestSetEqBands, m_worker, &AudioEngineWorker::setEqBands, Qt::QueuedConnection);
     connect(this, &AudioEngine::requestSetEqBand, m_worker, &AudioEngineWorker::setEqBand, Qt::QueuedConnection);
+    connect(this, &AudioEngine::requestSetWindowActive, m_worker, &AudioEngineWorker::setWindowActive, Qt::QueuedConnection);
 
     // Initialize 10 EQ bands and load persisted settings
     m_eqBands.reserve(10);
@@ -600,6 +617,14 @@ AudioEngine::~AudioEngine()
         m_workerThread.quit();
         m_workerThread.wait();
     }
+}
+
+void AudioEngine::setWindowActive(bool active)
+{
+    if (m_windowActive == active) return;
+    m_windowActive = active;
+    emit windowActiveChanged();
+    emit requestSetWindowActive(m_windowActive);
 }
 
 void AudioEngine::play(const QString &filePath)

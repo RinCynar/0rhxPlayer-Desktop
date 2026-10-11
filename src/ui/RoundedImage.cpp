@@ -19,6 +19,12 @@ static constexpr int MAX_IMAGE_CACHE_BYTES = 16 * 1024 * 1024;
 static QCache<QString, QImage> s_imageCache(MAX_IMAGE_CACHE_BYTES);
 static QMutex s_cacheMutex;
 
+void RoundedImage::trimCache()
+{
+    QMutexLocker locker(&s_cacheMutex);
+    s_imageCache.clear();
+}
+
 RoundedImage::RoundedImage(QQuickItem *parent)
     : QQuickPaintedItem(parent)
 {

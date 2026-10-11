@@ -44,6 +44,7 @@ class AudioEngine : public QObject
     Q_PROPERTY(QList<float> eqBands READ eqBands NOTIFY eqBandsChanged)
     Q_PROPERTY(QString eqPreset READ eqPreset WRITE applyEqPreset NOTIFY eqPresetChanged)
     Q_PROPERTY(QStringList eqPresetNames READ eqPresetNames CONSTANT)
+    Q_PROPERTY(bool windowActive READ windowActive WRITE setWindowActive NOTIFY windowActiveChanged)
 
 public:
     enum class PlaybackState {
@@ -95,8 +96,10 @@ public:
     QList<float> eqBands() const { return m_eqBands; }
     QString eqPreset() const { return m_eqPreset; }
     QStringList eqPresetNames() const;
+    bool windowActive() const { return m_windowActive; }
 
 public slots:
+    void setWindowActive(bool active);
     void play(const QString &filePath);
     void pause();
     void resume();
@@ -143,6 +146,7 @@ signals:
     void eqPreampChanged(float preampDb);
     void eqBandsChanged();
     void eqPresetChanged(const QString &preset);
+    void windowActiveChanged();
 
     // Internal signals dispatching to worker thread
     void requestPlay(const QString &filePath);
@@ -158,6 +162,7 @@ signals:
     void requestSetEqPreamp(float preampDb);
     void requestSetEqBands(const QList<float> &bands);
     void requestSetEqBand(int index, float gainDb);
+    void requestSetWindowActive(bool active);
 
 private:
     explicit AudioEngine(QObject *parent = nullptr);
@@ -203,6 +208,9 @@ private:
     float m_eqPreamp = 0.0f;
     QList<float> m_eqBands;
     QString m_eqPreset = QStringLiteral("Flat");
+
+    bool m_windowActive = true;
+    qint64 m_lastLyricUpdatePos = -1;
 
     void loadEqSettings();
     void saveEqSettings();

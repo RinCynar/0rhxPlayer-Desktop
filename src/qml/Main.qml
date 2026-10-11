@@ -37,6 +37,14 @@ ApplicationWindow {
     property bool showTrans: true
     property var preNowPlayingNavCollapsed: null
 
+    readonly property bool isForegroundActive: window.visible && (window.visibility !== Window.Minimized) && (window.visibility !== Window.Hidden) && window.active
+    onIsForegroundActiveChanged: {
+        AudioEngine.windowActive = isForegroundActive;
+    }
+    Component.onCompleted: {
+        AudioEngine.windowActive = isForegroundActive;
+    }
+
     onIsNowPlayingOpenChanged: {
         if (isNowPlayingOpen) {
             viewContainer.frozenWidth = viewContainer.width;
