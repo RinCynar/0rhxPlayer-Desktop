@@ -179,7 +179,6 @@ jobs:
         with:
           version: '6.8.2'
           arch: 'linux_gcc_64'
-          modules: 'qtdeclarative qtsvg'
           cache: true
           setup-python: false
 
