@@ -17,8 +17,8 @@ Set-Location $RootDir
 
 Write-Host "=== Packaging 0rhxPlayer v$Version (Arch: $Arch) ===" -ForegroundColor Cyan
 
-# 1. Locate ISCC (Inno Setup Compiler) for x64
-if ($Arch -eq "x64") {
+# 1. Locate ISCC (Inno Setup Compiler) for x64 and arm64
+if ($Arch -eq "x64" -or $Arch -eq "arm64") {
     if (-not $IsccPath) {
         $candidates = @(
             "C:\InnoSetup\ISCC.exe",
@@ -148,11 +148,11 @@ Compress-Archive -Path "$StageDir\*" -DestinationPath $ZipPath -Force
 Write-Host "Created $ZipName (Size: $((Get-Item $ZipPath).Length) bytes)" -ForegroundColor Green
 Remove-Item -Force (Join-Path $StageDir "portable.dat") -ErrorAction SilentlyContinue
 
-# 8. Compile Inno Setup Installer (x64 only)
-if ($Arch -eq "x64" -and $IsccPath -and (Test-Path $IsccPath)) {
-    $SetupName = "0rhxPlayer-v$Version-windows-x64-setup"
-    Write-Host "Compiling Inno Setup installer..." -ForegroundColor Cyan
-    & $IsccPath "-dSourceDir=$StageDir" "-o$DistFullPath" "-f$SetupName" "$RootDir\installer\setup.iss" 2>&1 | Out-Host
+# 8. Compile Inno Setup Installer (x64 and arm64)
+if (($Arch -eq "x64" -or $Arch -eq "arm64") -and $IsccPath -and (Test-Path $IsccPath)) {
+    $SetupName = "0rhxPlayer-v$Version-windows-$Arch-setup"
+    Write-Host "Compiling Inno Setup installer for $Arch ($SetupName.exe)..." -ForegroundColor Cyan
+    & $IsccPath "-dSourceDir=$StageDir" "-dTargetArch=$Arch" "-o$DistFullPath" "-f$SetupName" "$RootDir\installer\setup.iss" 2>&1 | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "Inno Setup compilation failed with exit code $LASTEXITCODE"
     }

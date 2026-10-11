@@ -145,8 +145,89 @@ void PathManager::resolvePaths()
              << "Logs:" << m_logDir;
 }
 
+namespace {
+bool copyDirRecursively(const QString &srcPath, const QString &dstPath)
+{
+    QDir srcDir(srcPath);
+    if (!srcDir.exists()) return false;
+    QDir().mkpath(dstPath);
+
+    const auto entries = srcDir.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden);
+    for (const QFileInfo &entry : entries) {
+        QString srcItem = entry.filePath();
+        QString dstItem = dstPath + "/" + entry.fileName();
+        if (entry.isDir()) {
+            copyDirRecursively(srcItem, dstItem);
+        } else {
+            if (QFile::exists(dstItem)) {
+                QFile::remove(dstItem);
+            }
+            QFile::copy(srcItem, dstItem);
+        }
+    }
+    return true;
+}
+}
+
+void PathManager::migrateLegacyDirs()
+{
+    if (m_isPortable) return;
+
+#if defined(Q_OS_WIN)
+    QString localApp = QString::fromLocal8Bit(qgetenv("LOCALAPPDATA"));
+    if (localApp.isEmpty()) {
+        localApp = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    }
+    QString roamingApp = QString::fromLocal8Bit(qgetenv("APPDATA"));
+    if (roamingApp.isEmpty()) {
+        roamingApp = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
+    }
+
+    auto migrateAndClean = [](const QString &oldDirStr, const QString &targetDirStr) {
+        QDir oldDir(oldDirStr);
+        if (!oldDir.exists()) return;
+
+        QString nestedApp = oldDirStr + "/0rhxPlayer";
+        if (QDir(nestedApp).exists()) {
+            copyDirRecursively(nestedApp, targetDirStr);
+            QDir(nestedApp).removeRecursively();
+        }
+
+        copyDirRecursively(oldDirStr, targetDirStr);
+        oldDir.removeRecursively();
+        qInfo() << "[PathManager] Legacy directory migrated and cleaned up:" << oldDirStr << "->" << targetDirStr;
+    };
+
+    if (!localApp.isEmpty()) {
+        QString oldLocal = QDir::cleanPath(QDir::fromNativeSeparators(localApp) + "/0rhx");
+        QString newLocal = QDir::cleanPath(QDir::fromNativeSeparators(localApp) + "/0rhxPlayer");
+        migrateAndClean(oldLocal, newLocal);
+    }
+
+    if (!roamingApp.isEmpty()) {
+        QString oldRoaming = QDir::cleanPath(QDir::fromNativeSeparators(roamingApp) + "/0rhx");
+        QString newRoaming = QDir::cleanPath(QDir::fromNativeSeparators(roamingApp) + "/0rhxPlayer");
+        migrateAndClean(oldRoaming, newRoaming);
+    }
+#else
+    QString home = QDir::homePath();
+    auto migrateLinux = [](const QString &oldDirStr, const QString &targetDirStr) {
+        QDir oldDir(oldDirStr);
+        if (!oldDir.exists()) return;
+        copyDirRecursively(oldDirStr, targetDirStr);
+        oldDir.removeRecursively();
+        qInfo() << "[PathManager] Legacy directory migrated and cleaned up:" << oldDirStr << "->" << targetDirStr;
+    };
+    migrateLinux(home + "/.config/0rhx", home + "/.config/0rhxPlayer");
+    migrateLinux(home + "/.local/share/0rhx", home + "/.local/share/0rhxPlayer");
+    migrateLinux(home + "/.cache/0rhx", home + "/.cache/0rhxPlayer");
+#endif
+}
+
 void PathManager::ensureDirsExist() const
 {
+    const_cast<PathManager*>(this)->migrateLegacyDirs();
+
     QDir().mkpath(m_configDir);
     QDir().mkpath(m_dataDir);
     QDir().mkpath(m_cacheDir);

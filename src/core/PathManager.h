@@ -38,6 +38,7 @@ public:
     Q_INVOKABLE QString appLogFile() const { return m_logDir + "/app.log"; }
 
     Q_INVOKABLE void ensureDirsExist() const;
+    Q_INVOKABLE void migrateLegacyDirs();
 
     // Helper to override portable mode or base dir (e.g. for testing)
     void setPortableMode(bool portable);

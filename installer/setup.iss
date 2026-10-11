@@ -19,8 +19,16 @@
   #define OutputDir "..\dist"
 #endif
 
+#ifndef TargetArch
+  #define TargetArch "x64"
+#endif
+
 #ifndef OutputBaseFilename
-  #define OutputBaseFilename "0rhxPlayer-v1.1.1-windows-x64-setup"
+  #if TargetArch == "arm64"
+    #define OutputBaseFilename "0rhxPlayer-v1.1.1-windows-arm64-setup"
+  #else
+    #define OutputBaseFilename "0rhxPlayer-v1.1.1-windows-x64-setup"
+  #endif
 #endif
 
 [Setup]
@@ -42,15 +50,21 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
+#if TargetArch == "arm64"
+ArchitecturesAllowed=arm64
+ArchitecturesInstallIn64BitMode=arm64
+VersionInfoDescription=0rhxPlayer Windows ARM64 Setup
+#else
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
+VersionInfoDescription=0rhxPlayer Windows x64 Setup
+#endif
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 CloseApplications=yes
 RestartApplications=no
 VersionInfoVersion=1.1.1.0
 VersionInfoCompany=RinCynar
-VersionInfoDescription=0rhxPlayer Setup
 VersionInfoProductName=0rhxPlayer
 VersionInfoProductVersion=1.1.1.0
 VersionInfoCopyright=Copyright (C) 2026 RinCynar

@@ -60,8 +60,8 @@ set_target_properties(0rhxPlayer PROPERTIES
 
 if(UNIX AND NOT APPLE)
     set_target_properties(0rhxPlayer PROPERTIES
-        BUILD_RPATH "\$ORIGIN"
-        INSTALL_RPATH "\$ORIGIN"
+        BUILD_RPATH "\$ORIGIN:\$ORIGIN/lib:\$ORIGIN/../lib"
+        INSTALL_RPATH "\$ORIGIN:\$ORIGIN/lib:\$ORIGIN/../lib"
     )
 endif()
 
@@ -106,8 +106,8 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     )
 
     set_target_properties(0rhxPlayer PROPERTIES
-        BUILD_RPATH "$ORIGIN"
-        INSTALL_RPATH "$ORIGIN"
+        BUILD_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib"
+        INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib"
     )
 else()
     message(FATAL_ERROR "Unsupported target platform: ${CMAKE_SYSTEM_NAME}. Only Windows and Linux are supported.")

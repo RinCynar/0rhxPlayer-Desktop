@@ -95,13 +95,14 @@ int main(int argc, char *argv[])
 {
     // High DPI scaling is enabled by default in Qt 6
     QApplication app(argc, argv);
-    PathManager::instance()->ensureDirsExist();
-    qInstallMessageHandler(customLogHandler);
-
     app.setApplicationName("0rhxPlayer");
-    app.setOrganizationName("0rhx");
+    app.setOrganizationName("");
+    app.setOrganizationDomain("");
     app.setApplicationVersion("1.1.1");
     app.setWindowIcon(QIcon(":/assets/icons/icon.svg"));
+
+    PathManager::instance()->ensureDirsExist();
+    qInstallMessageHandler(customLogHandler);
 
     // ------------------------------------------------------------------------
     // Step 2: Load Noto Sans CJK SC / JP fonts and set as default font
@@ -2144,6 +2145,43 @@ int main(int argc, char *argv[])
                 }
             }
             qInfo() << "[Test-Phase10.1] PathManager topology, portable mode isolation & avatar persistence verified.";
+
+            // Phase 13 Automated Assertions: Single Standard AppData Directory & Legacy Migration
+            if (!QCoreApplication::organizationName().isEmpty()) {
+                qWarning() << "[Test-Phase13.1] organizationName should be empty to prevent nested directories! Got:"
+                           << QCoreApplication::organizationName();
+                pass = false;
+            }
+            {
+#if defined(Q_OS_WIN)
+                QString localBase = QString::fromLocal8Bit(qgetenv("LOCALAPPDATA"));
+                if (localBase.isEmpty()) localBase = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+                QString legacyDir = QDir::cleanPath(QDir::fromNativeSeparators(localBase) + "/0rhx");
+                QString targetDir = QDir::cleanPath(QDir::fromNativeSeparators(localBase) + "/0rhxPlayer");
+#else
+                QString legacyDir = QDir::homePath() + "/.config/0rhx";
+                QString targetDir = QDir::homePath() + "/.config/0rhxPlayer";
+#endif
+                QDir().mkpath(legacyDir);
+                QFile testLegacy(legacyDir + "/migration_test.tmp");
+                if (testLegacy.open(QIODevice::WriteOnly)) {
+                    testLegacy.write("MIGRATION_OK");
+                    testLegacy.close();
+                }
+                pm->migrateLegacyDirs();
+                if (QDir(legacyDir).exists()) {
+                    qWarning() << "[Test-Phase13.1] Legacy directory still exists after migrateLegacyDirs():" << legacyDir;
+                    pass = false;
+                }
+                QString migratedFile = targetDir + "/migration_test.tmp";
+                if (!QFile::exists(migratedFile)) {
+                    qWarning() << "[Test-Phase13.1] Migrated file not found in target dir:" << migratedFile;
+                    pass = false;
+                } else {
+                    QFile::remove(migratedFile);
+                }
+                qInfo() << "[Test-Phase13.1] Legacy 0rhx directory migration and cleanup verified.";
+            }
 
             // Phase 9.8 Automated Assertions: Symmetrical Palette Padding & Bottom Inset
             QObject *palPopup = mainWindow->findChild<QObject*>("palettePopup");
