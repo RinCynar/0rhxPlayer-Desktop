@@ -100,12 +100,9 @@ chmod +x "${STAGE_DIR}/AppRun"
 
 # 7. Create Portable tar.gz archives
 TAR_NAME_VER="0rhxPlayer-v${VERSION}-linux-${ARCH}-portable.tar.gz"
-TAR_NAME_CANON="0rhxPlayer-linux-${ARCH}-portable.tar.gz"
 
 cd "${DIST_FULL_PATH}"
 tar -czf "${TAR_NAME_VER}" 0rhxPlayer
-cp "${TAR_NAME_VER}" "${TAR_NAME_CANON}"
 
 echo "Created ${TAR_NAME_VER} ($(du -h "${TAR_NAME_VER}" | cut -f1))"
-echo "Created ${TAR_NAME_CANON} ($(du -h "${TAR_NAME_CANON}" | cut -f1))"
 echo "=== Linux Packaging Complete ==="

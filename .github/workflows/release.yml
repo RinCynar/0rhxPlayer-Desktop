@@ -226,8 +226,8 @@ jobs:
         with:
           name: release-linux-x64
           path: |
-            dist/*x64*.tar.gz
-            dist/*x64*.AppImage
+            dist/0rhxPlayer-v*-linux-x64*.tar.gz
+            dist/0rhxPlayer-v*-linux-x64*.AppImage
           if-no-files-found: error
 
   build-linux-arm64:
@@ -255,8 +255,9 @@ jobs:
           docker run --rm --platform linux/arm64 \
             -v "${PWD}:/workspace" \
             -w /workspace \
+            -e VER="$VER" \
             ubuntu:24.04 \
-            bash -c "
+            bash -c '
               set -e
               apt-get update -q -y
               DEBIAN_FRONTEND=noninteractive apt-get install -q -y --no-install-recommends \
@@ -269,10 +270,10 @@ jobs:
                 -DBASS_TARGET_ARCH=arm64
               ninja -C build-arm64 -v
               chmod +x ./scripts/package-linux.sh ./scripts/package-appimage.sh
-              ./scripts/package-linux.sh -v \"\$VER\" -a \"arm64\" -b \"build-arm64\" -d \"dist\"
-              ./scripts/package-appimage.sh -v \"\$VER\" -a \"arm64\" -b \"build-arm64\" -d \"dist\"
+              ./scripts/package-linux.sh -v "$VER" -a "arm64" -b "build-arm64" -d "dist"
+              ./scripts/package-appimage.sh -v "$VER" -a "arm64" -b "build-arm64" -d "dist"
               chmod -R a+rw dist/
-            "
+            '
 
       - name: Verify Linux ARM64 Distributables
         run: |
@@ -285,8 +286,8 @@ jobs:
         with:
           name: release-linux-arm64
           path: |
-            dist/*arm64*.tar.gz
-            dist/*arm64*.AppImage
+            dist/0rhxPlayer-v*-linux-arm64*.tar.gz
+            dist/0rhxPlayer-v*-linux-arm64*.AppImage
           if-no-files-found: error
 
   publish-release:
@@ -350,6 +351,6 @@ jobs:
             - Repository: https://github.com/RinCynar/0rhxPlayer-Desktop
           draft: false
           prerelease: false
-          files: release-assets/*
+          files: release-assets/0rhxPlayer-v*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
