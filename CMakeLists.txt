@@ -58,6 +58,13 @@ set_target_properties(0rhxPlayer PROPERTIES
     OUTPUT_NAME "0rhxPlayer"
 )
 
+if(UNIX AND NOT APPLE)
+    set_target_properties(0rhxPlayer PROPERTIES
+        BUILD_RPATH "\$ORIGIN"
+        INSTALL_RPATH "\$ORIGIN"
+    )
+endif()
+
 # Detect architecture for BASS libraries
 if(NOT BASS_TARGET_ARCH)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)")

@@ -96,9 +96,10 @@ jobs:
 
       - name: Run Headless Self-Tests
         run: |
-          xvfb-run ./build/0rhxPlayer --test-phase9
-          xvfb-run ./build/0rhxPlayer --test-phase8
-          xvfb-run ./build/0rhxPlayer --test-queue
+          export LD_LIBRARY_PATH="$(pwd)/build:$(pwd)/libs/bass/linux-x64/lib:${LD_LIBRARY_PATH:-}"
+          xvfb-run -a ./build/0rhxPlayer --test-phase9
+          xvfb-run -a ./build/0rhxPlayer --test-phase8
+          xvfb-run -a ./build/0rhxPlayer --test-queue
 
   verify-windows-arm64:
     name: Verify Windows ARM64 Architecture Matrix
