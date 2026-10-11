@@ -27,11 +27,13 @@
 #include "model/AlbumModel.h"
 #include "model/LyricModel.h"
 
-#ifdef Q_OS_WIN
+#include <QQuickWindow>
+
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <dwmapi.h>
 #include <uxtheme.h>
-#include <QQuickWindow>
 #include <QAbstractNativeEventFilter>
 
 #ifndef DWMWA_WINDOW_CORNER_PREFERENCE
@@ -2270,7 +2272,7 @@ int main(int argc, char *argv[])
         }
     });
 
-#ifdef Q_OS_WIN
+#if defined(_WIN32)
     qDebug() << "[DWM] Root objects count:" << engine.rootObjects().size();
     if (!engine.rootObjects().isEmpty()) {
         QObject *rootObj = engine.rootObjects().first();
@@ -2314,6 +2316,16 @@ int main(int argc, char *argv[])
             }
         } else {
             qWarning() << "[DWM] Root object is not a QQuickWindow!";
+        }
+    }
+#else
+    // On Linux (X11 / Wayland), Qt handles frameless window management via Qt::FramelessWindowHint in Main.qml
+    // Native window dragging and resizing are delegated to startSystemMove() / startSystemResize() in CustomTitleBar & WindowResizeHandler.
+    qDebug() << "[Viewport] Non-Windows platform detected (" << app.platformName() << "). Using standard Qt frameless viewport.";
+    if (!engine.rootObjects().isEmpty()) {
+        QObject *rootObj = engine.rootObjects().first();
+        if (auto *qquickWin = qobject_cast<QQuickWindow*>(rootObj)) {
+            qDebug() << "[Viewport] Root window initialized successfully.";
         }
     }
 #endif

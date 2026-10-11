@@ -1,0 +1,124 @@
+name: Multi-Platform CI Matrix
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-x64:
+    name: Build & Test Windows x64
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ninja
+        shell: pwsh
+        run: |
+          choco install ninja -y --no-progress
+
+      - name: Install Qt 6.8 & MinGW Toolchain
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.2'
+          arch: 'win64_mingw'
+          tools: 'tools_mingw1310,qt.tools.win64_mingw1310'
+          cache: true
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake -B build -S . -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Target
+        shell: pwsh
+        run: |
+          ninja -C build -v
+
+      - name: Run Regression Self-Tests
+        shell: pwsh
+        run: |
+          ./build/0rhxPlayer.exe --test-phase9
+          ./build/0rhxPlayer.exe --test-phase8
+          ./build/0rhxPlayer.exe --test-queue
+
+  build-linux-x64:
+    name: Build & Test Linux x64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build \
+            libgl1-mesa-dev \
+            libxkbcommon-dev \
+            libx11-xcb-dev \
+            libpulse-dev \
+            libasound2-dev \
+            xvfb
+
+      - name: Install Qt 6.8 for Linux
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.2'
+          arch: 'linux_gcc_64'
+          modules: 'qtdeclarative qtsvg'
+          cache: true
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Target
+        run: |
+          ninja -C build -v
+
+      - name: Run Headless Self-Tests
+        run: |
+          xvfb-run ./build/0rhxPlayer --test-phase9
+          xvfb-run ./build/0rhxPlayer --test-phase8
+          xvfb-run ./build/0rhxPlayer --test-queue
+
+  verify-windows-arm64:
+    name: Verify Windows ARM64 Architecture Matrix
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ninja
+        shell: pwsh
+        run: |
+          choco install ninja -y --no-progress
+
+      - name: Install Qt 6.8 & MinGW Toolchain
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.2'
+          arch: 'win64_mingw'
+          tools: 'tools_mingw1310,qt.tools.win64_mingw1310'
+          cache: true
+
+      - name: Configure CMake for Windows ARM64
+        shell: pwsh
+        run: |
+          cmake -B build-arm64 -S . -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DBASS_TARGET_ARCH=arm64

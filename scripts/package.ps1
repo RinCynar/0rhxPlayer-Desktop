@@ -62,10 +62,13 @@ if (-not (Test-Path $ExeSource)) {
 Copy-Item $ExeSource (Join-Path $StageDir "0rhxPlayer.exe") -Force
 
 # 4. Copy BASS libraries
-$BassBinDir = Join-Path $RootDir "libs\bass\bin"
+$BassBinDir = Join-Path $RootDir "libs\bass\win-x64\bin"
+if (-not (Test-Path $BassBinDir)) {
+    $BassBinDir = Join-Path $RootDir "libs\bass\bin"
+}
 if (Test-Path $BassBinDir) {
     Copy-Item "$BassBinDir\*.dll" $StageDir -Force
-    Write-Host "Copied BASS runtime DLLs." -ForegroundColor Green
+    Write-Host "Copied BASS runtime DLLs from $BassBinDir." -ForegroundColor Green
 }
 
 # 5. Copy Assets and Translations

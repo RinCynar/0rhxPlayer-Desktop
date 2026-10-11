@@ -53,8 +53,6 @@ bool AudioEngineWorker::initAudioOutput()
     // Load FLAC plugin
 #if defined(_WIN32)
     m_flacPlugin = BASS_PluginLoad("bassflac.dll", 0);
-#elif defined(__APPLE__)
-    m_flacPlugin = BASS_PluginLoad("libbassflac.dylib", 0);
 #else
     m_flacPlugin = BASS_PluginLoad("libbassflac.so", 0);
 #endif
@@ -66,7 +64,8 @@ bool AudioEngineWorker::initAudioOutput()
     // Since we use standard BASS output, it handles shared mode via WASAPI natively on Windows
     qDebug() << "[AudioEngineWorker] BASS initialized successfully in Windows WASAPI Shared Mode.";
 #else
-    qDebug() << "[AudioEngineWorker] BASS initialized successfully with platform audio output.";
+    // On Linux, standard BASS output automatically interfaces with ALSA / PulseAudio
+    qDebug() << "[AudioEngineWorker] BASS initialized successfully with Linux ALSA/PulseAudio output.";
 #endif
 
     // Detect actual default audio output device
@@ -330,7 +329,12 @@ void AudioEngineWorker::setVolume(float volume)
 
 void AudioEngineWorker::setExclusive(bool exclusive)
 {
+#if defined(_WIN32)
     m_isExclusive = exclusive;
+#else
+    m_isExclusive = false;
+    qDebug() << "[AudioEngineWorker] WASAPI Exclusive mode is Windows-only. Falling back to default on Linux.";
+#endif
     emit exclusiveStatusChanged(m_isExclusive);
 }
 

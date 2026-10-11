@@ -44,16 +44,69 @@ set(PROJECT_SOURCES
 
 if (WIN32)
     list(APPEND PROJECT_SOURCES app.rc)
+    qt_add_executable(0rhxPlayer WIN32
+        ${PROJECT_SOURCES}
+    )
+else()
+    qt_add_executable(0rhxPlayer
+        ${PROJECT_SOURCES}
+    )
 endif()
-
-qt_add_executable(0rhxPlayer WIN32
-    ${PROJECT_SOURCES}
-)
 
 # Ensure output target binary is strictly named '0rhxPlayer'
 set_target_properties(0rhxPlayer PROPERTIES
     OUTPUT_NAME "0rhxPlayer"
 )
+
+# Detect architecture for BASS libraries
+if(NOT BASS_TARGET_ARCH)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)")
+        set(BASS_TARGET_ARCH "arm64")
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|x64)")
+        set(BASS_TARGET_ARCH "x64")
+    elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)")
+        set(BASS_TARGET_ARCH "arm64")
+    else()
+        set(BASS_TARGET_ARCH "x64")
+    endif()
+endif()
+
+set(BASS_LIBRARIES)
+set(PLATFORM_LIBS)
+
+if(WIN32)
+    set(BASS_PLATFORM_DIR "win-${BASS_TARGET_ARCH}")
+    set(BASS_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/bass/${BASS_PLATFORM_DIR}/lib")
+    set(BASS_BIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/bass/${BASS_PLATFORM_DIR}/bin")
+
+    list(APPEND BASS_LIBRARIES
+        ${BASS_LIB_DIR}/bass.lib
+        ${BASS_LIB_DIR}/bassflac.lib
+    )
+    if(EXISTS "${BASS_LIB_DIR}/basswasapi.lib")
+        list(APPEND BASS_LIBRARIES ${BASS_LIB_DIR}/basswasapi.lib)
+    endif()
+
+    list(APPEND PLATFORM_LIBS dwmapi uxtheme)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(BASS_PLATFORM_DIR "linux-${BASS_TARGET_ARCH}")
+    set(BASS_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/bass/${BASS_PLATFORM_DIR}/lib")
+    set(BASS_BIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/bass/${BASS_PLATFORM_DIR}/lib")
+
+    list(APPEND BASS_LIBRARIES
+        ${BASS_LIB_DIR}/libbass.so
+        ${BASS_LIB_DIR}/libbassflac.so
+    )
+
+    set_target_properties(0rhxPlayer PROPERTIES
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN"
+    )
+else()
+    message(FATAL_ERROR "Unsupported target platform: ${CMAKE_SYSTEM_NAME}. Only Windows and Linux are supported.")
+endif()
+
+message(STATUS "Selected BASS platform directory: ${BASS_PLATFORM_DIR}")
 
 target_include_directories(0rhxPlayer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -67,21 +120,22 @@ target_link_libraries(0rhxPlayer PRIVATE
     Qt6::Qml
     Qt6::Svg
     Qt6::Widgets
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/bass/lib/bass.lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/bass/lib/basswasapi.lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/bass/lib/bassflac.lib
-    dwmapi
-    uxtheme
+    ${BASS_LIBRARIES}
+    ${PLATFORM_LIBS}
 )
 
-# Copy runtime BASS DLLs to output directory
+# Copy runtime BASS libraries to output directory
+if(WIN32)
+    file(GLOB BASS_RUNTIME_FILES "${BASS_BIN_DIR}/*.dll")
+else()
+    file(GLOB BASS_RUNTIME_FILES "${BASS_LIB_DIR}/*.so")
+endif()
+
 add_custom_command(TARGET 0rhxPlayer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/bass/bin/bass.dll
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/bass/bin/basswasapi.dll
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/bass/bin/bassflac.dll
+        ${BASS_RUNTIME_FILES}
         $<TARGET_FILE_DIR:0rhxPlayer>
-    COMMENT "Copying BASS runtime libraries..."
+    COMMENT "Copying BASS runtime libraries (${BASS_PLATFORM_DIR})..."
 )
 
 # Copy runtime font assets to output directory
