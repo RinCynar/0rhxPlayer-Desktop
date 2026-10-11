@@ -10,6 +10,7 @@
 #include <QDebug>
 
 #include <QFile>
+#include <QStandardPaths>
 #include <QTextStream>
 #include <QSystemTrayIcon>
 #include <QMenu>
