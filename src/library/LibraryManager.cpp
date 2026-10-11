@@ -27,6 +27,16 @@
 #include <atomic>
 #include "bass.h"
 
+namespace {
+QString normalizeTrackPath(const QString &path)
+{
+    if (path.isEmpty()) return QString();
+    QString p = path;
+    p.replace(QLatin1Char('\\'), QLatin1Char('/'));
+    return QDir::cleanPath(p);
+}
+}
+
 LibraryManager* LibraryManager::instance()
 {
     static LibraryManager s_instance;
@@ -1407,7 +1417,7 @@ void LibraryManager::sortPlaylistTracks(const QString &sortKey)
     if (m_currentPlaylistId == QStringLiteral("__favorites__")) {
         QStringList paths;
         paths.reserve(list.size());
-        for (const auto &t : list) paths.append(QDir::cleanPath(t.path));
+        for (const auto &t : list) paths.append(normalizeTrackPath(t.path));
         m_favorites = paths;
         saveFavorites();
     } else if (!m_currentPlaylistId.isEmpty() && m_playlistsModel) {
@@ -1415,7 +1425,7 @@ void LibraryManager::sortPlaylistTracks(const QString &sortKey)
         if (!item.id.isEmpty()) {
             QStringList paths;
             paths.reserve(list.size());
-            for (const auto &t : list) paths.append(QDir::cleanPath(t.path));
+            for (const auto &t : list) paths.append(normalizeTrackPath(t.path));
             item.trackPaths = paths;
             m_playlistsModel->updatePlaylist(item);
             savePlaylists();
@@ -1589,37 +1599,7 @@ void LibraryManager::renamePlaylist(const QString &id, const QString &newName)
 
 void LibraryManager::addTrackToPlaylist(const QString &playlistId, const QString &trackPath)
 {
-    if (playlistId.isEmpty() || trackPath.isEmpty()) return;
-
-    if (playlistId == QStringLiteral("__favorites__")) {
-        if (!m_favorites.contains(trackPath)) {
-            m_favorites.append(trackPath);
-            emit favoritesChanged();
-            saveFavorites();
-            if (m_currentPlaylistId == QStringLiteral("__favorites__")) {
-                selectPlaylist(QStringLiteral("__favorites__"));
-            }
-        }
-        return;
-    }
-
-    PlaylistItem item = m_playlistsModel->findPlaylist(playlistId);
-    if (item.id.isEmpty()) return;
-
-    if (!item.trackPaths.contains(trackPath)) {
-        item.trackPaths.append(trackPath);
-        item.trackCount = item.trackPaths.size();
-        if (item.coverUrl.isEmpty()) {
-            TrackItem tr = getTrackMetadata(trackPath);
-            item.coverUrl = tr.coverUrl;
-        }
-        m_playlistsModel->updatePlaylist(item);
-        if (m_currentPlaylistId == playlistId) {
-            selectPlaylist(playlistId);
-        }
-        emit playlistsChanged();
-        savePlaylists();
-    }
+    addTracksToPlaylist(playlistId, QStringList{trackPath});
 }
 
 void LibraryManager::removeTrackFromPlaylist(const QString &playlistId, const QString &trackPath)
@@ -1634,9 +1614,9 @@ void LibraryManager::removeTracksFromPlaylist(const QString &playlistId, const Q
     if (playlistId == QStringLiteral("__favorites__")) {
         bool changed = false;
         for (const QString &tp : trackPaths) {
-            QString clean = QDir::cleanPath(tp);
+            QString clean = normalizeTrackPath(tp);
             for (int i = m_favorites.size() - 1; i >= 0; --i) {
-                if (QString::compare(QDir::cleanPath(m_favorites[i]), clean, Qt::CaseInsensitive) == 0) {
+                if (QString::compare(normalizeTrackPath(m_favorites[i]), clean, Qt::CaseInsensitive) == 0) {
                     m_favorites.removeAt(i);
                     changed = true;
                 }
@@ -1657,9 +1637,9 @@ void LibraryManager::removeTracksFromPlaylist(const QString &playlistId, const Q
 
     bool changed = false;
     for (const QString &tp : trackPaths) {
-        QString clean = QDir::cleanPath(tp);
+        QString clean = normalizeTrackPath(tp);
         for (int i = item.trackPaths.size() - 1; i >= 0; --i) {
-            if (QString::compare(QDir::cleanPath(item.trackPaths[i]), clean, Qt::CaseInsensitive) == 0) {
+            if (QString::compare(normalizeTrackPath(item.trackPaths[i]), clean, Qt::CaseInsensitive) == 0) {
                 item.trackPaths.removeAt(i);
                 changed = true;
             }
@@ -1758,10 +1738,10 @@ void LibraryManager::playPlaylist(const QString &id, bool shuffle)
 void LibraryManager::toggleFavorite(const QString &trackPath)
 {
     if (trackPath.isEmpty()) return;
-    QString clean = QDir::cleanPath(trackPath);
+    QString clean = normalizeTrackPath(trackPath);
     bool found = false;
     for (int i = m_favorites.size() - 1; i >= 0; --i) {
-        if (QString::compare(QDir::cleanPath(m_favorites[i]), clean, Qt::CaseInsensitive) == 0) {
+        if (QString::compare(normalizeTrackPath(m_favorites[i]), clean, Qt::CaseInsensitive) == 0) {
             m_favorites.removeAt(i);
             found = true;
         }
@@ -1780,9 +1760,9 @@ void LibraryManager::toggleFavorite(const QString &trackPath)
 bool LibraryManager::isFavorite(const QString &trackPath) const
 {
     if (trackPath.isEmpty()) return false;
-    QString clean = QDir::cleanPath(trackPath);
+    QString clean = normalizeTrackPath(trackPath);
     for (const QString &fav : m_favorites) {
-        if (QString::compare(QDir::cleanPath(fav), clean, Qt::CaseInsensitive) == 0) {
+        if (QString::compare(normalizeTrackPath(fav), clean, Qt::CaseInsensitive) == 0) {
             return true;
         }
     }
@@ -1914,8 +1894,8 @@ void LibraryManager::addTracksToPlaylist(const QString &playlistId, const QStrin
     if (playlistId.isEmpty() || trackPaths.isEmpty()) return;
     if (playlistId == QStringLiteral("__favorites__")) {
         for (const QString &p : trackPaths) {
-            if (!m_favorites.contains(p)) {
-                m_favorites.append(p);
+            if (!isFavorite(p)) {
+                m_favorites.append(normalizeTrackPath(p));
             }
         }
         emit favoritesChanged();
@@ -1931,10 +1911,10 @@ void LibraryManager::addTracksToPlaylist(const QString &playlistId, const QStrin
 
     bool changed = false;
     for (const QString &trackPath : trackPaths) {
-        QString clean = QDir::cleanPath(trackPath);
+        QString clean = normalizeTrackPath(trackPath);
         bool found = false;
         for (const QString &existing : item.trackPaths) {
-            if (QString::compare(QDir::cleanPath(existing), clean, Qt::CaseInsensitive) == 0) {
+            if (QString::compare(normalizeTrackPath(existing), clean, Qt::CaseInsensitive) == 0) {
                 found = true;
                 break;
             }
@@ -1964,19 +1944,24 @@ void LibraryManager::toggleFavorites(const QStringList &trackPaths)
     if (trackPaths.isEmpty()) return;
     bool allFav = true;
     for (const QString &p : trackPaths) {
-        if (!m_favorites.contains(p)) {
+        if (!isFavorite(p)) {
             allFav = false;
             break;
         }
     }
     if (allFav) {
         for (const QString &p : trackPaths) {
-            m_favorites.removeAll(p);
+            QString clean = normalizeTrackPath(p);
+            for (int i = m_favorites.size() - 1; i >= 0; --i) {
+                if (QString::compare(normalizeTrackPath(m_favorites[i]), clean, Qt::CaseInsensitive) == 0) {
+                    m_favorites.removeAt(i);
+                }
+            }
         }
     } else {
         for (const QString &p : trackPaths) {
-            if (!m_favorites.contains(p)) {
-                m_favorites.append(p);
+            if (!isFavorite(p)) {
+                m_favorites.append(normalizeTrackPath(p));
             }
         }
     }
