@@ -238,41 +238,41 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build & Package in ARM64 Container
-        uses: uraimo/run-on-arch-action@v2
-        with:
-          arch: aarch64
-          base_image: arm64v8/ubuntu:24.04
-          githubToken: ${{ github.token }}
-          dockerRunArgs: |
-            --volume "${PWD}:/workspace"
-          install: |
-            apt-get update -q -y
-            DEBIAN_FRONTEND=noninteractive apt-get install -q -y --no-install-recommends \
-              cmake ninja-build g++ file curl tar ca-certificates squashfs-tools \
-              qt6-base-dev qt6-declarative-dev qt6-svg-dev qt6-tools-dev qt6-tools-dev-tools \
-              libasound2-dev libgl1-mesa-dev
-          run: |
-            cd /workspace
-            TAG="${{ github.ref_name }}"
-            INPUT_VER="${{ github.event.inputs.version }}"
-            VER="1.1.1"
-            if [ -n "$INPUT_VER" ]; then
-              VER="$INPUT_VER"
-            elif [[ "$TAG" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+) ]]; then
-              VER="${BASH_REMATCH[1]}"
-            fi
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-            cmake -B build-arm64 -S . -G Ninja \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-              -DBASS_TARGET_ARCH=arm64
-            ninja -C build-arm64 -v
+      - name: Build & Package Linux ARM64 in Ubuntu 24.04 Container
+        run: |
+          TAG="${{ github.ref_name }}"
+          INPUT_VER="${{ github.event.inputs.version }}"
+          VER="1.1.1"
+          if [ -n "$INPUT_VER" ]; then
+            VER="$INPUT_VER"
+          elif [[ "$TAG" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            VER="${BASH_REMATCH[1]}"
+          fi
 
-            chmod +x ./scripts/package-linux.sh ./scripts/package-appimage.sh
-            ./scripts/package-linux.sh -v "$VER" -a "arm64" -b "build-arm64" -d "dist"
-            ./scripts/package-appimage.sh -v "$VER" -a "arm64" -b "build-arm64" -d "dist"
-            chmod -R a+rw dist/
+          docker run --rm --platform linux/arm64 \
+            -v "${PWD}:/workspace" \
+            -w /workspace \
+            ubuntu:24.04 \
+            bash -c "
+              set -e
+              apt-get update -q -y
+              DEBIAN_FRONTEND=noninteractive apt-get install -q -y --no-install-recommends \
+                cmake ninja-build g++ file curl tar ca-certificates squashfs-tools \
+                qt6-base-dev qt6-declarative-dev qt6-svg-dev qt6-tools-dev qt6-tools-dev-tools \
+                libasound2-dev libgl1-mesa-dev
+              cmake -B build-arm64 -S . -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+                -DBASS_TARGET_ARCH=arm64
+              ninja -C build-arm64 -v
+              chmod +x ./scripts/package-linux.sh ./scripts/package-appimage.sh
+              ./scripts/package-linux.sh -v \"\$VER\" -a \"arm64\" -b \"build-arm64\" -d \"dist\"
+              ./scripts/package-appimage.sh -v \"\$VER\" -a \"arm64\" -b \"build-arm64\" -d \"dist\"
+              chmod -R a+rw dist/
+            "
 
       - name: Verify Linux ARM64 Distributables
         run: |
