@@ -47,7 +47,7 @@ if ($Arch -eq "x64") {
         throw "Inno Setup compiler (ISCC.exe) not found!"
     }
 } else {
-    Write-Host "Architecture $Arch: Skipping Inno Setup installer compilation (Portable package only)." -ForegroundColor Yellow
+    Write-Host "Architecture ($Arch) - Skipping Inno Setup installer compilation (Portable package only)." -ForegroundColor Yellow
 }
 
 # 2. Prepare staging directory

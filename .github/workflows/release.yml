@@ -59,10 +59,6 @@ jobs:
       - name: Package Dual Release Artifacts (Portable Zip & Inno Setup)
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Continue"
-          if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
-              $PSNativeCommandUseErrorActionPreference = $false
-          }
           $tag = "${{ github.ref_name }}"
           $inputVer = "${{ github.event.inputs.version }}"
           $ver = "1.1.1"
@@ -112,20 +108,20 @@ jobs:
           tools: 'tools_mingw1310,qt.tools.win64_mingw1310'
           cache: true
 
-      - name: Configure CMake for Windows ARM64 Target
+      - name: Configure CMake
         shell: pwsh
         run: |
-          cmake -B build-arm64 -S . -G Ninja `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DBASS_TARGET_ARCH=arm64
+          cmake -B build -S . -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Target
+        shell: pwsh
+        run: |
+          ninja -C build -v
 
       - name: Package Windows ARM64 Portable Release
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Continue"
-          if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
-              $PSNativeCommandUseErrorActionPreference = $false
-          }
           $tag = "${{ github.ref_name }}"
           $inputVer = "${{ github.event.inputs.version }}"
           $ver = "1.1.1"
@@ -136,6 +132,15 @@ jobs:
           }
           Write-Host "Packaging Windows ARM64 portable version $ver..."
           & ./scripts/package.ps1 -Version $ver -Arch "arm64" -BuildDir "build" -DistDir "dist"
+
+      - name: Verify Distributables
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path "dist" -File | Format-Table Name, Length
+          $zip = Get-ChildItem -Path "dist" -Filter "*arm64*.zip"
+          if (-not $zip) {
+              throw "Missing Windows ARM64 portable zip!"
+          }
 
       - name: Upload Windows ARM64 Artifacts
         uses: actions/upload-artifact@v4
@@ -163,6 +168,11 @@ jobs:
             libpulse-dev \
             libasound2-dev \
             xvfb
+
+      - name: Set up Python for Qt installer
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Install Qt 6.8 for Linux
         uses: jurplel/install-qt-action@v4

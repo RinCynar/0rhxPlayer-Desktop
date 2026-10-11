@@ -72,6 +72,11 @@ jobs:
             libasound2-dev \
             xvfb
 
+      - name: Set up Python for Qt installer
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Install Qt 6.8 for Linux
         uses: jurplel/install-qt-action@v4
         with:
