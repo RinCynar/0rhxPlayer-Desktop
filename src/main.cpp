@@ -2369,5 +2369,12 @@ int main(int argc, char *argv[])
     }
 #endif
 
+#if defined(_WIN32)
+    // Settle working set after startup burst (font loading, D3D pipeline, initial QML compilation)
+    QTimer::singleShot(2500, []() {
+        SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
+    });
+#endif
+
     return app.exec();
 }

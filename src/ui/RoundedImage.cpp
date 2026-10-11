@@ -14,7 +14,9 @@
 #include <QScreen>
 #include <QQuickWindow>
 
-static QCache<QString, QImage> s_imageCache(2000);
+// Limit image cache memory to 16 MB total cost using sizeInBytes()
+static constexpr int MAX_IMAGE_CACHE_BYTES = 16 * 1024 * 1024;
+static QCache<QString, QImage> s_imageCache(MAX_IMAGE_CACHE_BYTES);
 static QMutex s_cacheMutex;
 
 RoundedImage::RoundedImage(QQuickItem *parent)
@@ -34,6 +36,14 @@ void RoundedImage::setSource(const QUrl &source)
     emit sourceChanged();
 }
 
+void RoundedImage::setSourceSize(const QSize &size)
+{
+    if (m_sourceSize == size) return;
+    m_sourceSize = size;
+    reloadImage();
+    emit sourceSizeChanged();
+}
+
 void RoundedImage::setImage(const QImage &img)
 {
     m_image = img;
@@ -47,11 +57,11 @@ void RoundedImage::geometryChange(const QRectF &newGeometry, const QRectF &oldGe
     if (!m_source.isEmpty() && newGeometry.width() > 0 && newGeometry.height() > 0) {
         if (!m_imageLoaded || oldGeometry.width() <= 0 || oldGeometry.height() <= 0) {
             reloadImage();
-        } else if (!m_fullResolution) {
+        } else if (!m_fullResolution && !m_sourceSize.isValid()) {
             qreal dpr = window() ? window()->devicePixelRatio() : (qGuiApp && qGuiApp->primaryScreen() ? qGuiApp->primaryScreen()->devicePixelRatio() : 1.0);
             int oldPhys = qCeil(qMax(oldGeometry.width(), oldGeometry.height()) * dpr);
             int newPhys = qCeil(qMax(newGeometry.width(), newGeometry.height()) * dpr);
-            if ((newPhys > 160 && oldPhys <= 160) || (newPhys > 384 && oldPhys <= 384)) {
+            if ((newPhys > 80 && oldPhys <= 80) || (newPhys > 160 && oldPhys <= 160) || (newPhys > 320 && oldPhys <= 320)) {
                 reloadImage();
             }
         }
@@ -103,15 +113,22 @@ void RoundedImage::reloadImage()
         cacheKey = localPath + "|full";
     } else {
         qreal dpr = window() ? window()->devicePixelRatio() : (qGuiApp && qGuiApp->primaryScreen() ? qGuiApp->primaryScreen()->devicePixelRatio() : 1.0);
-        int maxDim = qMax(int(width()), int(height()));
-        int physicalDim = (maxDim > 0) ? qCeil(maxDim * dpr) : 512;
-        int bucket = 512;
-        if (physicalDim <= 160) {
-            bucket = 256;
-        } else if (physicalDim <= 384) {
-            bucket = 512;
+        int maxDim = 0;
+        if (m_sourceSize.isValid() && m_sourceSize.width() > 0 && m_sourceSize.height() > 0) {
+            maxDim = qMax(m_sourceSize.width(), m_sourceSize.height());
         } else {
-            bucket = 1024;
+            maxDim = qMax(int(width()), int(height()));
+        }
+        int physicalDim = (maxDim > 0) ? qCeil(maxDim * dpr) : 80;
+        int bucket = 80;
+        if (physicalDim <= 80) {
+            bucket = 80;
+        } else if (physicalDim <= 160) {
+            bucket = 160;
+        } else if (physicalDim <= 320) {
+            bucket = 320;
+        } else {
+            bucket = 512;
         }
         reqW = bucket;
         reqH = bucket;
@@ -167,10 +184,15 @@ void RoundedImage::reloadImage()
             reader.setAutoTransform(true);
             if (m_w > 0 && m_h > 0) {
                 QSize orig = reader.size();
-                // If original image is very large (> 2x target), pre-downscale to 2x target to save memory
-                if (orig.isValid() && (orig.width() > m_w * 2 || orig.height() > m_h * 2)) {
-                    QSize preScaled = orig.scaled(m_w * 2, m_h * 2, Qt::KeepAspectRatioByExpanding);
+                if (orig.isValid() && (orig.width() > m_w || orig.height() > m_h)) {
+                    QSize preScaled = orig.scaled(m_w, m_h, Qt::KeepAspectRatioByExpanding);
                     reader.setScaledSize(preScaled);
+                }
+            } else if (m_w == 0 && m_h == 0) {
+                // For full resolution, clamp to at most 600x600 to prevent multi-thousand-pixel bitmaps from exhausting RAM
+                QSize orig = reader.size();
+                if (orig.isValid() && (orig.width() > 600 || orig.height() > 600)) {
+                    reader.setScaledSize(orig.scaled(600, 600, Qt::KeepAspectRatio));
                 }
             }
 
@@ -185,10 +207,14 @@ void RoundedImage::reloadImage()
                 }
             }
 
+            if (!loaded.isNull() && loaded.format() != QImage::Format_ARGB32_Premultiplied) {
+                loaded = loaded.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+            }
+
             if (!loaded.isNull()) {
                 QMutexLocker locker(&s_cacheMutex);
                 if (!s_imageCache.contains(m_key)) {
-                    s_imageCache.insert(m_key, new QImage(loaded));
+                    s_imageCache.insert(m_key, new QImage(loaded), int(loaded.sizeInBytes()));
                 }
             }
 

@@ -168,8 +168,8 @@ Item {
                     RoundedImage {
                         id: bannerCover
                         anchors.fill: parent
+                        sourceSize: Qt.size(480, 220)
                         radius: heroBanner.radius
-                        fullResolution: true
                         source: AudioEngine.currentCoverUrl || ""
                         fallbackColor: Theme.surfaceContainerHigh
                     }
@@ -560,6 +560,7 @@ Item {
 
                         RoundedImage {
                             anchors.fill: parent
+                            sourceSize: Qt.size(38, 38)
                             radius: 8
                             source: model.coverUrl || ""
                             fallbackColor: Theme.surfaceContainerHighest

@@ -159,8 +159,8 @@ Item {
 
                         RoundedImage {
                             anchors.fill: parent
+                            sourceSize: Qt.size(360, 360)
                             radius: 20
-                            fullResolution: true
                             source: (AudioEngine.hasCover && AudioEngine.currentCoverUrl.length > 0)
                                     ? AudioEngine.currentCoverUrl
                                     : ""
@@ -723,8 +723,8 @@ Item {
 
                         RoundedImage {
                             anchors.fill: parent
+                            sourceSize: Qt.size(360, 360)
                             radius: 16
-                            fullResolution: true
                             source: (AudioEngine.hasCover && AudioEngine.currentCoverUrl.length > 0)
                                     ? AudioEngine.currentCoverUrl
                                     : ""

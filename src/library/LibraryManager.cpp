@@ -21,6 +21,7 @@
 #include <QDateTime>
 #include <QProcess>
 #include <QDesktopServices>
+#include <QImage>
 #include <cstdint>
 #include <cstring>
 #include <algorithm>
@@ -34,6 +35,27 @@ QString normalizeTrackPath(const QString &path)
     QString p = path;
     p.replace(QLatin1Char('\\'), QLatin1Char('/'));
     return QDir::cleanPath(p);
+}
+
+static bool saveOptimizedCover(const QByteArray &data, const QString &outPath, bool isPng)
+{
+    QImage img;
+    if (img.loadFromData(data)) {
+        if (img.width() > 500 || img.height() > 500) {
+            img = img.scaled(500, 500, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        }
+        if (isPng && !img.hasAlphaChannel()) {
+            isPng = false;
+        }
+        return img.save(outPath, isPng ? "PNG" : "JPG", 82);
+    }
+    QFile outFile(outPath);
+    if (outFile.open(QIODevice::WriteOnly)) {
+        outFile.write(data);
+        outFile.close();
+        return true;
+    }
+    return false;
 }
 }
 
@@ -316,8 +338,37 @@ static void extractTagsAndCoverDirect(const QString &audioPath,
     QString cachedJpg = cacheDir + "/" + hash + ".jpg";
     QString cachedPng = cacheDir + "/" + hash + ".png";
 
-    if (QFile::exists(cachedJpg)) coverUrl = QUrl::fromLocalFile(cachedJpg).toString();
-    else if (QFile::exists(cachedPng)) coverUrl = QUrl::fromLocalFile(cachedPng).toString();
+    if (QFile::exists(cachedJpg)) {
+        QFileInfo fi(cachedJpg);
+        if (fi.size() > 250 * 1024) {
+            QImage img(cachedJpg);
+            if (!img.isNull() && (img.width() > 500 || img.height() > 500)) {
+                img = img.scaled(500, 500, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                img.save(cachedJpg, "JPG", 82);
+            }
+        }
+        coverUrl = QUrl::fromLocalFile(cachedJpg).toString();
+    } else if (QFile::exists(cachedPng)) {
+        QFileInfo fi(cachedPng);
+        if (fi.size() > 250 * 1024) {
+            QImage img(cachedPng);
+            if (!img.isNull() && (img.width() > 500 || img.height() > 500)) {
+                img = img.scaled(500, 500, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                if (!img.hasAlphaChannel()) {
+                    img.save(cachedJpg, "JPG", 82);
+                    QFile::remove(cachedPng);
+                    coverUrl = QUrl::fromLocalFile(cachedJpg).toString();
+                } else {
+                    img.save(cachedPng, "PNG");
+                    coverUrl = QUrl::fromLocalFile(cachedPng).toString();
+                }
+            } else {
+                coverUrl = QUrl::fromLocalFile(cachedPng).toString();
+            }
+        } else {
+            coverUrl = QUrl::fromLocalFile(cachedPng).toString();
+        }
+    }
 
     QFile file(audioPath);
     if (!file.open(QIODevice::ReadOnly)) return;
@@ -346,10 +397,7 @@ static void extractTagsAndCoverDirect(const QString &audioPath,
 
             if (coverUrl.isEmpty() && !coverData.isEmpty()) {
                 QString outPath = isCoverPng ? cachedPng : cachedJpg;
-                QFile outFile(outPath);
-                if (outFile.open(QIODevice::WriteOnly)) {
-                    outFile.write(coverData);
-                    outFile.close();
+                if (saveOptimizedCover(coverData, outPath, isCoverPng)) {
                     coverUrl = QUrl::fromLocalFile(outPath).toString();
                 }
             }
@@ -400,10 +448,7 @@ static void extractTagsAndCoverDirect(const QString &audioPath,
                                 QByteArray imgData = picBlock.mid(offset, dataLen);
                                 bool isPng = imgData.startsWith("\x89PNG");
                                 QString outPath = isPng ? cachedPng : cachedJpg;
-                                QFile outFile(outPath);
-                                if (outFile.open(QIODevice::WriteOnly)) {
-                                    outFile.write(imgData);
-                                    outFile.close();
+                                if (saveOptimizedCover(imgData, outPath, isPng)) {
                                     coverUrl = QUrl::fromLocalFile(outPath).toString();
                                 }
                             }

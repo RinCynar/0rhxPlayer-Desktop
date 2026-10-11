@@ -734,6 +734,7 @@ Item {
 
                     RoundedImage {
                         anchors.fill: parent
+                        sourceSize: Qt.size(40, 40)
                         radius: 8
                         source: model.coverUrl || ""
                         fallbackColor: Theme.surfaceContainer
@@ -855,6 +856,7 @@ Item {
 
                     RoundedImage {
                         anchors.fill: parent
+                        sourceSize: Qt.size(160, 160)
                         radius: 14
                         source: model.coverUrl || ""
                         fallbackIcon: "qrc:/assets/icons/album.svg"
@@ -976,6 +978,7 @@ Item {
 
                     RoundedImage {
                         anchors.fill: parent
+                        sourceSize: Qt.size(130, 130)
                         radius: parent.radius
                         source: model.coverUrl || ""
                         fallbackIcon: "qrc:/assets/icons/artist.svg"

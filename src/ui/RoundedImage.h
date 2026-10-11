@@ -16,12 +16,16 @@ class RoundedImage : public QQuickPaintedItem {
     Q_PROPERTY(QColor fallbackIconColor READ fallbackIconColor WRITE setFallbackIconColor NOTIFY fallbackIconColorChanged)
     Q_PROPERTY(int fallbackIconSize READ fallbackIconSize WRITE setFallbackIconSize NOTIFY fallbackIconSizeChanged)
     Q_PROPERTY(bool fullResolution READ fullResolution WRITE setFullResolution NOTIFY fullResolutionChanged)
+    Q_PROPERTY(QSize sourceSize READ sourceSize WRITE setSourceSize NOTIFY sourceSizeChanged)
 
 public:
     explicit RoundedImage(QQuickItem *parent = nullptr);
 
     QUrl source() const { return m_source; }
     void setSource(const QUrl &source);
+
+    QSize sourceSize() const { return m_sourceSize; }
+    void setSourceSize(const QSize &size);
 
     bool fullResolution() const { return m_fullResolution; }
     void setFullResolution(bool full);
@@ -57,12 +61,14 @@ signals:
     void fallbackIconColorChanged();
     void fallbackIconSizeChanged();
     void fullResolutionChanged();
+    void sourceSizeChanged();
 
 private:
     void reloadImage();
     void updateFallbackIcon();
 
     QUrl m_source;
+    QSize m_sourceSize;
     bool m_fullResolution{false};
     qreal m_radius{12.0};
     QColor m_fallbackColor{QColor("#2A2D2C")};

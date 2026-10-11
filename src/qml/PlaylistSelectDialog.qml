@@ -421,6 +421,7 @@ Item {
 
                                     RoundedImage {
                                         anchors.fill: parent
+                                        sourceSize: Qt.size(28, 28)
                                         radius: 6
                                         source: model.coverUrl || ""
                                         fallbackIcon: "qrc:/assets/icons/disc.svg"

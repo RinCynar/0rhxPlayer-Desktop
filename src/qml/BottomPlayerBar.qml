@@ -167,6 +167,7 @@ Rectangle {
 
                         RoundedImage {
                             anchors.fill: parent
+                            sourceSize: Qt.size(52, 52)
                             radius: 8
                             source: (AudioEngine.hasCover && AudioEngine.currentCoverUrl.length > 0)
                                     ? AudioEngine.currentCoverUrl

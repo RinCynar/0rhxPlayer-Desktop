@@ -107,6 +107,7 @@ ScrollView {
 
                         RoundedImage {
                             anchors.fill: parent
+                            sourceSize: Qt.size(48, 48)
                             radius: 24
                             visible: ConfigManager.avatar !== ""
                             source: ConfigManager.avatar
@@ -437,6 +438,7 @@ ScrollView {
                                 RoundedImage {
                                     Layout.preferredWidth: 48
                                     Layout.preferredHeight: 48
+                                    sourceSize: Qt.size(48, 48)
                                     radius: width / 2
                                     source: (model.coverUrl && model.hasCover) ? model.coverUrl : ""
                                     fallbackColor: Theme.surfaceContainerHigh
@@ -661,6 +663,7 @@ ScrollView {
 
                                     RoundedImage {
                                         anchors.fill: parent
+                                        sourceSize: Qt.size(180, 180)
                                         radius: parent.radius
                                         source: model.coverUrl ? model.coverUrl : ""
                                         fallbackColor: Theme.surfaceContainerHigh

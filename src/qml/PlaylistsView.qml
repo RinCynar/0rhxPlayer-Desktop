@@ -440,6 +440,7 @@ Item {
 
                                 RoundedImage {
                                     anchors.fill: parent
+                                    sourceSize: Qt.size(180, 180)
                                     radius: parent.radius
                                     source: model.coverUrl || ""
                                     fallbackIcon: "qrc:/assets/icons/disc.svg"
@@ -627,6 +628,7 @@ Item {
                     // Custom playlist cover
                     RoundedImage {
                         anchors.fill: parent
+                        sourceSize: Qt.size(180, 180)
                         visible: !LibraryManager.currentPlaylistIsFavorites
                         radius: parent.radius
                         source: LibraryManager.currentPlaylistCoverUrl || ""
@@ -829,7 +831,7 @@ Item {
             reuseItems: true
             boundsBehavior: Flickable.StopAtBounds
             model: LibraryManager.playlistTracks
-            spacing: 4
+            spacing: 6
 
             MouseArea {
                 anchors.fill: parent
@@ -848,47 +850,78 @@ Item {
 
             delegate: Rectangle {
                 id: trackRow
-                width: playlistTracksList.width - 20
-                height: 52
-                radius: 12
+                width: playlistTracksList.width - 24
+                height: 56
+                radius: 14
+                readonly property bool isCurrent: AudioEngine.currentTrack === model.path
                 readonly property bool isSelected: root.isTrackSelected(model.path)
                 color: isSelected
                        ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.16)
-                       : (trackRowMouse.containsMouse ? Theme.surfaceContainerHigh : "transparent")
-                border.width: isSelected ? 1.5 : 0
-                border.color: isSelected ? Theme.primary : "transparent"
+                       : (isCurrent
+                          ? Theme.surfaceContainerHighest
+                          : (trackRowMouse.containsMouse ? Theme.surfaceContainerHigh : Theme.surfaceContainerLow))
+                border.width: isSelected ? 1.5 : (isCurrent ? 1.5 : (trackRowMouse.containsMouse ? 1 : 0))
+                border.color: isSelected ? Theme.primary : (isCurrent ? Theme.primary : (trackRowMouse.containsMouse ? Theme.outlineVariant : "transparent"))
 
-                Behavior on color { ColorAnimation { duration: 120 } }
+                Behavior on color { ColorAnimation { duration: 150 } }
+                Behavior on border.color { ColorAnimation { duration: 150 } }
 
                 RowLayout {
                     anchors.fill: parent
                     anchors.leftMargin: 12
                     anchors.rightMargin: 16
-                    spacing: 14
+                    spacing: 12
 
-                    // Index
-                    Text {
+                    // Left Slot: Sequence Number / Play Icon / Volume indicator
+                    Item {
                         Layout.preferredWidth: 26
-                        text: (index + 1).toString()
-                        font.pixelSize: 12
-                        font.bold: true
-                        color: Theme.textMuted
-                        horizontalAlignment: Text.AlignRight
+                        Layout.fillHeight: true
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: !trackRow.isCurrent && !trackRowMouse.containsMouse
+                            text: (index + 1).toString()
+                            font.pixelSize: 12
+                            font.bold: true
+                            color: Theme.textMuted
+                        }
+
+                        SvgIcon {
+                            anchors.centerIn: parent
+                            visible: trackRow.isCurrent
+                            width: 15
+                            height: 15
+                            source: "qrc:/assets/icons/volume_up.svg"
+                            color: Theme.primary
+                        }
+
+                        SvgIcon {
+                            anchors.centerIn: parent
+                            visible: !trackRow.isCurrent && trackRowMouse.containsMouse
+                            width: 14
+                            height: 14
+                            source: "qrc:/assets/icons/play.svg"
+                            color: Theme.primary
+                        }
                     }
 
-                    // 38x38 Thumbnail
+                    // 40x40 Thumbnail
                     Rectangle {
-                        Layout.preferredWidth: 38
-                        Layout.preferredHeight: 38
-                        radius: 6
+                        Layout.preferredWidth: 40
+                        Layout.preferredHeight: 40
+                        radius: 8
                         color: Theme.surfaceContainer
                         clip: true
 
                         RoundedImage {
                             anchors.fill: parent
-                            radius: parent.radius
+                            sourceSize: Qt.size(40, 40)
+                            radius: 8
                             source: model.coverUrl || ""
-                            fallbackIcon: "qrc:/assets/icons/music.svg"
+                            fallbackColor: Theme.surfaceContainer
+                            fallbackIcon: "qrc:/assets/icons/music_note.svg"
+                            fallbackIconColor: Theme.textMuted
+                            fallbackIconSize: 18
                         }
                     }
 
@@ -902,60 +935,73 @@ Item {
                             text: model.title || model.path.split(/[/\\]/).pop()
                             font.pixelSize: 13
                             font.bold: true
-                            color: (AudioEngine.currentTrack === model.path) ? Theme.primary : Theme.textPrimary
+                            color: trackRow.isCurrent ? Theme.primary : Theme.textPrimary
                             elide: Text.ElideRight
                         }
 
                         Text {
                             Layout.fillWidth: true
-                            text: (model.artist || "—") + (model.album ? (" • " + model.album) : "")
+                            text: {
+                                var a = model.artist || "";
+                                var alb = model.album || "";
+                                if (a && alb) return a + " · " + alb;
+                                if (a) return a;
+                                if (alb) return alb;
+                                return "—";
+                            }
                             font.pixelSize: 11
                             color: Theme.textMuted
                             elide: Text.ElideRight
                         }
                     }
 
-                    // Codec Badge
+                    // Codec Badge Pill
                     Rectangle {
                         visible: !!model.format
                         radius: 4
-                        color: Theme.surfaceContainerHighest
-                        implicitWidth: formatText.implicitWidth + 8
-                        implicitHeight: 18
+                        color: Theme.primaryContainer
+                        implicitWidth: formatBadgeText.implicitWidth + 12
+                        implicitHeight: 20
 
                         Text {
-                            id: formatText
+                            id: formatBadgeText
                             anchors.centerIn: parent
-                            text: (model.format || "").toUpperCase()
-                            font.pixelSize: 9
+                            text: (model.format || "MP3").toUpperCase()
+                            font.pixelSize: 10
                             font.bold: true
+                            font.family: "monospace"
                             color: Theme.primary
                         }
                     }
 
-                    // Duration
+                    // Monospace Duration
                     Text {
+                        Layout.preferredWidth: 46
+                        width: 46
+                        horizontalAlignment: Text.AlignRight
                         text: root.formatDuration(model.durationMs)
-                        font.pixelSize: 12
+                        font.pixelSize: 11
+                        font.family: "monospace"
                         color: Theme.textMuted
                     }
 
                     // Favorite Button
                     Rectangle {
-                        width: 30
-                        height: 30
-                        radius: 15
-                        color: "transparent"
+                        width: 32
+                        height: 32
+                        radius: 16
+                        color: favBtnMouse.containsMouse ? Theme.surfaceContainerHighest : "transparent"
 
                         SvgIcon {
                             anchors.centerIn: parent
-                            width: 14
-                            height: 14
+                            width: 15
+                            height: 15
                             source: "qrc:/assets/icons/heart.svg"
                             color: LibraryManager.isFavorite(model.path) ? "#EF4444" : Theme.textMuted
                         }
 
                         MouseArea {
+                            id: favBtnMouse
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
@@ -968,15 +1014,15 @@ Item {
                     // Remove from Playlist Button (if not favorites)
                     Rectangle {
                         visible: !LibraryManager.currentPlaylistIsFavorites
-                        width: 30
-                        height: 30
-                        radius: 15
+                        width: 32
+                        height: 32
+                        radius: 16
                         color: rmTrkMouse.containsMouse ? Theme.surfaceContainerHighest : "transparent"
 
                         SvgIcon {
                             anchors.centerIn: parent
-                            width: 13
-                            height: 13
+                            width: 14
+                            height: 14
                             source: "qrc:/assets/icons/trash.svg"
                             color: rmTrkMouse.containsMouse ? "#EF4444" : Theme.textMuted
                         }

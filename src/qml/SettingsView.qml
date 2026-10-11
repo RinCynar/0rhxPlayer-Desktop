@@ -607,6 +607,7 @@ Item {
 
                             RoundedImage {
                                 anchors.fill: parent
+                                sourceSize: Qt.size(64, 64)
                                 radius: 32
                                 visible: ConfigManager.avatar !== ""
                                 source: ConfigManager.avatar
