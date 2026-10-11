@@ -84,6 +84,7 @@ jobs:
           arch: 'linux_gcc_64'
           modules: 'qtdeclarative qtsvg'
           cache: true
+          setup-python: false
 
       - name: Configure CMake
         run: |
