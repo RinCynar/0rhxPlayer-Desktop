@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=0rhxPlayer
+GenericName=Music Player
+GenericName[zh_CN]=音乐播放器
+GenericName[ja]=音楽プレーヤー
+Comment=Local music player built with Qt 6
+Comment[zh_CN]=基于 Qt 6 构建的本地音乐播放器
+Comment[ja]=Qt 6 で構築されたローカル音楽プレーヤー
+Exec=0rhxPlayer %U
+Icon=0rhxplayer
+Terminal=false
+StartupNotify=true
+StartupWMClass=0rhxPlayer
+Categories=AudioVideo;Audio;Player;Music;
+MimeType=audio/mpeg;audio/flac;audio/ogg;audio/x-wav;audio/aac;audio/mp4;audio/x-m4a;
+Keywords=audio;music;player;flac;mp3;

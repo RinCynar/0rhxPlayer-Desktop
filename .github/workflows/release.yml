@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
+  build-windows-x64:
     name: Build & Package Windows x64
     runs-on: windows-latest
 
@@ -71,8 +71,8 @@ jobs:
           } elseif ($tag -match '^v?([0-9]+\.[0-9]+\.[0-9]+)') {
               $ver = $matches[1]
           }
-          Write-Host "Packaging 0rhxPlayer version $ver..."
-          & ./scripts/package.ps1 -Version $ver -BuildDir "build" -DistDir "dist"
+          Write-Host "Packaging Windows x64 version $ver..."
+          & ./scripts/package.ps1 -Version $ver -Arch "x64" -BuildDir "build" -DistDir "dist"
 
       - name: Verify Distributables
         shell: pwsh
@@ -81,30 +81,189 @@ jobs:
           $setup = Get-ChildItem -Path "dist" -Filter "*setup.exe"
           $zip = Get-ChildItem -Path "dist" -Filter "*portable.zip"
           if (-not $setup -or -not $zip) {
-              throw "Missing distributable files! setup=$setup, zip=$zip"
+              throw "Missing Windows x64 distributable files! setup=$setup, zip=$zip"
           }
+
+      - name: Upload Windows x64 Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-x64
+          path: dist/*
+          if-no-files-found: error
+
+  build-windows-arm64:
+    name: Build & Package Windows ARM64
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ninja
+        shell: pwsh
+        run: |
+          choco install ninja -y --no-progress
+
+      - name: Install Qt 6.8 & MinGW Toolchain
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.2'
+          arch: 'win64_mingw'
+          tools: 'tools_mingw1310,qt.tools.win64_mingw1310'
+          cache: true
+
+      - name: Configure CMake for Windows ARM64 Target
+        shell: pwsh
+        run: |
+          cmake -B build-arm64 -S . -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DBASS_TARGET_ARCH=arm64
+
+      - name: Package Windows ARM64 Portable Release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+              $PSNativeCommandUseErrorActionPreference = $false
+          }
+          $tag = "${{ github.ref_name }}"
+          $inputVer = "${{ github.event.inputs.version }}"
+          $ver = "1.1.0"
+          if ($inputVer) {
+              $ver = $inputVer
+          } elseif ($tag -match '^v?([0-9]+\.[0-9]+\.[0-9]+)') {
+              $ver = $matches[1]
+          }
+          Write-Host "Packaging Windows ARM64 portable version $ver..."
+          & ./scripts/package.ps1 -Version $ver -Arch "arm64" -BuildDir "build" -DistDir "dist"
+
+      - name: Upload Windows ARM64 Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-arm64
+          path: dist/*arm64*.zip
+          if-no-files-found: error
+
+  build-linux-x64:
+    name: Build & Package Linux x64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build \
+            libgl1-mesa-dev \
+            libxkbcommon-dev \
+            libx11-xcb-dev \
+            libpulse-dev \
+            libasound2-dev \
+            xvfb
+
+      - name: Install Qt 6.8 for Linux
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.2'
+          arch: 'linux_gcc_64'
+          modules: 'qtdeclarative qtsvg'
+          cache: true
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Target
+        run: |
+          ninja -C build -v
+
+      - name: Run Headless Self-Tests
+        run: |
+          xvfb-run ./build/0rhxPlayer --test-phase9
+          xvfb-run ./build/0rhxPlayer --test-phase8
+          xvfb-run ./build/0rhxPlayer --test-queue
+
+      - name: Package Linux Portable Archives
+        run: |
+          TAG="${{ github.ref_name }}"
+          INPUT_VER="${{ github.event.inputs.version }}"
+          VER="1.1.0"
+          if [ -n "$INPUT_VER" ]; then
+            VER="$INPUT_VER"
+          elif [[ "$TAG" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            VER="${BASH_REMATCH[1]}"
+          fi
+          chmod +x ./scripts/package-linux.sh
+          ./scripts/package-linux.sh -v "$VER" -a "x64" -b "build" -d "dist"
+
+      - name: Upload Linux x64 Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-x64
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish Multi-Arch Release Assets
+    needs: [build-windows-x64, build-windows-arm64, build-linux-x64]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve Release Version
+        id: get_version
+        run: |
+          TAG="${{ github.ref_name }}"
+          INPUT_VER="${{ github.event.inputs.version }}"
+          VER="1.1.0"
+          if [ -n "$INPUT_VER" ]; then
+            VER="$INPUT_VER"
+          elif [[ "$TAG" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            VER="${BASH_REMATCH[1]}"
+          fi
+          echo "version=$VER" >> $GITHUB_OUTPUT
+
+      - name: Download all release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Display Release Assets
+        run: |
+          ls -lh release-assets/
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref_name, 'v') && github.ref_name || format('v{0}', github.event.inputs.version || '1.1.0') }}
-          name: "0rhxPlayer ${{ startsWith(github.ref_name, 'v') && github.ref_name || format('v{0}', github.event.inputs.version || '1.1.0') }}"
+          tag_name: ${{ startsWith(github.ref_name, 'v') && github.ref_name || format('v{0}', steps.get_version.outputs.version) }}
+          name: "0rhxPlayer v${{ steps.get_version.outputs.version }}"
           body: |
-            ## 0rhxPlayer ${{ startsWith(github.ref_name, 'v') && github.ref_name || format('v{0}', github.event.inputs.version || '1.1.0') }}
+            ## 0rhxPlayer v${{ steps.get_version.outputs.version }}
 
-            Local music player built with Qt 6 and WASAPI.
+            Multi-architecture cross-platform release built with Qt 6.
 
             ### Release Assets
-            - **Installer**: `0rhxPlayer-v1.1.0-windows-x64-setup.exe`
-            - **Portable**: `0rhxPlayer-v1.1.0-windows-x64-portable.zip`
+            - **Windows x64**:
+              - Installer: `0rhxPlayer-v${{ steps.get_version.outputs.version }}-windows-x64-setup.exe`
+              - Portable: `0rhxPlayer-v${{ steps.get_version.outputs.version }}-windows-x64-portable.zip`
+            - **Windows ARM64**:
+              - Portable: `0rhxPlayer-v${{ steps.get_version.outputs.version }}-windows-arm64-portable.zip`
+            - **Linux x64**:
+              - Portable: `0rhxPlayer-v${{ steps.get_version.outputs.version }}-linux-x64-portable.tar.gz`
+              - Canonical: `0rhxPlayer-linux-x64-portable.tar.gz`
 
             ### Links
             - Website: https://0rhxplayer.rincynar.top
             - Repository: https://github.com/RinCynar/0rhxPlayer-Desktop
           draft: false
           prerelease: false
-          files: |
-            dist/*.zip
-            dist/*.exe
+          files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

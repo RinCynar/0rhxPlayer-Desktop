@@ -3,7 +3,8 @@ param(
     [string]$BuildDir = "build",
     [string]$DistDir = "dist",
     [string]$QtBinDir = "",
-    [string]$IsccPath = ""
+    [string]$IsccPath = "",
+    [string]$Arch = "x64"
 )
 
 $ErrorActionPreference = "Continue"
@@ -14,35 +15,39 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
 $RootDir = Split-Path -Parent $PSScriptRoot
 Set-Location $RootDir
 
-Write-Host "=== Packaging 0rhxPlayer v$Version ===" -ForegroundColor Cyan
+Write-Host "=== Packaging 0rhxPlayer v$Version (Arch: $Arch) ===" -ForegroundColor Cyan
 
-# 1. Locate ISCC (Inno Setup Compiler)
-if (-not $IsccPath) {
-    $candidates = @(
-        "C:\InnoSetup\ISCC.exe",
-        "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
-        "C:\Program Files\Inno Setup 6\ISCC.exe",
-        "C:\Program Files (x86)\Inno Setup 7\ISCC.exe",
-        "C:\Program Files\Inno Setup 7\ISCC.exe",
-        "C:\ProgramData\chocolatey\bin\iscc.exe"
-    )
-    foreach ($c in $candidates) {
-        if (Test-Path $c) { $IsccPath = $c; break }
-    }
+# 1. Locate ISCC (Inno Setup Compiler) for x64
+if ($Arch -eq "x64") {
     if (-not $IsccPath) {
-        $isccCmd = Get-Command iscc -ErrorAction SilentlyContinue
-        if ($isccCmd) {
-            $IsccPath = if ($isccCmd.Path) { $isccCmd.Path } else { $isccCmd.Source }
+        $candidates = @(
+            "C:\InnoSetup\ISCC.exe",
+            "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+            "C:\Program Files\Inno Setup 6\ISCC.exe",
+            "C:\Program Files (x86)\Inno Setup 7\ISCC.exe",
+            "C:\Program Files\Inno Setup 7\ISCC.exe",
+            "C:\ProgramData\chocolatey\bin\iscc.exe"
+        )
+        foreach ($c in $candidates) {
+            if (Test-Path $c) { $IsccPath = $c; break }
+        }
+        if (-not $IsccPath) {
+            $isccCmd = Get-Command iscc -ErrorAction SilentlyContinue
+            if ($isccCmd) {
+                $IsccPath = if ($isccCmd.Path) { $isccCmd.Path } else { $isccCmd.Source }
+            }
+        }
+        if (-not $IsccPath -or -not (Test-Path $IsccPath)) {
+            $foundIscc = Get-ChildItem -Path "C:\Program Files*", "C:\ProgramData\chocolatey" -Filter "ISCC.exe" -Recurse -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($foundIscc) { $IsccPath = $foundIscc.FullName }
         }
     }
+    Write-Host "Using Inno Setup compiler: $IsccPath" -ForegroundColor Green
     if (-not $IsccPath -or -not (Test-Path $IsccPath)) {
-        $foundIscc = Get-ChildItem -Path "C:\Program Files*", "C:\ProgramData\chocolatey" -Filter "ISCC.exe" -Recurse -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($foundIscc) { $IsccPath = $foundIscc.FullName }
+        throw "Inno Setup compiler (ISCC.exe) not found!"
     }
-}
-Write-Host "Using Inno Setup compiler: $IsccPath" -ForegroundColor Green
-if (-not $IsccPath -or -not (Test-Path $IsccPath)) {
-    throw "Inno Setup compiler (ISCC.exe) not found!"
+} else {
+    Write-Host "Architecture $Arch: Skipping Inno Setup installer compilation (Portable package only)." -ForegroundColor Yellow
 }
 
 # 2. Prepare staging directory
@@ -62,7 +67,10 @@ if (-not (Test-Path $ExeSource)) {
 Copy-Item $ExeSource (Join-Path $StageDir "0rhxPlayer.exe") -Force
 
 # 4. Copy BASS libraries
-$BassBinDir = Join-Path $RootDir "libs\bass\win-x64\bin"
+$BassBinDir = Join-Path $RootDir "libs\bass\win-$Arch\bin"
+if (-not (Test-Path $BassBinDir)) {
+    $BassBinDir = Join-Path $RootDir "libs\bass\win-x64\bin"
+}
 if (-not (Test-Path $BassBinDir)) {
     $BassBinDir = Join-Path $RootDir "libs\bass\bin"
 }
@@ -130,7 +138,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # 7. Create Portable Zip
-$ZipName = "0rhxPlayer-v$Version-windows-x64-portable.zip"
+$ZipName = "0rhxPlayer-v$Version-windows-$Arch-portable.zip"
 $ZipPath = Join-Path $DistFullPath $ZipName
 if (Test-Path $ZipPath) { Remove-Item -Force $ZipPath }
 Write-Host "Creating portable marker in staging directory..." -ForegroundColor Cyan
@@ -140,17 +148,19 @@ Compress-Archive -Path "$StageDir\*" -DestinationPath $ZipPath -Force
 Write-Host "Created $ZipName (Size: $((Get-Item $ZipPath).Length) bytes)" -ForegroundColor Green
 Remove-Item -Force (Join-Path $StageDir "portable.dat") -ErrorAction SilentlyContinue
 
-# 8. Compile Inno Setup Installer
-$SetupName = "0rhxPlayer-v$Version-windows-x64-setup"
-Write-Host "Compiling Inno Setup installer..." -ForegroundColor Cyan
-& $IsccPath "-dSourceDir=$StageDir" "-o$DistFullPath" "-f$SetupName" "$RootDir\installer\setup.iss" 2>&1 | Out-Host
-if ($LASTEXITCODE -ne 0) {
-    throw "Inno Setup compilation failed with exit code $LASTEXITCODE"
+# 8. Compile Inno Setup Installer (x64 only)
+if ($Arch -eq "x64" -and $IsccPath -and (Test-Path $IsccPath)) {
+    $SetupName = "0rhxPlayer-v$Version-windows-x64-setup"
+    Write-Host "Compiling Inno Setup installer..." -ForegroundColor Cyan
+    & $IsccPath "-dSourceDir=$StageDir" "-o$DistFullPath" "-f$SetupName" "$RootDir\installer\setup.iss" 2>&1 | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+        throw "Inno Setup compilation failed with exit code $LASTEXITCODE"
+    }
+
+    $SetupExePath = Join-Path $DistFullPath "$SetupName.exe"
+    if (Test-Path $SetupExePath) {
+        Write-Host "Created $SetupName.exe (Size: $((Get-Item $SetupExePath).Length) bytes)" -ForegroundColor Green
+    }
 }
 
-$SetupExePath = Join-Path $DistFullPath "$SetupName.exe"
-if (Test-Path $SetupExePath) {
-    Write-Host "Created $SetupName.exe (Size: $((Get-Item $SetupExePath).Length) bytes)" -ForegroundColor Green
-}
-
-Write-Host "=== Dual Release Packaging Complete ===" -ForegroundColor Green
+Write-Host "=== Packaging Complete ($Arch) ===" -ForegroundColor Green
