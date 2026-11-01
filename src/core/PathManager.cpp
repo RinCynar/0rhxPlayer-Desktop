@@ -234,4 +234,6 @@ void PathManager::ensureDirsExist() const
     QDir().mkpath(m_logDir);
     QDir().mkpath(coversDir());
     QDir().mkpath(avatarsDir());
+    QDir().mkpath(pluginsDir());
+    QDir().mkpath(pluginsCacheDir());
 }

@@ -23,6 +23,7 @@ Item {
             case "playlist": return qsTr("Playlists");
             case "favorites": return qsTr("Favorites");
             case "eq": return qsTr("Equalizer");
+            case "plugins": return qsTr("Plugins");
             default: return fallback;
         }
     }

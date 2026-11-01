@@ -170,7 +170,12 @@ ApplicationWindow {
                             case "playlist": return 4;
                             case "eq": return 5;
                             case "settings": return 6;
-                            default: return 0;
+                            case "plugins": return 7;
+                            default:
+                                if (window.currentTab.indexOf("plugin:") === 0) {
+                                    return 8;
+                                }
+                                return 0;
                         }
                     }
 
@@ -278,6 +283,26 @@ ApplicationWindow {
                         onNavigateTab: function(tabId) {
                             window.currentTab = tabId;
                         }
+                    }
+
+                    // 7: Plugins Marketplace & Local Extension View
+                    PluginsView {
+                        id: pluginsView
+                        objectName: "pluginsView"
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        onNavigateTab: function(tabId) {
+                            window.currentTab = tabId;
+                        }
+                    }
+
+                    // 8: Dynamic Native M3 Schema View for Plugins (100% Native QML • No WebView)
+                    PluginSchemaView {
+                        id: pluginSchemaView
+                        objectName: "pluginSchemaView"
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        pluginId: window.currentTab
                     }
                 }
                 }

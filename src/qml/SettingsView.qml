@@ -1830,7 +1830,182 @@ Item {
             }
 
             // ================================================================
-            // 8. About Card (About 0rhxPlayer)
+            // 8. Plugins & Extensions Card (Phase 16 Parity)
+            // ================================================================
+            Rectangle {
+                visible: settingsScroll.matchesSearch(["plugin", "extension", "source", "market", "插件", "扩展", "插件源", "源"])
+                Layout.fillWidth: true
+                implicitHeight: pluginsCol.implicitHeight + 36
+                radius: 16
+                color: Theme.surfaceContainerLow
+                border.width: 1
+                border.color: Theme.borderSubtle
+
+                ColumnLayout {
+                    id: pluginsCol
+                    anchors.fill: parent
+                    anchors.margins: 18
+                    spacing: 16
+
+                    RowLayout {
+                        spacing: 8
+                        SvgIcon {
+                            width: 16
+                            height: 16
+                            source: "qrc:/assets/icons/plugin.svg"
+                            color: Theme.primary
+                        }
+                        Text {
+                            text: qsTr("Plugins & Extensions")
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: Theme.primary
+                        }
+                    }
+
+                    // Plugin Source Input
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            ColumnLayout {
+                                spacing: 2
+                                Text {
+                                    text: qsTr("Plugin Repository Source URL")
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                    color: Theme.textPrimary
+                                }
+                                Text {
+                                    text: qsTr("Custom GitHub Raw or mirror index.md link for downloading plugins")
+                                    font.pixelSize: 11
+                                    color: Theme.textMuted
+                                }
+                            }
+                            Item { Layout.fillWidth: true }
+
+                            // Quick link to Plugins page
+                            Rectangle {
+                                width: 120
+                                height: 32
+                                radius: 16
+                                color: openPluginsMouse.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
+                                border.color: Theme.borderSubtle
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: qsTr("Open Plugins")
+                                    font.pixelSize: 12
+                                    font.bold: true
+                                    color: Theme.primary
+                                }
+                                MouseArea {
+                                    id: openPluginsMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (typeof window !== "undefined") {
+                                            window.currentTab = "plugins";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 36
+                                radius: 8
+                                color: Theme.surfaceContainerHigh
+                                border.color: pluginSourceInput.activeFocus ? Theme.primary : Theme.borderSubtle
+                                border.width: 1
+
+                                TextInput {
+                                    id: pluginSourceInput
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    font.pixelSize: 12
+                                    color: Theme.textPrimary
+                                    selectByMouse: true
+                                    clip: true
+                                    text: ConfigManager.pluginSource
+                                    Component.onCompleted: {
+                                        text = ConfigManager.pluginSource;
+                                    }
+                                }
+                            }
+
+                            // Save Button
+                            Rectangle {
+                                width: 72
+                                height: 36
+                                radius: 18
+                                color: saveSrcMouse.containsMouse ? Qt.darker(Theme.primary, 1.1) : Theme.primary
+                                scale: saveSrcMouse.pressed ? 0.94 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 100 } }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: qsTr("Save")
+                                    font.pixelSize: 12
+                                    font.bold: true
+                                    color: Theme.colorOnPrimary
+                                }
+                                MouseArea {
+                                    id: saveSrcMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        ConfigManager.setPluginSource(pluginSourceInput.text.trim());
+                                        toastBanner.show(qsTr("Plugin source updated"));
+                                    }
+                                }
+                            }
+
+                            // Reset Button
+                            Rectangle {
+                                width: 72
+                                height: 36
+                                radius: 18
+                                color: resetSrcMouse.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
+                                border.color: Theme.borderSubtle
+                                scale: resetSrcMouse.pressed ? 0.94 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 100 } }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: qsTr("Reset")
+                                    font.pixelSize: 12
+                                    color: Theme.textSecondary
+                                }
+                                MouseArea {
+                                    id: resetSrcMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        ConfigManager.resetPluginSource();
+                                        pluginSourceInput.text = ConfigManager.pluginSource;
+                                        toastBanner.show(qsTr("Plugin source reset to default"));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ================================================================
+            // 9. About Card (About 0rhxPlayer)
             // ================================================================
             Rectangle {
                 visible: settingsScroll.matchesSearch(["about", "version", "github", "developer", "license", "关于", "版本", "开发", "协议"])

@@ -48,6 +48,9 @@ class ConfigManager : public QObject {
     Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
     Q_PROPERTY(QString effectiveLanguage READ effectiveLanguage NOTIFY languageChanged)
 
+    // Plugins & Extensions
+    Q_PROPERTY(QString pluginSource READ pluginSource WRITE setPluginSource NOTIFY pluginSourceChanged)
+
 public:
     static ConfigManager *instance();
 
@@ -80,10 +83,13 @@ public:
     QString language() const { return m_language; }
     QString effectiveLanguage() const;
     static QString detectSystemLanguage();
+    QString pluginSource() const { return m_pluginSource; }
 
     // Invokables
     Q_INVOKABLE void saveNavItems(const QVariantList &items);
     Q_INVOKABLE void resetNavItems();
+    Q_INVOKABLE void registerPluginNavItem(const QString &pluginId, const QString &title, const QString &iconSource, const QString &route);
+    Q_INVOKABLE void unregisterPluginNavItem(const QString &pluginId);
 
     Q_INVOKABLE void setNickname(const QString &nick);
     Q_INVOKABLE void setAvatar(const QString &avatarPath);
@@ -119,6 +125,8 @@ public:
     Q_INVOKABLE void setViewModeForTab(const QString &tab, const QString &mode);
 
     Q_INVOKABLE void setLanguage(const QString &lang);
+    Q_INVOKABLE void setPluginSource(const QString &source);
+    Q_INVOKABLE void resetPluginSource();
     Q_INVOKABLE void addSearchHistory(const QString &query);
     Q_INVOKABLE void removeSearchHistory(const QString &query);
     Q_INVOKABLE void clearSearchHistory();
@@ -148,6 +156,7 @@ signals:
     void foldersViewModeChanged(const QString &mode);
     void searchHistoryChanged();
     void languageChanged(const QString &language);
+    void pluginSourceChanged(const QString &source);
 
 private:
     explicit ConfigManager(QObject *parent = nullptr);
@@ -178,4 +187,5 @@ private:
     QString m_foldersViewMode = "compact";
     QStringList m_searchHistory;
     QString m_language = "system";
+    QString m_pluginSource = "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugin/main/index.md";
 };

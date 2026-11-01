@@ -75,6 +75,14 @@ QVariantList ConfigManager::defaultNavItems() const
     eq["canHide"] = true;
     items.append(eq);
 
+    QVariantMap plugins;
+    plugins["id"] = "plugins";
+    plugins["title"] = "插件";
+    plugins["iconSource"] = "qrc:/assets/icons/plugin.svg";
+    plugins["visible"] = true;
+    plugins["canHide"] = true;
+    items.append(plugins);
+
     return items;
 }
 
@@ -108,6 +116,12 @@ void ConfigManager::loadSettings()
                     if (obj.contains("visible")) {
                         item["visible"] = (id == "home") ? true : obj["visible"].toBool();
                     }
+                    loadedItems.append(item);
+                } else if (id.startsWith("plugin:") || obj.value("isPlugin").toBool()) {
+                    QVariantMap item = obj.toVariantMap();
+                    item["visible"] = obj.value("visible").toBool(true);
+                    item["canHide"] = true;
+                    item["isPlugin"] = true;
                     loadedItems.append(item);
                 }
             }
@@ -202,6 +216,9 @@ void ConfigManager::loadSettings()
     if (m_language != "system" && m_language != "zh" && m_language != "en" && m_language != "ja") {
         m_language = "system";
     }
+
+    // Plugins & Extensions
+    m_pluginSource = settings.value("Plugins/Source", "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugin/main/index.md").toString();
 }
 
 void ConfigManager::saveSettings()
@@ -213,11 +230,19 @@ void ConfigManager::saveSettings()
         QJsonObject obj;
         obj["id"] = m["id"].toString();
         obj["visible"] = m["visible"].toBool();
+        if (m.value("isPlugin").toBool()) {
+            obj["isPlugin"] = true;
+            obj["title"] = m["title"].toString();
+            obj["iconSource"] = m["iconSource"].toString();
+            obj["pluginId"] = m["pluginId"].toString();
+            obj["route"] = m["route"].toString();
+        }
         arr.append(obj);
     }
 
     QJsonDocument doc(arr);
     settings.setValue("Navigation/ItemsJson", doc.toJson(QJsonDocument::Compact));
+    settings.setValue("Plugins/Source", m_pluginSource);
 }
 
 QVariantList ConfigManager::visibleNavItems() const
@@ -671,6 +696,77 @@ void ConfigManager::clearSearchHistory()
         QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.remove("Search/History");
         emit searchHistoryChanged();
+    }
+}
+
+void ConfigManager::setPluginSource(const QString &source)
+{
+    QString trimmed = source.trimmed();
+    if (trimmed.isEmpty() || m_pluginSource == trimmed) return;
+    m_pluginSource = trimmed;
+    saveSettings();
+    emit pluginSourceChanged(m_pluginSource);
+}
+
+void ConfigManager::resetPluginSource()
+{
+    setPluginSource("https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugin/main/index.md");
+}
+
+void ConfigManager::registerPluginNavItem(const QString &pluginId, const QString &title, const QString &iconSource, const QString &route)
+{
+    if (pluginId.isEmpty()) return;
+    QString navId = "plugin:" + pluginId;
+
+    // Check if already registered
+    for (int i = 0; i < m_allNavItems.size(); ++i) {
+        QVariantMap item = m_allNavItems[i].toMap();
+        if (item.value("id").toString() == navId || item.value("pluginId").toString() == pluginId) {
+            item["id"] = navId;
+            item["title"] = title;
+            item["iconSource"] = iconSource.isEmpty() ? "qrc:/assets/icons/globe.svg" : iconSource;
+            item["route"] = route;
+            item["isPlugin"] = true;
+            item["pluginId"] = pluginId;
+            m_allNavItems[i] = item;
+            saveSettings();
+            emit navItemsChanged();
+            return;
+        }
+    }
+
+    // Add new plugin nav item
+    QVariantMap item;
+    item["id"] = navId;
+    item["title"] = title;
+    item["iconSource"] = iconSource.isEmpty() ? "qrc:/assets/icons/globe.svg" : iconSource;
+    item["visible"] = true;
+    item["canHide"] = true;
+    item["isPlugin"] = true;
+    item["pluginId"] = pluginId;
+    item["route"] = route;
+    m_allNavItems.append(item);
+    saveSettings();
+    emit navItemsChanged();
+}
+
+void ConfigManager::unregisterPluginNavItem(const QString &pluginId)
+{
+    if (pluginId.isEmpty()) return;
+    QString navId = "plugin:" + pluginId;
+    bool changed = false;
+
+    for (int i = m_allNavItems.size() - 1; i >= 0; --i) {
+        QVariantMap item = m_allNavItems[i].toMap();
+        if (item.value("id").toString() == navId || item.value("pluginId").toString() == pluginId) {
+            m_allNavItems.removeAt(i);
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        saveSettings();
+        emit navItemsChanged();
     }
 }
 

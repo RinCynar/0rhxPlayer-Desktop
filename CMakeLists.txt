@@ -9,7 +9,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml Svg Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml Svg Widgets Network)
 
 set(PROJECT_SOURCES
     src/main.cpp
@@ -39,6 +39,8 @@ set(PROJECT_SOURCES
     src/library/LibraryManager.cpp
     src/config/ConfigManager.h
     src/config/ConfigManager.cpp
+    src/plugin/PluginManager.h
+    src/plugin/PluginManager.cpp
     resources.qrc
 )
 
@@ -127,6 +129,7 @@ target_link_libraries(0rhxPlayer PRIVATE
     Qt6::Qml
     Qt6::Svg
     Qt6::Widgets
+    Qt6::Network
     ${BASS_LIBRARIES}
     ${PLATFORM_LIBS}
 )

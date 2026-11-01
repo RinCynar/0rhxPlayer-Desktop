@@ -25,6 +25,7 @@
 #include "ui/RoundedImage.h"
 #include "library/LibraryManager.h"
 #include "config/ConfigManager.h"
+#include "plugin/PluginManager.h"
 #include "model/TrackModel.h"
 #include "model/AlbumModel.h"
 #include "model/LyricModel.h"
@@ -163,6 +164,8 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonInstance("rhx.audio", 1, 0, "AudioEngine", AudioEngine::instance());
     qmlRegisterSingletonInstance("rhx.library", 1, 0, "LibraryManager", LibraryManager::instance());
     qmlRegisterSingletonInstance("rhx.config", 1, 0, "ConfigManager", ConfigManager::instance());
+    qmlRegisterSingletonInstance("rhx.plugin", 1, 0, "PluginManager", PluginManager::instance());
+    PluginManager::instance()->initialize();
     qmlRegisterType<SvgIcon>("rhx.ui", 1, 0, "SvgIcon");
     qmlRegisterType<RoundedImage>("rhx.ui", 1, 0, "RoundedImage");
     qmlRegisterType<TrackModel>("rhx.model", 1, 0, "TrackModel");
@@ -361,6 +364,10 @@ int main(int argc, char *argv[])
 
     if (mainWindow && app.arguments().contains("--tab-queue")) {
         mainWindow->setProperty("currentTab", "queue");
+    }
+
+    if (mainWindow && (app.arguments().contains("--tab-plugins") || app.arguments().contains("--tab-plugin"))) {
+        mainWindow->setProperty("currentTab", "plugins");
     }
 
     if (app.arguments().contains("--demo-library")) {
@@ -2310,6 +2317,208 @@ int main(int argc, char *argv[])
 
         qInfo() << "=== Phase 9 Live Automation Test Result:" << (pass ? "PASSED" : "FAILED") << "===";
         QTimer::singleShot(100, &app, [pass]() {
+            QCoreApplication::exit(pass ? 0 : 1);
+        });
+    }
+
+    if (app.arguments().contains("--test-plugin") || app.arguments().contains("--test-phase16")) {
+        bool pass = true;
+        qInfo() << "=== Starting Plugin Architecture Integration Test (Phase 16) ===";
+
+            // 1. Verify PathManager plugin directories
+            auto *pm = PathManager::instance();
+            QString pDir = pm->pluginsDir();
+            QString pcDir = pm->pluginsCacheDir();
+            if (pDir.isEmpty() || pcDir.isEmpty()) {
+                qWarning() << "[Test-Plugin] pluginsDir or pluginsCacheDir is empty!";
+                pass = false;
+            }
+            if (!QDir(pDir).exists() || !QDir(pcDir).exists()) {
+                qWarning() << "[Test-Plugin] pluginsDir or pluginsCacheDir does not exist on disk!";
+                pass = false;
+            }
+
+            // 2. Verify ConfigManager plugin source settings
+            auto *cm = ConfigManager::instance();
+            QString defaultSrc = cm->pluginSource();
+            if (defaultSrc != "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugin/main/index.md") {
+                qWarning() << "[Test-Plugin] Unexpected default plugin source:" << defaultSrc;
+                pass = false;
+            }
+            cm->setPluginSource("https://custom-mirror.example.com/index.md");
+            if (cm->pluginSource() != "https://custom-mirror.example.com/index.md") {
+                qWarning() << "[Test-Plugin] Failed to set custom plugin source!";
+                pass = false;
+            }
+            cm->resetPluginSource();
+            if (cm->pluginSource() != defaultSrc) {
+                qWarning() << "[Test-Plugin] Failed to reset plugin source!";
+                pass = false;
+            }
+
+            // 3. Verify Markdown Index Parser
+            auto *mgr = PluginManager::instance();
+            QString sampleIndex =
+                "---\n"
+                "plugins:\n"
+                "  - id: \"com.test.stream\"\n"
+                "    name: \"Stream Test\"\n"
+                "    version: \"1.2.0\"\n"
+                "    author: \"Tester\"\n"
+                "    description: \"Streaming audio service\"\n"
+                "    category: \"NetService\"\n"
+                "  - id: \"com.test.lrc\"\n"
+                "    name: \"Lyrics Test\"\n"
+                "    version: \"2.0.0\"\n"
+                "    author: \"Tester\"\n"
+                "    description: \"Lyrics fetcher\"\n"
+                "    category: \"Lyrics\"\n"
+                "---\n"
+                "# Market Index Document\n";
+            bool parseOk = mgr->parseIndexMarkdown(sampleIndex);
+            if (!parseOk || mgr->marketPlugins().size() < 2) {
+                qWarning() << "[Test-Plugin] parseIndexMarkdown failed or returned insufficient items! Count:" << mgr->marketPlugins().size();
+                pass = false;
+            }
+
+            // 4. Test Installing a mock .0px plugin
+            QString tempPkgDir = pm->pluginsCacheDir() + "/mock_package_src";
+            QDir().mkpath(tempPkgDir + "/views");
+            QDir().mkpath(tempPkgDir + "/mock_data");
+
+            QFile manifest(tempPkgDir + "/plugin.json");
+            if (manifest.open(QIODevice::WriteOnly)) {
+                QJsonObject root;
+                root["id"] = "com.rincynar.echotest";
+                root["name"] = "Echo Test Plugin";
+                root["version"] = "1.0.0";
+                root["author"] = "RinCynar";
+                root["description"] = "Mock test extension for Phase 16 validation";
+                root["category"] = "Test";
+                
+                QJsonObject sidebar;
+                sidebar["title"] = "Echo View";
+                sidebar["icon"] = "qrc:/assets/icons/pen.svg";
+                sidebar["route"] = "echo_view";
+                sidebar["schema"] = "views/main.json";
+                root["sidebar"] = sidebar;
+
+                QJsonObject hooks;
+                hooks["search"] = true;
+                root["hooks"] = hooks;
+
+                manifest.write(QJsonDocument(root).toJson());
+                manifest.close();
+            }
+
+            QFile schemaFile(tempPkgDir + "/views/main.json");
+            if (schemaFile.open(QIODevice::WriteOnly)) {
+                QJsonObject sc;
+                sc["type"] = "page";
+                sc["title"] = "Echo View Native Page";
+                schemaFile.write(QJsonDocument(sc).toJson());
+                schemaFile.close();
+            }
+
+            QFile searchData(tempPkgDir + "/mock_data/search_results.json");
+            if (searchData.open(QIODevice::WriteOnly)) {
+                QJsonArray arr;
+                QJsonObject t;
+                t["title"] = "Echo Night Song";
+                t["artist"] = "Echo Artist";
+                t["album"] = "Echo Album";
+                arr.append(t);
+                searchData.write(QJsonDocument(arr).toJson());
+                searchData.close();
+            }
+
+            // Install directly from folder archive extraction
+            bool installed = mgr->installPluginFrom0px(tempPkgDir);
+            if (!installed || !mgr->isPluginEnabled("com.rincynar.echotest")) {
+                qWarning() << "[Test-Plugin] installPluginFrom0px failed or plugin not enabled! Last error:" << mgr->lastErrorMessage();
+                pass = false;
+            }
+
+            // Verify sidebar registration in ConfigManager
+            bool navFound = false;
+            for (const auto &item : cm->allNavItems()) {
+                QVariantMap m = item.toMap();
+                if (m.value("id").toString() == "plugin:com.rincynar.echotest") {
+                    navFound = true;
+                    if (m.value("title").toString() != "Echo View") {
+                        qWarning() << "[Test-Plugin] Sidebar nav title mismatch:" << m.value("title").toString();
+                        pass = false;
+                    }
+                    break;
+                }
+            }
+            if (!navFound) {
+                qWarning() << "[Test-Plugin] Sidebar item plugin:com.rincynar.echotest not registered in allNavItems!";
+                pass = false;
+            }
+
+            // Verify Schema Retrieval
+            QVariantMap schemaMap = mgr->getPluginViewSchema("com.rincynar.echotest");
+            if (schemaMap.value("title").toString() != "Echo View Native Page") {
+                qWarning() << "[Test-Plugin] Failed to read schema main.json! Got title:" << schemaMap.value("title").toString();
+                pass = false;
+            }
+
+            // Verify Search Hook Execution
+            QVariantList searchRes = mgr->executeSearchHook("Echo");
+            if (searchRes.isEmpty() || searchRes[0].toMap().value("title").toString() != "Echo Night Song") {
+                qWarning() << "[Test-Plugin] executeSearchHook failed to return expected mock results!";
+                pass = false;
+            }
+
+            // Verify Toggle Enable / Disable
+            mgr->setPluginEnabled("com.rincynar.echotest", false);
+            if (mgr->isPluginEnabled("com.rincynar.echotest")) {
+                qWarning() << "[Test-Plugin] setPluginEnabled(false) failed!";
+                pass = false;
+            }
+            bool visibleInNav = false;
+            for (const auto &item : cm->visibleNavItems()) {
+                if (item.toMap().value("id").toString() == "plugin:com.rincynar.echotest") {
+                    visibleInNav = true;
+                    break;
+                }
+            }
+            if (visibleInNav) {
+                qWarning() << "[Test-Plugin] Disabled plugin nav item still visible in visibleNavItems!";
+                pass = false;
+            }
+
+            // Re-enable
+            mgr->setPluginEnabled("com.rincynar.echotest", true);
+            if (!mgr->isPluginEnabled("com.rincynar.echotest")) {
+                qWarning() << "[Test-Plugin] setPluginEnabled(true) failed!";
+                pass = false;
+            }
+
+            // Test Uninstall
+            bool uninstalled = mgr->uninstallPlugin("com.rincynar.echotest");
+            if (!uninstalled || mgr->isPluginEnabled("com.rincynar.echotest")) {
+                qWarning() << "[Test-Plugin] uninstallPlugin failed!";
+                pass = false;
+            }
+            bool stillInNav = false;
+            for (const auto &item : cm->allNavItems()) {
+                if (item.toMap().value("id").toString() == "plugin:com.rincynar.echotest") {
+                    stillInNav = true;
+                    break;
+                }
+            }
+            if (stillInNav) {
+                qWarning() << "[Test-Plugin] Uninstalled plugin nav item still found in allNavItems!";
+                pass = false;
+            }
+
+            // Clean up temporary files
+            QDir(tempPkgDir).removeRecursively();
+
+        qInfo() << "=== Plugin Integration Test Result:" << (pass ? "PASSED" : "FAILED") << "===";
+        QTimer::singleShot(50, &app, [pass]() {
             QCoreApplication::exit(pass ? 0 : 1);
         });
     }

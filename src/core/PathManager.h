@@ -16,6 +16,8 @@ class PathManager : public QObject
     Q_PROPERTY(QString cacheDir READ cacheDir CONSTANT)
     Q_PROPERTY(QString logDir READ logDir CONSTANT)
     Q_PROPERTY(QString configFile READ configFile CONSTANT)
+    Q_PROPERTY(QString pluginsDir READ pluginsDir CONSTANT)
+    Q_PROPERTY(QString pluginsCacheDir READ pluginsCacheDir CONSTANT)
 
 public:
     static PathManager *instance();
@@ -36,6 +38,8 @@ public:
     Q_INVOKABLE QString coversDir() const { return m_cacheDir + "/covers"; }
     Q_INVOKABLE QString avatarsDir() const { return m_dataDir + "/avatars"; }
     Q_INVOKABLE QString appLogFile() const { return m_logDir + "/app.log"; }
+    Q_INVOKABLE QString pluginsDir() const { return m_dataDir + "/plugins"; }
+    Q_INVOKABLE QString pluginsCacheDir() const { return m_cacheDir + "/plugins_cache"; }
 
     Q_INVOKABLE void ensureDirsExist() const;
     Q_INVOKABLE void migrateLegacyDirs();
