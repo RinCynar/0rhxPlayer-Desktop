@@ -2386,6 +2386,17 @@ int main(int argc, char *argv[])
                     qWarning() << "[Test-Plugin] Relative path resolution mismatch:" << first["packageUrl"].toString();
                     pass = false;
                 }
+
+                // Verify Dynamic Categories Extraction
+                QStringList cats = mgr->categories();
+                if (!cats.contains("All") || !cats.contains("Installed") || !cats.contains("NetService") || !cats.contains("Lyrics")) {
+                    qWarning() << "[Test-Plugin] Categories dynamic extraction missing expected items:" << cats;
+                    pass = false;
+                }
+                if (cats.contains("Metadata") || cats.contains("Tools") || cats.contains("Test")) {
+                    qWarning() << "[Test-Plugin] Categories contained ghost/hardcoded items not present in data:" << cats;
+                    pass = false;
+                }
             }
 
             // 4. Test Installing a mock .0px plugin

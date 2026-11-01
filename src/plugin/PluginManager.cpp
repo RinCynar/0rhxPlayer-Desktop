@@ -141,7 +141,50 @@ void PluginManager::initialize()
 
 QStringList PluginManager::categories() const
 {
-    return { "All", "NetService", "Lyrics", "Metadata", "Test", "Utility", "Installed" };
+    QStringList cats;
+    cats.append("All");
+
+    QStringList dynamicCats;
+    // 1. Extract unique categories from current market plugins
+    for (const auto &p : m_market) {
+        QString c = p.category.trimmed();
+        if (!c.isEmpty() && c.compare("All", Qt::CaseInsensitive) != 0 && c.compare("Installed", Qt::CaseInsensitive) != 0) {
+            bool exists = false;
+            for (const auto &existing : dynamicCats) {
+                if (existing.compare(c, Qt::CaseInsensitive) == 0) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                dynamicCats.append(c);
+            }
+        }
+    }
+
+    // 2. Extract unique categories from locally installed plugins
+    for (const auto &p : m_installed) {
+        QString c = p.category.trimmed();
+        if (!c.isEmpty() && c.compare("All", Qt::CaseInsensitive) != 0 && c.compare("Installed", Qt::CaseInsensitive) != 0) {
+            bool exists = false;
+            for (const auto &existing : dynamicCats) {
+                if (existing.compare(c, Qt::CaseInsensitive) == 0) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                dynamicCats.append(c);
+            }
+        }
+    }
+
+    // Sort dynamic categories alphabetically for stable, deterministic ordering
+    dynamicCats.sort(Qt::CaseInsensitive);
+
+    cats.append(dynamicCats);
+    cats.append("Installed");
+    return cats;
 }
 
 QVariantList PluginManager::installedPlugins() const
@@ -178,6 +221,7 @@ void PluginManager::refreshInstalledPlugins()
 
     syncMarketInstalledState();
     emit pluginsChanged();
+    emit categoriesChanged();
 }
 
 void PluginManager::loadInstalledPluginFromDir(const QString &dirPath)
@@ -434,6 +478,7 @@ bool PluginManager::installPluginFrom0px(const QString &packagePath)
 
     syncMarketInstalledState();
     emit pluginsChanged();
+    emit categoriesChanged();
     emit pluginInstalled(meta.id);
     qInfo() << "[PluginManager] Successfully installed plugin:" << meta.id << "version:" << meta.version;
     return true;
@@ -520,6 +565,7 @@ bool PluginManager::uninstallPlugin(const QString &pluginId)
 
     syncMarketInstalledState();
     emit pluginsChanged();
+    emit categoriesChanged();
     emit pluginUninstalled(pluginId);
     qInfo() << "[PluginManager] Uninstalled plugin:" << pluginId;
     return true;
@@ -543,6 +589,7 @@ void PluginManager::setPluginEnabled(const QString &pluginId, bool enabled)
 
     syncMarketInstalledState();
     emit pluginsChanged();
+    emit categoriesChanged();
     emit pluginStatusChanged(pluginId, enabled);
 }
 
@@ -683,6 +730,7 @@ void PluginManager::fetchMarketIndex(const QString &customUrl)
             m_marketStatusMessage = m_lastErrorMessage;
             m_market.clear();
             emit marketPluginsChanged();
+            emit categoriesChanged();
             emit marketStatusMessageChanged(m_marketStatusMessage);
             emit errorOccurred(m_lastErrorMessage);
             return;
@@ -871,5 +919,6 @@ bool PluginManager::parseIndexMarkdown(const QString &content)
 
     syncMarketInstalledState();
     emit marketPluginsChanged();
+    emit categoriesChanged();
     return !m_market.isEmpty();
 }

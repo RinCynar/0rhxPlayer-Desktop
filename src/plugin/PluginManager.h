@@ -37,7 +37,7 @@ class PluginManager : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList installedPlugins READ installedPlugins NOTIFY pluginsChanged)
     Q_PROPERTY(QVariantList marketPlugins READ marketPlugins NOTIFY marketPluginsChanged)
-    Q_PROPERTY(QStringList categories READ categories CONSTANT)
+    Q_PROPERTY(QStringList categories READ categories NOTIFY categoriesChanged)
     Q_PROPERTY(bool isFetchingMarket READ isFetchingMarket NOTIFY fetchingMarketChanged)
     Q_PROPERTY(QString marketStatusMessage READ marketStatusMessage NOTIFY marketStatusMessageChanged)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY errorOccurred)
@@ -79,6 +79,7 @@ public:
 signals:
     void pluginsChanged();
     void marketPluginsChanged();
+    void categoriesChanged();
     void fetchingMarketChanged(bool isFetching);
     void marketStatusMessageChanged(const QString &msg);
     void errorOccurred(const QString &error);

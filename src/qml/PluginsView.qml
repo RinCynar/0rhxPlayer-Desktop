@@ -125,6 +125,15 @@ Item {
             cardsRepeater.model = getFilteredList();
         }
         function onMarketPluginsChanged() {
+            if (PluginManager.categories.indexOf(root.selectedCategory) === -1) {
+                root.selectedCategory = "All";
+            }
+            cardsRepeater.model = getFilteredList();
+        }
+        function onCategoriesChanged() {
+            if (PluginManager.categories.indexOf(root.selectedCategory) === -1) {
+                root.selectedCategory = "All";
+            }
             cardsRepeater.model = getFilteredList();
         }
         function onPluginsChanged() {
@@ -330,7 +339,7 @@ Item {
                 spacing: 8
 
                 Repeater {
-                    model: ["All", "NetService", "Lyrics", "Metadata", "Tools", "Test", "Installed"]
+                    model: PluginManager.categories
                     delegate: Rectangle {
                         readonly property bool isSelected: root.selectedCategory === modelData
                         height: 32
@@ -346,16 +355,9 @@ Item {
                             id: catText
                             anchors.centerIn: parent
                             text: {
-                                switch (modelData) {
-                                    case "All": return qsTr("All");
-                                    case "NetService": return qsTr("NetService");
-                                    case "Lyrics": return qsTr("Lyrics");
-                                    case "Metadata": return qsTr("Metadata");
-                                    case "Tools": return qsTr("Tools");
-                                    case "Test": return qsTr("Test");
-                                    case "Installed": return qsTr("Installed");
-                                    default: return modelData;
-                                }
+                                if (modelData === "All") return qsTr("All");
+                                if (modelData === "Installed") return qsTr("Installed");
+                                return qsTr(modelData);
                             }
                             font.pixelSize: 12
                             font.bold: isSelected
