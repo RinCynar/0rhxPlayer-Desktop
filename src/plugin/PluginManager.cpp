@@ -1,6 +1,12 @@
 #include "PluginManager.h"
 #include "../core/PathManager.h"
 #include "../config/ConfigManager.h"
+#include "../audio/AudioEngine.h"
+#include "../library/LibraryManager.h"
+#include "../model/TrackModel.h"
+#include "../model/AlbumModel.h"
+#include "../model/PlaylistModel.h"
+#include "../model/LyricModel.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -17,6 +23,7 @@
 #include <QRegularExpression>
 #include <QUrl>
 #include <QDebug>
+#include <algorithm>
 
 QVariantMap PluginMetadata::toMap() const
 {
@@ -35,6 +42,9 @@ QVariantMap PluginMetadata::toMap() const
     map["localDir"] = localDir;
     map["sidebar"] = sidebar.toVariantMap();
     map["hooks"] = hooks.toVariantMap();
+    map["minAppVersion"] = minAppVersion;
+    map["permissions"] = permissions;
+    map["entries"] = entries.toVariantMap();
     return map;
 }
 
@@ -54,6 +64,12 @@ PluginMetadata PluginMetadata::fromJson(const QJsonObject &obj)
     m.icon = obj["icon"].toString().trimmed();
     if (m.icon.isEmpty() && obj.contains("sidebar") && obj["sidebar"].isObject()) {
         m.icon = obj["sidebar"].toObject()["icon"].toString().trimmed();
+    }
+    if (m.icon.isEmpty() && obj.contains("entries") && obj["entries"].isObject()) {
+        QJsonObject ent = obj["entries"].toObject();
+        if (ent.contains("sidebar") && ent["sidebar"].isObject()) {
+            m.icon = ent["sidebar"].toObject()["icon"].toString().trimmed();
+        }
     }
     if (!m.icon.isEmpty() && !m.icon.startsWith("qrc:") && !m.icon.startsWith("http") && !m.icon.endsWith(".svg") && !m.icon.endsWith(".png")) {
         m.icon = "qrc:/assets/icons/plugin.svg";
@@ -90,6 +106,20 @@ PluginMetadata PluginMetadata::fromJson(const QJsonObject &obj)
     }
     if (obj.contains("hooks") && obj["hooks"].isObject()) {
         m.hooks = obj["hooks"].toObject();
+    }
+    if (obj.contains("entries") && obj["entries"].isObject()) {
+        m.entries = obj["entries"].toObject();
+        if (m.sidebar.isEmpty() && m.entries.contains("sidebar") && m.entries["sidebar"].isObject()) {
+            m.sidebar = m.entries["sidebar"].toObject();
+        }
+    }
+    if (obj.contains("permissions") && obj["permissions"].isArray()) {
+        for (const auto &p : obj["permissions"].toArray()) {
+            m.permissions.append(p.toString().trimmed());
+        }
+    }
+    if (obj.contains("minAppVersion")) {
+        m.minAppVersion = obj["minAppVersion"].toString().trimmed();
     }
     return m;
 }
@@ -137,6 +167,48 @@ QNetworkAccessManager *PluginManager::networkManager()
 void PluginManager::initialize()
 {
     refreshInstalledPlugins();
+
+    auto *ae = AudioEngine::instance();
+    auto *lm = LibraryManager::instance();
+
+    if (ae) {
+        connect(ae, &AudioEngine::playbackStateChanged, this, [this](AudioEngine::PlaybackState state) {
+            emit playbackStateChanged(static_cast<int>(state));
+        });
+        connect(ae, &AudioEngine::positionChanged, this, [this](qint64 pos) {
+            emit positionChanged(pos, AudioEngine::instance()->durationMs());
+        });
+        connect(ae, &AudioEngine::trackChanged, this, [this](const QString &path) {
+            Q_UNUSED(path);
+            emit trackChanged(getCurrentMetadata());
+        });
+        connect(ae, &AudioEngine::currentMetadataChanged, this, [this]() {
+            emit trackChanged(getCurrentMetadata());
+        });
+        connect(ae, &AudioEngine::volumeChanged, this, &PluginManager::volumeChanged);
+        connect(ae, &AudioEngine::playModeChanged, this, [this](AudioEngine::PlayMode mode) {
+            emit playModeChanged(static_cast<int>(mode));
+        });
+        connect(ae, &AudioEngine::eqBandsChanged, this, &PluginManager::eqChanged);
+        connect(ae, &AudioEngine::eqPresetChanged, this, &PluginManager::eqChanged);
+        connect(ae, &AudioEngine::eqEnabledChanged, this, &PluginManager::eqChanged);
+        connect(ae, &AudioEngine::queueChanged, this, &PluginManager::queueChanged);
+        connect(ae, &AudioEngine::windowActiveChanged, this, [this]() {
+            emit windowActiveChanged(AudioEngine::instance()->windowActive());
+        });
+
+        if (ae->lyrics()) {
+            connect(ae->lyrics(), &LyricModel::countChanged, this, &PluginManager::lyricsChanged);
+        }
+    }
+
+    if (lm) {
+        connect(lm, &LibraryManager::allTracksChanged, this, &PluginManager::libraryChanged);
+        connect(lm, &LibraryManager::favoritesChanged, this, [this]() {
+            emit favoritesChanged(AudioEngine::instance()->currentTrack(), LibraryManager::instance()->isFavorite(AudioEngine::instance()->currentTrack()));
+        });
+        connect(lm, &LibraryManager::playlistsChanged, this, &PluginManager::playlistsChanged);
+    }
 }
 
 QStringList PluginManager::categories() const
@@ -922,3 +994,705 @@ bool PluginManager::parseIndexMarkdown(const QString &content)
     emit categoriesChanged();
     return !m_market.isEmpty();
 }
+
+// =========================================================================
+// Category 1: Audio Playback & Transport Control
+// =========================================================================
+void PluginManager::play(const QString &filePath)
+{
+    if (filePath.isEmpty()) {
+        AudioEngine::instance()->resume();
+    } else {
+        AudioEngine::instance()->play(filePath);
+    }
+}
+
+void PluginManager::pause()
+{
+    AudioEngine::instance()->pause();
+}
+
+void PluginManager::resume()
+{
+    AudioEngine::instance()->resume();
+}
+
+void PluginManager::stop()
+{
+    AudioEngine::instance()->stop();
+}
+
+void PluginManager::seek(qint64 positionMs)
+{
+    AudioEngine::instance()->seek(positionMs);
+}
+
+void PluginManager::setVolume(float volume)
+{
+    AudioEngine::instance()->setVolume(std::clamp(volume, 0.0f, 1.0f));
+}
+
+float PluginManager::getVolume() const
+{
+    return AudioEngine::instance()->volume();
+}
+
+int PluginManager::getPlaybackState() const
+{
+    return static_cast<int>(AudioEngine::instance()->playbackState());
+}
+
+qint64 PluginManager::getPositionMs() const
+{
+    return AudioEngine::instance()->positionMs();
+}
+
+qint64 PluginManager::getDurationMs() const
+{
+    return AudioEngine::instance()->durationMs();
+}
+
+QString PluginManager::getCurrentTrack() const
+{
+    return AudioEngine::instance()->currentTrack();
+}
+
+QVariantMap PluginManager::getCurrentMetadata() const
+{
+    auto *ae = AudioEngine::instance();
+    QVariantMap meta;
+    meta["filePath"] = ae->currentTrack();
+    meta["title"] = ae->currentTitle();
+    meta["artist"] = ae->currentArtist();
+    meta["album"] = ae->currentAlbum();
+    meta["coverUrl"] = ae->currentCoverUrl();
+    meta["hasCover"] = ae->hasCover();
+    meta["format"] = ae->currentFormat();
+    meta["bitrate"] = ae->currentBitrate();
+    meta["sampleRate"] = ae->currentSampleRate();
+    meta["channels"] = ae->currentChannels();
+    meta["bitDepth"] = ae->currentBitDepth();
+    meta["latencyMs"] = ae->currentLatencyMs();
+    meta["encoding"] = ae->currentEncoding();
+    meta["tool"] = ae->currentTool();
+    meta["durationMs"] = ae->durationMs();
+    meta["positionMs"] = ae->positionMs();
+    return meta;
+}
+
+int PluginManager::getPlayMode() const
+{
+    return static_cast<int>(AudioEngine::instance()->playMode());
+}
+
+void PluginManager::setPlayMode(int mode)
+{
+    AudioEngine::instance()->setPlayMode(static_cast<AudioEngine::PlayMode>(mode));
+}
+
+void PluginManager::playNext()
+{
+    AudioEngine::instance()->playNext();
+}
+
+void PluginManager::playPrevious()
+{
+    AudioEngine::instance()->playPrevious();
+}
+
+// =========================================================================
+// Category 2: Equalizer & DSP Control
+// =========================================================================
+void PluginManager::setEqEnabled(bool enabled)
+{
+    AudioEngine::instance()->setEqEnabled(enabled);
+}
+
+bool PluginManager::isEqEnabled() const
+{
+    return AudioEngine::instance()->eqEnabled();
+}
+
+void PluginManager::setEqPreamp(float preampDb)
+{
+    AudioEngine::instance()->setEqPreamp(preampDb);
+}
+
+float PluginManager::getEqPreamp() const
+{
+    return AudioEngine::instance()->eqPreamp();
+}
+
+void PluginManager::setEqBand(int index, float gainDb)
+{
+    AudioEngine::instance()->setEqBand(index, gainDb);
+}
+
+QVariantList PluginManager::getEqBands() const
+{
+    QVariantList list;
+    const auto bands = AudioEngine::instance()->eqBands();
+    for (float b : bands) {
+        list.append(b);
+    }
+    return list;
+}
+
+void PluginManager::applyEqPreset(const QString &presetName)
+{
+    AudioEngine::instance()->applyEqPreset(presetName);
+}
+
+void PluginManager::resetEq()
+{
+    AudioEngine::instance()->resetEq();
+}
+
+QString PluginManager::getEqPreset() const
+{
+    return AudioEngine::instance()->eqPreset();
+}
+
+QStringList PluginManager::getEqPresetNames() const
+{
+    return AudioEngine::instance()->eqPresetNames();
+}
+
+// =========================================================================
+// Category 3: Playback Queue
+// =========================================================================
+QVariantList PluginManager::getQueue() const
+{
+    QVariantList list;
+    auto *ae = AudioEngine::instance();
+    const QStringList pl = ae->playlist();
+    auto *lm = LibraryManager::instance();
+    for (int i = 0; i < pl.size(); ++i) {
+        QVariantMap item = lm->getTrackDetails(pl[i]);
+        item["index"] = i;
+        item["filePath"] = pl[i];
+        list.append(item);
+    }
+    return list;
+}
+
+int PluginManager::getQueueCount() const
+{
+    return AudioEngine::instance()->playlist().size();
+}
+
+int PluginManager::getCurrentQueueIndex() const
+{
+    return AudioEngine::instance()->currentIndex();
+}
+
+void PluginManager::playQueueIndex(int index)
+{
+    AudioEngine::instance()->playQueueIndex(index);
+}
+
+void PluginManager::setQueue(const QStringList &trackPaths, int startIndex)
+{
+    AudioEngine::instance()->setPlaylist(trackPaths, startIndex);
+}
+
+void PluginManager::addToQueue(const QString &filePath)
+{
+    AudioEngine::instance()->addToPlaylist(filePath);
+}
+
+void PluginManager::insertTracksNext(const QStringList &trackPaths)
+{
+    AudioEngine::instance()->insertTracksNext(trackPaths);
+}
+
+void PluginManager::clearQueue(bool keepCurrent)
+{
+    AudioEngine::instance()->clearQueue(keepCurrent);
+}
+
+void PluginManager::removeFromQueue(int index)
+{
+    AudioEngine::instance()->removeFromQueue(index);
+}
+
+void PluginManager::moveQueueItem(int from, int to)
+{
+    AudioEngine::instance()->moveQueueItem(from, to);
+}
+
+void PluginManager::shuffleQueue()
+{
+    AudioEngine::instance()->shuffleQueue();
+}
+
+// =========================================================================
+// Category 4: Media Library & Search
+// =========================================================================
+int PluginManager::getLibraryTrackCount() const
+{
+    return LibraryManager::instance()->trackCount();
+}
+
+QStringList PluginManager::getAllTrackPaths() const
+{
+    return LibraryManager::instance()->allTrackPaths();
+}
+
+QVariantList PluginManager::getAllTracks(int limit, int offset) const
+{
+    QVariantList list;
+    auto *lm = LibraryManager::instance();
+    if (!lm->allTracks()) return list;
+    const auto &tracks = lm->allTracks()->tracks();
+    int start = std::max(0, offset);
+    int end = (limit > 0) ? std::min(static_cast<int>(tracks.size()), start + limit) : static_cast<int>(tracks.size());
+    for (int i = start; i < end; ++i) {
+        const auto &t = tracks[i];
+        QVariantMap m;
+        m["filePath"] = t.path;
+        m["title"] = t.title;
+        m["artist"] = t.artist;
+        m["album"] = t.album;
+        m["durationMs"] = t.durationMs;
+        m["coverUrl"] = t.coverUrl;
+        m["format"] = t.format;
+        m["bitrateKbps"] = t.bitrateKbps;
+        list.append(m);
+    }
+    return list;
+}
+
+QVariantMap PluginManager::getTrackDetails(const QString &filePath) const
+{
+    return LibraryManager::instance()->getTrackDetails(filePath);
+}
+
+QVariantList PluginManager::getAllAlbums() const
+{
+    QVariantList list;
+    auto *lm = LibraryManager::instance();
+    if (!lm->allAlbums()) return list;
+    const auto &albums = lm->allAlbums()->albums();
+    for (const auto &a : albums) {
+        QVariantMap m;
+        m["name"] = a.name;
+        m["artist"] = a.artist;
+        m["coverUrl"] = a.coverUrl;
+        m["trackCount"] = a.trackCount;
+        m["path"] = a.path;
+        list.append(m);
+    }
+    return list;
+}
+
+QVariantList PluginManager::getAllArtists() const
+{
+    QVariantList list;
+    auto *lm = LibraryManager::instance();
+    if (!lm->allArtists()) return list;
+    const auto &artists = lm->allArtists()->albums();
+    for (const auto &a : artists) {
+        QVariantMap m;
+        m["name"] = a.name;
+        m["trackCount"] = a.trackCount;
+        m["coverUrl"] = a.coverUrl;
+        list.append(m);
+    }
+    return list;
+}
+
+QVariantList PluginManager::getAlbumTracks(const QString &albumName, const QString &artist) const
+{
+    QVariantList list;
+    auto *lm = LibraryManager::instance();
+    if (!lm->allTracks()) return list;
+    const auto &tracks = lm->allTracks()->tracks();
+    for (const auto &t : tracks) {
+        if (t.album.compare(albumName, Qt::CaseInsensitive) == 0) {
+            if (artist.isEmpty() || t.artist.contains(artist, Qt::CaseInsensitive)) {
+                QVariantMap m;
+                m["filePath"] = t.path;
+                m["title"] = t.title;
+                m["artist"] = t.artist;
+                m["album"] = t.album;
+                m["durationMs"] = t.durationMs;
+                list.append(m);
+            }
+        }
+    }
+    return list;
+}
+
+QVariantList PluginManager::getArtistTracks(const QString &artistName) const
+{
+    QVariantList list;
+    auto *lm = LibraryManager::instance();
+    if (!lm->allTracks()) return list;
+    const auto &tracks = lm->allTracks()->tracks();
+    for (const auto &t : tracks) {
+        if (t.artist.contains(artistName, Qt::CaseInsensitive)) {
+            QVariantMap m;
+            m["filePath"] = t.path;
+            m["title"] = t.title;
+            m["artist"] = t.artist;
+            m["album"] = t.album;
+            m["durationMs"] = t.durationMs;
+            list.append(m);
+        }
+    }
+    return list;
+}
+
+QVariantMap PluginManager::searchLibrary(const QString &keyword) const
+{
+    QVariantMap res;
+    QVariantList trackList;
+    auto *lm = LibraryManager::instance();
+    if (!lm->allTracks()) return res;
+    const auto &tracks = lm->allTracks()->tracks();
+    for (const auto &t : tracks) {
+        if (t.title.contains(keyword, Qt::CaseInsensitive) ||
+            t.artist.contains(keyword, Qt::CaseInsensitive) ||
+            t.album.contains(keyword, Qt::CaseInsensitive)) {
+            QVariantMap m;
+            m["filePath"] = t.path;
+            m["title"] = t.title;
+            m["artist"] = t.artist;
+            m["album"] = t.album;
+            m["durationMs"] = t.durationMs;
+            trackList.append(m);
+        }
+    }
+    res["tracks"] = trackList;
+    res["totalMatches"] = trackList.size();
+    return res;
+}
+
+void PluginManager::rescanLibrary()
+{
+    ConfigManager::instance()->rescanLibrary();
+}
+
+bool PluginManager::isScanningLibrary() const
+{
+    return LibraryManager::instance()->isScanning();
+}
+
+// =========================================================================
+// Category 5: Playlists & User Favorites
+// =========================================================================
+bool PluginManager::isFavorite(const QString &trackPath) const
+{
+    return LibraryManager::instance()->isFavorite(trackPath);
+}
+
+void PluginManager::toggleFavorite(const QString &trackPath)
+{
+    LibraryManager::instance()->toggleFavorite(trackPath);
+}
+
+void PluginManager::setFavorite(const QString &trackPath, bool favorite)
+{
+    bool cur = LibraryManager::instance()->isFavorite(trackPath);
+    if (cur != favorite) {
+        LibraryManager::instance()->toggleFavorite(trackPath);
+    }
+}
+
+int PluginManager::getFavoriteCount() const
+{
+    return LibraryManager::instance()->favoriteCount();
+}
+
+QStringList PluginManager::getFavoriteTracks() const
+{
+    QStringList favs;
+    auto *lm = LibraryManager::instance();
+    const QStringList all = lm->allTrackPaths();
+    for (const QString &p : all) {
+        if (lm->isFavorite(p)) {
+            favs.append(p);
+        }
+    }
+    return favs;
+}
+
+QVariantList PluginManager::getAllPlaylists() const
+{
+    QVariantList list;
+    auto *lm = LibraryManager::instance();
+    if (!lm->playlistsModel()) return list;
+    const auto &pls = lm->playlistsModel()->playlists();
+    for (const auto &p : pls) {
+        QVariantMap m;
+        m["id"] = p.id;
+        m["name"] = p.name;
+        m["description"] = p.description;
+        m["coverUrl"] = p.coverUrl;
+        m["trackCount"] = p.trackCount;
+        m["isFavorites"] = p.isFavorites;
+        m["trackPaths"] = p.trackPaths;
+        list.append(m);
+    }
+    return list;
+}
+
+QVariantList PluginManager::getPlaylistTracks(const QString &playlistId) const
+{
+    QVariantList list;
+    auto *lm = LibraryManager::instance();
+    if (!lm->playlistsModel()) return list;
+    const auto item = lm->playlistsModel()->findPlaylist(playlistId);
+    for (const QString &p : item.trackPaths) {
+        list.append(lm->getTrackDetails(p));
+    }
+    return list;
+}
+
+QString PluginManager::createPlaylist(const QString &name, const QStringList &trackPaths)
+{
+    auto *lm = LibraryManager::instance();
+    if (trackPaths.isEmpty()) {
+        return lm->createPlaylist(name);
+    } else {
+        return lm->createPlaylistWithTracks(name, trackPaths);
+    }
+}
+
+bool PluginManager::deletePlaylist(const QString &playlistId)
+{
+    LibraryManager::instance()->deletePlaylist(playlistId);
+    return true;
+}
+
+bool PluginManager::renamePlaylist(const QString &playlistId, const QString &newName)
+{
+    LibraryManager::instance()->renamePlaylist(playlistId, newName);
+    return true;
+}
+
+bool PluginManager::addTracksToPlaylist(const QString &playlistId, const QStringList &trackPaths)
+{
+    LibraryManager::instance()->addTracksToPlaylist(playlistId, trackPaths);
+    return true;
+}
+
+bool PluginManager::removeTracksFromPlaylist(const QString &playlistId, const QStringList &trackPaths)
+{
+    LibraryManager::instance()->removeTracksFromPlaylist(playlistId, trackPaths);
+    return true;
+}
+
+void PluginManager::playPlaylist(const QString &playlistId, bool shuffle)
+{
+    LibraryManager::instance()->playPlaylist(playlistId, shuffle);
+}
+
+// =========================================================================
+// Category 6: Synchronized Lyrics
+// =========================================================================
+bool PluginManager::hasLyrics() const
+{
+    auto *l = AudioEngine::instance()->lyrics();
+    return l && l->hasLyrics();
+}
+
+bool PluginManager::hasLyricTranslation() const
+{
+    auto *l = AudioEngine::instance()->lyrics();
+    return l && l->hasTranslation();
+}
+
+int PluginManager::getLyricCount() const
+{
+    auto *l = AudioEngine::instance()->lyrics();
+    return l ? l->rowCount() : 0;
+}
+
+int PluginManager::getCurrentLyricIndex() const
+{
+    auto *l = AudioEngine::instance()->lyrics();
+    return l ? l->activeIndex() : -1;
+}
+
+QVariantList PluginManager::getAllLyrics() const
+{
+    QVariantList list;
+    auto *l = AudioEngine::instance()->lyrics();
+    if (!l) return list;
+    int count = l->rowCount();
+    for (int i = 0; i < count; ++i) {
+        QModelIndex idx = l->index(i, 0);
+        QVariantMap m;
+        m["index"] = i;
+        m["timeMs"] = l->data(idx, LyricModel::TimeMsRole);
+        m["text"] = l->data(idx, LyricModel::TextRole);
+        m["translation"] = l->data(idx, LyricModel::TransRole);
+        list.append(m);
+    }
+    return list;
+}
+
+QVariantMap PluginManager::getLyricLine(int index) const
+{
+    QVariantMap m;
+    auto *l = AudioEngine::instance()->lyrics();
+    if (!l || index < 0 || index >= l->rowCount()) return m;
+    QModelIndex idx = l->index(index, 0);
+    m["index"] = index;
+    m["timeMs"] = l->data(idx, LyricModel::TimeMsRole);
+    m["text"] = l->data(idx, LyricModel::TextRole);
+    m["translation"] = l->data(idx, LyricModel::TransRole);
+    return m;
+}
+
+bool PluginManager::loadLrcContent(const QString &lrcContent)
+{
+    auto *l = AudioEngine::instance()->lyrics();
+    if (!l) return false;
+    l->loadLrcContent(lrcContent);
+    emit lyricsChanged();
+    return true;
+}
+
+void PluginManager::clearLyrics()
+{
+    auto *l = AudioEngine::instance()->lyrics();
+    if (l) {
+        l->clear();
+        emit lyricsChanged();
+    }
+}
+
+// =========================================================================
+// Category 7: Application Environment & State
+// =========================================================================
+QString PluginManager::getAppVersion() const
+{
+    return QStringLiteral("1.1.1");
+}
+
+QString PluginManager::getAppLanguage() const
+{
+    return ConfigManager::instance()->effectiveLanguage();
+}
+
+QString PluginManager::getThemeMode() const
+{
+    return ConfigManager::instance()->themeMode();
+}
+
+QString PluginManager::getSeedColor() const
+{
+    return ConfigManager::instance()->seedColor();
+}
+
+QString PluginManager::getPluginDataDir(const QString &pluginId) const
+{
+    return PathManager::instance()->pluginDataDir(pluginId);
+}
+
+bool PluginManager::isWindowActive() const
+{
+    return AudioEngine::instance()->windowActive();
+}
+
+// =========================================================================
+// Category 8: View Slot Injections & Actions
+// =========================================================================
+QVariantList PluginManager::getInjectedMenuItems(const QString &slotType, const QVariantMap &contextData) const
+{
+    Q_UNUSED(contextData);
+    QVariantList items;
+    for (auto it = m_installed.cbegin(); it != m_installed.cend(); ++it) {
+        if (!it->enabled) continue;
+        if (!it->entries.contains("contextMenu") || !it->entries["contextMenu"].isObject()) continue;
+
+        QJsonObject ctxMenu = it->entries["contextMenu"].toObject();
+        if (!ctxMenu.contains(slotType)) continue;
+
+        QJsonValue val = ctxMenu[slotType];
+        auto parseEntry = [&](const QJsonObject &obj) {
+            if (obj.contains("enabled") && !obj["enabled"].toBool()) return;
+            QVariantMap item;
+            item["pluginId"] = it->id;
+            item["pluginName"] = it->name;
+            item["id"] = obj["id"].toString(obj["action"].toString());
+            item["title"] = obj["title"].toString(it->name);
+            QString icon = obj["icon"].toString();
+            if (icon.isEmpty()) {
+                item["icon"] = it->icon;
+            } else if (!icon.startsWith("qrc:") && !icon.startsWith("http")) {
+                item["icon"] = QUrl::fromLocalFile(it->localDir + "/" + icon).toString();
+            } else {
+                item["icon"] = icon;
+            }
+            item["slotType"] = slotType;
+            items.append(item);
+        };
+
+        if (val.isArray()) {
+            const auto arr = val.toArray();
+            for (const auto &e : arr) {
+                if (e.isObject()) parseEntry(e.toObject());
+            }
+        } else if (val.isObject()) {
+            parseEntry(val.toObject());
+        }
+    }
+    return items;
+}
+
+QVariantList PluginManager::getInjectedPlaybackControls() const
+{
+    QVariantList controls;
+    for (auto it = m_installed.cbegin(); it != m_installed.cend(); ++it) {
+        if (!it->enabled) continue;
+        if (!it->entries.contains("playbackControl")) continue;
+
+        QJsonValue val = it->entries["playbackControl"];
+        auto parseControl = [&](const QJsonObject &obj) {
+            if (obj.contains("enabled") && !obj["enabled"].toBool()) return;
+            QVariantMap c;
+            c["pluginId"] = it->id;
+            c["pluginName"] = it->name;
+            c["id"] = obj["id"].toString(obj["action"].toString());
+            c["title"] = obj["title"].toString(obj["tooltip"].toString(it->name));
+            QString icon = obj["icon"].toString();
+            if (icon.isEmpty()) {
+                c["icon"] = it->icon;
+            } else if (!icon.startsWith("qrc:") && !icon.startsWith("http")) {
+                c["icon"] = QUrl::fromLocalFile(it->localDir + "/" + icon).toString();
+            } else {
+                c["icon"] = icon;
+            }
+            controls.append(c);
+        };
+
+        if (val.isArray()) {
+            for (const auto &e : val.toArray()) {
+                if (e.isObject()) parseControl(e.toObject());
+            }
+        } else if (val.isObject()) {
+            parseControl(val.toObject());
+        }
+    }
+    return controls;
+}
+
+void PluginManager::triggerPluginAction(const QString &pluginId, const QString &actionId, const QString &slotType, const QVariantMap &payload)
+{
+    qInfo() << "[PluginManager] Action triggered for plugin:" << pluginId << "action:" << actionId << "slot:" << slotType;
+    emit pluginActionTriggered(pluginId, actionId, slotType, payload);
+}
+
+QVariantMap PluginManager::executePluginHook(const QString &hookType, const QVariantMap &params)
+{
+    QVariantMap res;
+    if (hookType == "search") {
+        res["results"] = executeSearchHook(params.value("query").toString());
+    }
+    return res;
+}
+

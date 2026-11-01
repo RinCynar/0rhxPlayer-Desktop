@@ -3,6 +3,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import rhx.audio 1.0
 import rhx.library 1.0
+import rhx.plugin 1.0
 import rhx.ui 1.0
 import rhx.theme 1.0
 
@@ -583,6 +584,48 @@ Rectangle {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: playerBar.queueRequested()
+                }
+            }
+
+            // 6. Injected Playback Controls from Active Plugins (Phase 17)
+            Repeater {
+                model: PluginManager.getInjectedPlaybackControls()
+                delegate: Rectangle {
+                    Layout.preferredWidth: 36
+                    Layout.preferredHeight: 36
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: 18
+                    color: plugControlMouse.containsMouse ? Theme.surfaceContainerHigh : "transparent"
+                    scale: plugControlMouse.pressed ? 0.90 : (plugControlMouse.containsMouse ? 1.08 : 1.0)
+
+                    Behavior on scale {
+                        NumberAnimation { duration: 120; easing.type: Easing.OutQuad }
+                    }
+                    Behavior on color {
+                        ColorAnimation { duration: 120 }
+                    }
+
+                    SvgIcon {
+                        anchors.centerIn: parent
+                        width: 17
+                        height: 17
+                        source: modelData.icon || "qrc:/assets/icons/plugin.svg"
+                        color: plugControlMouse.containsMouse ? Theme.primary : Theme.iconNeutral
+                    }
+
+                    MouseArea {
+                        id: plugControlMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            PluginManager.triggerPluginAction(modelData.pluginId, modelData.id, "playbackControl", {
+                                currentTrack: AudioEngine.currentTrack,
+                                isPlaying: AudioEngine.playbackState === 1,
+                                positionMs: AudioEngine.positionMs
+                            });
+                        }
+                    }
                 }
             }
         }

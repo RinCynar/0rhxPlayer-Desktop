@@ -2535,6 +2535,150 @@ int main(int argc, char *argv[])
             // Clean up temporary files
             QDir(tempPkgDir).removeRecursively();
 
+            // 5. Phase 17: Full Host API Surface & Event Bus Verification
+            qInfo() << "[Test-Plugin] Verifying Phase 17 Host APIs...";
+            if (mgr->getAppVersion() != "1.1.1") {
+                qWarning() << "[Test-Plugin] getAppVersion mismatch:" << mgr->getAppVersion();
+                pass = false;
+            }
+
+            // Audio & Playback Controls
+            float origVol = mgr->getVolume();
+            mgr->setVolume(0.75f);
+            if (std::abs(mgr->getVolume() - 0.75f) > 0.01f) {
+                qWarning() << "[Test-Plugin] setVolume / getVolume failed! Got:" << mgr->getVolume();
+                pass = false;
+            }
+            mgr->setVolume(origVol);
+
+            int origMode = mgr->getPlayMode();
+            mgr->setPlayMode(2); // Shuffle
+            if (mgr->getPlayMode() != 2) {
+                qWarning() << "[Test-Plugin] setPlayMode(2) failed!";
+                pass = false;
+            }
+            mgr->setPlayMode(origMode);
+
+            // Equalizer Controls
+            bool origEq = mgr->isEqEnabled();
+            mgr->setEqEnabled(true);
+            mgr->setEqPreamp(2.5f);
+            if (!mgr->isEqEnabled() || std::abs(mgr->getEqPreamp() - 2.5f) > 0.1f) {
+                qWarning() << "[Test-Plugin] Equalizer host controls failed!";
+                pass = false;
+            }
+            mgr->setEqEnabled(origEq);
+
+            // Lyrics Feed Controls
+            bool lyricLoadOk = mgr->loadLrcContent("[00:01.00]Line 1\n[00:04.00]Line 2\n[00:08.00]Line 3");
+            if (!lyricLoadOk || !mgr->hasLyrics() || mgr->getLyricCount() != 3) {
+                qWarning() << "[Test-Plugin] loadLrcContent failed! hasLyrics:" << mgr->hasLyrics() << "count:" << mgr->getLyricCount();
+                pass = false;
+            }
+            QVariantMap line1 = mgr->getLyricLine(1);
+            if (line1.value("text").toString() != "Line 2") {
+                qWarning() << "[Test-Plugin] getLyricLine(1) mismatch:" << line1.value("text").toString();
+                pass = false;
+            }
+            mgr->clearLyrics();
+            if (mgr->hasLyrics() || mgr->getLyricCount() != 0) {
+                qWarning() << "[Test-Plugin] clearLyrics failed!";
+                pass = false;
+            }
+
+            // Official Reserved Prefix Validation (top.rincynar.*)
+            if (!PluginMetadata::isOfficialPluginId("top.rincynar.netease")) {
+                qWarning() << "[Test-Plugin] isOfficialPluginId failed for top.rincynar.netease!";
+                pass = false;
+            }
+            if (PluginMetadata::isOfficialPluginId("com.rincynar.plugin") || PluginMetadata::isOfficialPluginId("top.0rhx.test")) {
+                qWarning() << "[Test-Plugin] isOfficialPluginId falsely matched non-official prefix!";
+                pass = false;
+            }
+
+            // Injected Context Menu & Control Slots Verification
+            QString slotPkgDir = pm->pluginsCacheDir() + "/slot_test_pkg";
+            QDir().mkpath(slotPkgDir);
+            QFile slotManifest(slotPkgDir + "/plugin.json");
+            if (slotManifest.open(QIODevice::WriteOnly)) {
+                QJsonObject root;
+                root["id"] = "top.rincynar.slottest";
+                root["name"] = "Slot Test Plugin";
+                root["version"] = "1.0.0";
+                root["author"] = "RinCynar";
+                root["description"] = "Test slot injections";
+                root["minAppVersion"] = "1.1.1";
+
+                QJsonObject entries;
+                QJsonObject ctxMenu;
+                QJsonObject trackAction;
+                trackAction["id"] = "test_track_action";
+                trackAction["title"] = "Test Injected Action";
+                trackAction["icon"] = "qrc:/assets/icons/info.svg";
+                ctxMenu["track"] = trackAction;
+                entries["contextMenu"] = ctxMenu;
+
+                QJsonObject pbCtrl;
+                pbCtrl["id"] = "test_bar_ctrl";
+                pbCtrl["title"] = "Test Bar Action";
+                pbCtrl["icon"] = "qrc:/assets/icons/plugin.svg";
+                entries["playbackControl"] = pbCtrl;
+
+                root["entries"] = entries;
+                slotManifest.write(QJsonDocument(root).toJson());
+                slotManifest.close();
+            }
+
+            if (mgr->installPluginFrom0px(slotPkgDir)) {
+                QVariantList menuItems = mgr->getInjectedMenuItems("track");
+                bool foundAction = false;
+                for (const auto &item : menuItems) {
+                    if (item.toMap().value("id").toString() == "test_track_action") {
+                        foundAction = true;
+                        break;
+                    }
+                }
+                if (!foundAction) {
+                    qWarning() << "[Test-Plugin] getInjectedMenuItems('track') did not find injected action!";
+                    pass = false;
+                }
+
+                QVariantList pbControls = mgr->getInjectedPlaybackControls();
+                bool foundControl = false;
+                for (const auto &c : pbControls) {
+                    if (c.toMap().value("id").toString() == "test_bar_ctrl") {
+                        foundControl = true;
+                        break;
+                    }
+                }
+                if (!foundControl) {
+                    qWarning() << "[Test-Plugin] getInjectedPlaybackControls() did not find injected control!";
+                    pass = false;
+                }
+
+                bool actionSignalReceived = false;
+                QMetaObject::Connection actConn = QObject::connect(mgr, &PluginManager::pluginActionTriggered,
+                    [&actionSignalReceived](const QString &pid, const QString &aid, const QString &st, const QVariantMap &data) {
+                        Q_UNUSED(st);
+                        Q_UNUSED(data);
+                        if (pid == "top.rincynar.slottest" && aid == "test_track_action") {
+                            actionSignalReceived = true;
+                        }
+                    });
+                mgr->triggerPluginAction("top.rincynar.slottest", "test_track_action", "track");
+                if (!actionSignalReceived) {
+                    qWarning() << "[Test-Plugin] triggerPluginAction failed to dispatch signal!";
+                    pass = false;
+                }
+                QObject::disconnect(actConn);
+
+                mgr->uninstallPlugin("top.rincynar.slottest");
+            } else {
+                qWarning() << "[Test-Plugin] Failed to install slot test plugin!";
+                pass = false;
+            }
+            QDir(slotPkgDir).removeRecursively();
+
         qInfo() << "=== Plugin Integration Test Result:" << (pass ? "PASSED" : "FAILED") << "===";
         QTimer::singleShot(150, &app, [pass]() {
             QCoreApplication::exit(pass ? 0 : 1);

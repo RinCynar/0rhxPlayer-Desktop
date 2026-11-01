@@ -40,6 +40,11 @@ public:
     Q_INVOKABLE QString appLogFile() const { return m_logDir + "/app.log"; }
     Q_INVOKABLE QString pluginsDir() const { return m_dataDir + "/plugins"; }
     Q_INVOKABLE QString pluginsCacheDir() const { return m_cacheDir + "/plugins_cache"; }
+    Q_INVOKABLE QString pluginDataDir(const QString &pluginId) const {
+        QString dir = m_dataDir + "/plugin_data/" + pluginId;
+        QDir().mkpath(dir);
+        return dir;
+    }
 
     Q_INVOKABLE void ensureDirsExist() const;
     Q_INVOKABLE void migrateLegacyDirs();

@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import rhx.ui 1.0
 import rhx.theme 1.0
 import rhx.library 1.0
+import rhx.plugin 1.0
 
 Item {
     id: menuRoot
@@ -387,6 +388,60 @@ Item {
                         menuRoot.close();
                         if (p) {
                             LibraryManager.showInExplorer(p);
+                        }
+                    }
+                }
+            }
+
+            // Injected Context Menu Items from Active Plugins (Phase 17)
+            Repeater {
+                model: PluginManager.getInjectedMenuItems(menuRoot.contextType === "playlist" ? "playlist" : "track", {
+                    paths: menuRoot.selectedTrackPaths,
+                    title: menuRoot.singleTrackTitle,
+                    artist: menuRoot.singleTrackArtist
+                })
+                delegate: Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 34
+                    color: itemPluginMouse.containsMouse ? Theme.surfaceContainerLow : "transparent"
+                    radius: 6
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 10
+
+                        SvgIcon {
+                            width: 14
+                            height: 14
+                            source: modelData.icon || "qrc:/assets/icons/plugin.svg"
+                            color: Theme.primary
+                        }
+
+                        Text {
+                            text: modelData.title
+                            font.pixelSize: 12
+                            color: Theme.textPrimary
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    MouseArea {
+                        id: itemPluginMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            var p = (menuRoot.selectedTrackPaths && menuRoot.selectedTrackPaths.length > 0) ? menuRoot.selectedTrackPaths[0] : "";
+                            PluginManager.triggerPluginAction(modelData.pluginId, modelData.id, menuRoot.contextType === "playlist" ? "playlist" : "track", {
+                                path: p,
+                                paths: menuRoot.selectedTrackPaths,
+                                title: menuRoot.singleTrackTitle,
+                                artist: menuRoot.singleTrackArtist
+                            });
+                            menuRoot.close();
                         }
                     }
                 }

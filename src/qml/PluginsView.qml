@@ -637,7 +637,7 @@ Item {
 
                                         // Open Button (if installed and has sidebar)
                                         Rectangle {
-                                            visible: modelData.installed && modelData.enabled && modelData.sidebar && modelData.sidebar.route
+                                            visible: Boolean(modelData.installed && modelData.enabled && modelData.sidebar && modelData.sidebar.route)
                                             width: 64
                                             height: 30
                                             radius: 15
