@@ -187,5 +187,5 @@ private:
     QString m_foldersViewMode = "compact";
     QStringList m_searchHistory;
     QString m_language = "system";
-    QString m_pluginSource = "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugin/main/index.md";
+    QString m_pluginSource = "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugins/main/index.md";
 };

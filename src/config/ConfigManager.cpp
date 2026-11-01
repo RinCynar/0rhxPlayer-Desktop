@@ -217,8 +217,12 @@ void ConfigManager::loadSettings()
         m_language = "system";
     }
 
-    // Plugins & Extensions
-    m_pluginSource = settings.value("Plugins/Source", "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugin/main/index.md").toString();
+    // Plugins
+    m_pluginSource = settings.value("Plugins/Source", "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugins/main/index.md").toString();
+    if (m_pluginSource.contains("0rhxPlayer-Plugin/")) {
+        m_pluginSource.replace("0rhxPlayer-Plugin/", "0rhxPlayer-Plugins/");
+        saveSettings();
+    }
 }
 
 void ConfigManager::saveSettings()
@@ -710,7 +714,7 @@ void ConfigManager::setPluginSource(const QString &source)
 
 void ConfigManager::resetPluginSource()
 {
-    setPluginSource("https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugin/main/index.md");
+    setPluginSource("https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugins/main/index.md");
 }
 
 void ConfigManager::registerPluginNavItem(const QString &pluginId, const QString &title, const QString &iconSource, const QString &route)

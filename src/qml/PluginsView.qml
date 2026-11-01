@@ -135,7 +135,9 @@ Item {
             cardsRepeater.model = getFilteredList();
         }
         function onErrorOccurred(error) {
-            showToast(error);
+            if (error.indexOf("fetch plugin index") === -1 && error.indexOf("fetch market index") === -1) {
+                showToast(error);
+            }
         }
     }
 
@@ -151,22 +153,12 @@ Item {
             Layout.fillWidth: true
             spacing: 16
 
-            ColumnLayout {
+            Text {
                 Layout.fillWidth: true
-                spacing: 4
-
-                Text {
-                    text: qsTr("Plugins & Extensions")
-                    font.pixelSize: 26
-                    font.bold: true
-                    color: Theme.textPrimary
-                }
-
-                Text {
-                    text: qsTr("Explore, install and manage native 0rhxPlayer extensions (100% Native M3 • No WebView)")
-                    font.pixelSize: 13
-                    color: Theme.textSecondary
-                }
+                text: qsTr("Plugins")
+                font.pixelSize: 26
+                font.bold: true
+                color: Theme.textPrimary
             }
 
             // Install Local Package Button
@@ -338,7 +330,7 @@ Item {
                 spacing: 8
 
                 Repeater {
-                    model: ["All", "NetService", "Lyrics", "Metadata", "Test", "Installed"]
+                    model: ["All", "NetService", "Lyrics", "Metadata", "Tools", "Test", "Installed"]
                     delegate: Rectangle {
                         readonly property bool isSelected: root.selectedCategory === modelData
                         height: 32
@@ -359,6 +351,7 @@ Item {
                                     case "NetService": return qsTr("NetService");
                                     case "Lyrics": return qsTr("Lyrics");
                                     case "Metadata": return qsTr("Metadata");
+                                    case "Tools": return qsTr("Tools");
                                     case "Test": return qsTr("Test");
                                     case "Installed": return qsTr("Installed");
                                     default: return modelData;
@@ -384,21 +377,120 @@ Item {
             }
         }
 
-        // Market Status Bar
-        Text {
-            text: PluginManager.marketStatusMessage
-            font.pixelSize: 12
-            color: Theme.textMuted
-            visible: text.length > 0
+        // --------------------------------------------------------------------
+        // 3. Centered Error State Card (when fetch fails & list is empty)
+        // --------------------------------------------------------------------
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: !PluginManager.isFetchingMarket && root.getFilteredList().length === 0 && PluginManager.lastErrorMessage.length > 0
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: Math.min(parent.width - 40, 380)
+                height: 180
+                radius: 16
+                color: Theme.surfaceContainerLow
+                border.color: Theme.borderSubtle
+                border.width: 1
+
+                ColumnLayout {
+                    anchors.centerIn: parent
+                    spacing: 12
+                    width: parent.width - 48
+
+                    SvgIcon {
+                        Layout.alignment: Qt.AlignHCenter
+                        width: 32
+                        height: 32
+                        source: "qrc:/assets/icons/refresh.svg"
+                        color: Theme.textSecondary
+                    }
+
+                    Text {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: qsTr("Failed to load plugins")
+                        font.pixelSize: 15
+                        font.bold: true
+                        color: Theme.textPrimary
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignHCenter
+                        horizontalAlignment: Text.AlignHCenter
+                        text: qsTr("Please check your network connection or repository URL.")
+                        font.pixelSize: 12
+                        color: Theme.textSecondary
+                        wrapMode: Text.Wrap
+                    }
+
+                    Rectangle {
+                        Layout.alignment: Qt.AlignHCenter
+                        width: 92
+                        height: 32
+                        radius: 16
+                        color: retryMouse.containsMouse ? Qt.darker(Theme.primary, 1.1) : Theme.primary
+                        scale: retryMouse.pressed ? 0.95 : 1.0
+                        Behavior on scale { NumberAnimation { duration: 80 } }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: qsTr("Retry")
+                            font.pixelSize: 12
+                            font.bold: true
+                            color: Theme.colorOnPrimary
+                        }
+
+                        MouseArea {
+                            id: retryMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: PluginManager.fetchMarketIndex()
+                        }
+                    }
+                }
+            }
         }
 
         // --------------------------------------------------------------------
-        // 3. Plugin Cards Grid / Scrollable List
+        // 4. Centered Empty State (when search/category has no matches)
+        // --------------------------------------------------------------------
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: !PluginManager.isFetchingMarket && root.getFilteredList().length === 0 && PluginManager.lastErrorMessage.length === 0
+
+            ColumnLayout {
+                anchors.centerIn: parent
+                spacing: 12
+
+                SvgIcon {
+                    Layout.alignment: Qt.AlignHCenter
+                    width: 32
+                    height: 32
+                    source: "qrc:/assets/icons/plugin.svg"
+                    color: Theme.iconNeutral
+                }
+
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: qsTr("No plugins found")
+                    font.pixelSize: 14
+                    color: Theme.textMuted
+                }
+            }
+        }
+
+        // --------------------------------------------------------------------
+        // 5. Plugin Cards Grid / Scrollable List
         // --------------------------------------------------------------------
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
+            visible: root.getFilteredList().length > 0
 
             Flickable {
                 contentWidth: width
@@ -659,10 +751,10 @@ Item {
     Rectangle {
         id: toastBanner
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 24
+        anchors.bottomMargin: 16
         anchors.horizontalCenter: parent.horizontalCenter
         height: 38
-        width: toastText.implicitWidth + 32
+        width: Math.min(parent.width - 48, toastText.implicitWidth + 32)
         radius: 19
         color: Theme.surfaceContainerHighest
         border.color: Theme.primary
@@ -673,10 +765,13 @@ Item {
         Text {
             id: toastText
             anchors.centerIn: parent
+            width: Math.min(parent.width - 64, implicitWidth)
             text: root.toastMessage
             font.pixelSize: 13
             font.bold: true
             color: Theme.textPrimary
+            elide: Text.ElideRight
+            maximumLineCount: 1
         }
     }
 }

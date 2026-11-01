@@ -51,14 +51,14 @@ The `plugin.json` file resides in the root of the `.0px` bundle. All field defin
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugin/main/schema/v1/plugin.schema.json",
+  "$schema": "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugins/main/schema/v1/plugin.schema.json",
   "id": "com.rincynar.netease",
   "name": "Netease Cloud Music",
   "version": "1.0.0",
   "author": "RinCynar",
   "description": "Cloud streaming, library sync, and search hook for Netease Music.",
   "category": "NetService",
-  "homepage": "https://github.com/RinCynar/0rhxPlayer-Plugin",
+  "homepage": "https://github.com/RinCynar/0rhxPlayer-Plugins",
   "enabled": true,
   "sidebar": {
     "title": "Cloud Music",
@@ -184,7 +184,7 @@ plugins:
     author: "RinCynar"
     description: "Cloud streaming and search hook"
     category: "NetService"
-    packageUrl: "https://github.com/RinCynar/0rhxPlayer-Plugin/releases/download/v1.0.0/netease.0px"
+    packageUrl: "https://github.com/RinCynar/0rhxPlayer-Plugins/releases/download/v1.0.0/netease.0px"
     icon: "globe.svg"
   - id: "com.rincynar.krclyrics"
     name: "KRC Synced Lyrics"
@@ -192,7 +192,7 @@ plugins:
     author: "0P Contributors"
     description: "Karaoke syllable-level synced lyrics"
     category: "Lyrics"
-    packageUrl: "https://github.com/RinCynar/0rhxPlayer-Plugin/releases/download/v1.1.0/krclyrics.0px"
+    packageUrl: "https://github.com/RinCynar/0rhxPlayer-Plugins/releases/download/v1.1.0/krclyrics.0px"
     icon: "music.svg"
 ---
 

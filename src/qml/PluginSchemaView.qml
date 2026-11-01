@@ -73,22 +73,12 @@ Item {
                 }
             }
 
-            ColumnLayout {
+            Text {
                 Layout.fillWidth: true
-                spacing: 2
-
-                Text {
-                    text: root.schemaData.title || qsTr("Extension View")
-                    font.pixelSize: 24
-                    font.bold: true
-                    color: Theme.textPrimary
-                }
-
-                Text {
-                    text: qsTr("Native Material 3 Schema Engine (Pure QML • 120 FPS)")
-                    font.pixelSize: 12
-                    color: Theme.textSecondary
-                }
+                text: root.schemaData.title || qsTr("Plugin")
+                font.pixelSize: 24
+                font.bold: true
+                color: Theme.textPrimary
             }
         }
 

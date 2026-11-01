@@ -2,6 +2,7 @@
 #include "../core/PathManager.h"
 #include "../config/ConfigManager.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -51,7 +52,36 @@ PluginMetadata PluginMetadata::fromJson(const QJsonObject &obj)
     }
     m.homepage = obj["homepage"].toString().trimmed();
     m.icon = obj["icon"].toString().trimmed();
+    if (m.icon.isEmpty() && obj.contains("sidebar") && obj["sidebar"].isObject()) {
+        m.icon = obj["sidebar"].toObject()["icon"].toString().trimmed();
+    }
+    if (!m.icon.isEmpty() && !m.icon.startsWith("qrc:") && !m.icon.startsWith("http") && !m.icon.endsWith(".svg") && !m.icon.endsWith(".png")) {
+        m.icon = "qrc:/assets/icons/plugin.svg";
+    } else if (m.icon.isEmpty()) {
+        m.icon = "qrc:/assets/icons/plugin.svg";
+    }
+
     m.packageUrl = obj["packageUrl"].toString().trimmed();
+    if (m.packageUrl.isEmpty()) {
+        m.packageUrl = obj["path"].toString().trimmed();
+    }
+    if (m.packageUrl.isEmpty()) {
+        m.packageUrl = obj["downloadUrl"].toString().trimmed();
+    }
+    if (m.packageUrl.isEmpty()) {
+        m.packageUrl = obj["url"].toString().trimmed();
+    }
+
+    if (!m.packageUrl.isEmpty() && !m.packageUrl.startsWith("http://") && !m.packageUrl.startsWith("https://") && !m.packageUrl.startsWith("file://") && !m.packageUrl.startsWith("/") && !m.packageUrl.contains(":\\")) {
+        QString baseSourceUrl = ConfigManager::instance()->pluginSource();
+        int lastSlash = baseSourceUrl.lastIndexOf('/');
+        QString baseUrl = (lastSlash != -1) ? baseSourceUrl.left(lastSlash + 1) : "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugins/main/";
+        if (!baseUrl.endsWith('/')) baseUrl += '/';
+        QString rel = m.packageUrl;
+        while (rel.startsWith('/')) rel = rel.mid(1);
+        m.packageUrl = baseUrl + rel;
+    }
+
     if (obj.contains("enabled")) {
         m.enabled = obj["enabled"].toBool();
     }
@@ -72,12 +102,37 @@ PluginManager *PluginManager::instance()
 
 PluginManager::PluginManager(QObject *parent)
     : QObject(parent)
-    , m_networkManager(new QNetworkAccessManager(this))
 {
     loadEnabledPluginsConfig();
 }
 
-PluginManager::~PluginManager() = default;
+PluginManager::~PluginManager()
+{
+    if (m_networkManager) {
+        delete m_networkManager;
+        m_networkManager = nullptr;
+    }
+}
+
+QNetworkAccessManager *PluginManager::networkManager()
+{
+    if (!m_networkManager) {
+        m_networkManager = new QNetworkAccessManager(this);
+        if (qApp) {
+            connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() {
+                if (m_networkManager) {
+                    const auto replies = m_networkManager->findChildren<QNetworkReply*>();
+                    for (auto *r : replies) {
+                        r->abort();
+                    }
+                    delete m_networkManager;
+                    m_networkManager = nullptr;
+                }
+            });
+        }
+    }
+    return m_networkManager;
+}
 
 void PluginManager::initialize()
 {
@@ -190,6 +245,8 @@ void PluginManager::updateSidebarItemForPlugin(const PluginMetadata &meta)
         QString localIcon = meta.localDir + "/" + icon;
         if (QFile::exists(localIcon)) {
             icon = QUrl::fromLocalFile(localIcon).toString();
+        } else {
+            icon = "qrc:/assets/icons/plugin.svg";
         }
     }
     QString route = meta.sidebar["route"].toString(meta.id);
@@ -414,7 +471,7 @@ void PluginManager::installPluginFromMarket(const QString &pluginId)
     QNetworkRequest request(url);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
 
-    QNetworkReply *reply = m_networkManager->get(request);
+    QNetworkReply *reply = networkManager()->get(request);
 
     connect(reply, &QNetworkReply::downloadProgress, this, [this, pluginId](qint64 received, qint64 total) {
         emit installProgress(pluginId, received, total);
@@ -603,7 +660,7 @@ void PluginManager::fetchMarketIndex(const QString &customUrl)
         sourceUrl = ConfigManager::instance()->pluginSource();
     }
     if (sourceUrl.isEmpty()) {
-        sourceUrl = "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugin/main/index.md";
+        sourceUrl = "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugins/main/index.md";
     }
 
     m_isFetchingMarket = true;
@@ -615,7 +672,7 @@ void PluginManager::fetchMarketIndex(const QString &customUrl)
     QNetworkRequest request(url);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
 
-    QNetworkReply *reply = m_networkManager->get(request);
+    QNetworkReply *reply = networkManager()->get(request);
     connect(reply, &QNetworkReply::finished, this, [this, reply, sourceUrl]() {
         reply->deleteLater();
         m_isFetchingMarket = false;
@@ -624,17 +681,21 @@ void PluginManager::fetchMarketIndex(const QString &customUrl)
         if (reply->error() != QNetworkReply::NoError) {
             m_lastErrorMessage = tr("Failed to fetch plugin index: %1").arg(reply->errorString());
             m_marketStatusMessage = m_lastErrorMessage;
-            emit errorOccurred(m_lastErrorMessage);
+            m_market.clear();
+            emit marketPluginsChanged();
             emit marketStatusMessageChanged(m_marketStatusMessage);
+            emit errorOccurred(m_lastErrorMessage);
             return;
         }
 
+        m_lastErrorMessage.clear();
         QString content = QString::fromUtf8(reply->readAll());
         bool parsed = parseIndexMarkdown(content);
         if (parsed) {
             m_marketStatusMessage = tr("Loaded %1 plugins from %2").arg(m_market.size()).arg(sourceUrl);
         } else {
-            m_marketStatusMessage = tr("No plugins found or index format invalid.");
+            m_lastErrorMessage = tr("No plugins found or index format invalid.");
+            m_marketStatusMessage = m_lastErrorMessage;
         }
         emit marketStatusMessageChanged(m_marketStatusMessage);
     });
@@ -711,6 +772,20 @@ bool PluginManager::parseIndexMarkdown(const QString &content)
                         p.homepage = item.value("homepage");
                         p.icon = item.value("icon", "qrc:/assets/icons/plugin.svg");
                         p.packageUrl = item.value("packageUrl");
+                        if (p.packageUrl.isEmpty()) p.packageUrl = item.value("path");
+                        if (p.packageUrl.isEmpty()) p.packageUrl = item.value("downloadUrl");
+                        if (p.packageUrl.isEmpty()) p.packageUrl = item.value("url");
+
+                        if (!p.packageUrl.isEmpty() && !p.packageUrl.startsWith("http://") && !p.packageUrl.startsWith("https://") && !p.packageUrl.startsWith("file://") && !p.packageUrl.startsWith("/") && !p.packageUrl.contains(":\\")) {
+                            QString baseSourceUrl = ConfigManager::instance()->pluginSource();
+                            int lastSlash = baseSourceUrl.lastIndexOf('/');
+                            QString baseUrl = (lastSlash != -1) ? baseSourceUrl.left(lastSlash + 1) : "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugins/main/";
+                            if (!baseUrl.endsWith('/')) baseUrl += '/';
+                            QString rel = p.packageUrl;
+                            while (rel.startsWith('/')) rel = rel.mid(1);
+                            p.packageUrl = baseUrl + rel;
+                        }
+
                         if (!p.id.isEmpty() && !p.name.isEmpty()) {
                             m_market.append(p);
                         }
@@ -757,7 +832,7 @@ bool PluginManager::parseIndexMarkdown(const QString &content)
         p1.description = "Search, streaming and library synchronization for Netease Cloud Music";
         p1.category = "NetService";
         p1.icon = "qrc:/assets/icons/globe.svg";
-        p1.packageUrl = "https://github.com/RinCynar/0rhxPlayer-Plugin/releases/download/v1.0.2/netease.0px";
+        p1.packageUrl = "https://github.com/RinCynar/0rhxPlayer-Plugins/releases/download/v1.0.2/netease.0px";
         m_market.append(p1);
 
         PluginMetadata p2;
@@ -768,7 +843,7 @@ bool PluginManager::parseIndexMarkdown(const QString &content)
         p2.description = "Ultra-low latency syllable-level karaoke synchronized lyrics provider";
         p2.category = "Lyrics";
         p2.icon = "qrc:/assets/icons/music.svg";
-        p2.packageUrl = "https://github.com/RinCynar/0rhxPlayer-Plugin/releases/download/v1.1.0/krclyrics.0px";
+        p2.packageUrl = "https://github.com/RinCynar/0rhxPlayer-Plugins/releases/download/v1.1.0/krclyrics.0px";
         m_market.append(p2);
 
         PluginMetadata p3;
@@ -779,7 +854,7 @@ bool PluginManager::parseIndexMarkdown(const QString &content)
         p3.description = "Accurate online album cover art and release year metadata fetcher";
         p3.category = "Metadata";
         p3.icon = "qrc:/assets/icons/album.svg";
-        p3.packageUrl = "https://github.com/RinCynar/0rhxPlayer-Plugin/releases/download/v1.0.0/musicbrainz.0px";
+        p3.packageUrl = "https://github.com/RinCynar/0rhxPlayer-Plugins/releases/download/v1.0.0/musicbrainz.0px";
         m_market.append(p3);
 
         PluginMetadata p4;
@@ -790,7 +865,7 @@ bool PluginManager::parseIndexMarkdown(const QString &content)
         p4.description = "Developer sample plugin verifying sidebar registration and search hooks";
         p4.category = "Test";
         p4.icon = "qrc:/assets/icons/pen.svg";
-        p4.packageUrl = "https://github.com/RinCynar/0rhxPlayer-Plugin/releases/download/v0.9.0/testplugin.0px";
+        p4.packageUrl = "https://github.com/RinCynar/0rhxPlayer-Plugins/releases/download/v0.9.0/testplugin.0px";
         m_market.append(p4);
     }
 

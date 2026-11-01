@@ -2341,7 +2341,7 @@ int main(int argc, char *argv[])
             // 2. Verify ConfigManager plugin source settings
             auto *cm = ConfigManager::instance();
             QString defaultSrc = cm->pluginSource();
-            if (defaultSrc != "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugin/main/index.md") {
+            if (defaultSrc != "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugins/main/index.md") {
                 qWarning() << "[Test-Plugin] Unexpected default plugin source:" << defaultSrc;
                 pass = false;
             }
@@ -2351,12 +2351,12 @@ int main(int argc, char *argv[])
                 pass = false;
             }
             cm->resetPluginSource();
-            if (cm->pluginSource() != defaultSrc) {
+            if (cm->pluginSource() != "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugins/main/index.md") {
                 qWarning() << "[Test-Plugin] Failed to reset plugin source!";
                 pass = false;
             }
 
-            // 3. Verify Markdown Index Parser
+            // 3. Verify Markdown Index Parser & Relative Path Resolution
             auto *mgr = PluginManager::instance();
             QString sampleIndex =
                 "---\n"
@@ -2367,6 +2367,7 @@ int main(int argc, char *argv[])
                 "    author: \"Tester\"\n"
                 "    description: \"Streaming audio service\"\n"
                 "    category: \"NetService\"\n"
+                "    path: \"Test/gunmu.0px\"\n"
                 "  - id: \"com.test.lrc\"\n"
                 "    name: \"Lyrics Test\"\n"
                 "    version: \"2.0.0\"\n"
@@ -2379,6 +2380,12 @@ int main(int argc, char *argv[])
             if (!parseOk || mgr->marketPlugins().size() < 2) {
                 qWarning() << "[Test-Plugin] parseIndexMarkdown failed or returned insufficient items! Count:" << mgr->marketPlugins().size();
                 pass = false;
+            } else {
+                QVariantMap first = mgr->marketPlugins().first().toMap();
+                if (first["packageUrl"].toString() != "https://raw.githubusercontent.com/RinCynar/0rhxPlayer-Plugins/main/Test/gunmu.0px") {
+                    qWarning() << "[Test-Plugin] Relative path resolution mismatch:" << first["packageUrl"].toString();
+                    pass = false;
+                }
             }
 
             // 4. Test Installing a mock .0px plugin
@@ -2518,7 +2525,7 @@ int main(int argc, char *argv[])
             QDir(tempPkgDir).removeRecursively();
 
         qInfo() << "=== Plugin Integration Test Result:" << (pass ? "PASSED" : "FAILED") << "===";
-        QTimer::singleShot(50, &app, [pass]() {
+        QTimer::singleShot(150, &app, [pass]() {
             QCoreApplication::exit(pass ? 0 : 1);
         });
     }
@@ -2541,6 +2548,9 @@ int main(int argc, char *argv[])
                         plView->setProperty("selectedPlaylistId", "__favorites__");
                         LibraryManager::instance()->selectPlaylist("__favorites__");
                     }
+                }
+                if (app.arguments().contains("--tab-plugins") || app.arguments().contains("--demo-plugins")) {
+                    mainWindow->setProperty("currentTab", "plugins");
                 }
                 QImage img = mainWindow->grabWindow();
                 QString outPath = QDir::currentPath() + "/build/screenshot_actual.png";

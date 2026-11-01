@@ -1856,7 +1856,7 @@ Item {
                             color: Theme.primary
                         }
                         Text {
-                            text: qsTr("Plugins & Extensions")
+                            text: qsTr("Plugins")
                             font.pixelSize: 14
                             font.bold: true
                             color: Theme.primary

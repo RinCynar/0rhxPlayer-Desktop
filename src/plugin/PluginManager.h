@@ -95,6 +95,7 @@ private:
     void syncMarketInstalledState();
     void saveEnabledPluginsConfig();
     void loadEnabledPluginsConfig();
+    QNetworkAccessManager *networkManager();
 
     QNetworkAccessManager *m_networkManager = nullptr;
     QMap<QString, PluginMetadata> m_installed;
