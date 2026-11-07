@@ -1607,7 +1607,7 @@ void PluginManager::clearLyrics()
 // =========================================================================
 QString PluginManager::getAppVersion() const
 {
-    return QCoreApplication::applicationVersion().isEmpty() ? QStringLiteral("1.1.1") : QCoreApplication::applicationVersion();
+    return QCoreApplication::applicationVersion().isEmpty() ? QStringLiteral("1.2.0") : QCoreApplication::applicationVersion();
 }
 
 QString PluginManager::getAppLanguage() const

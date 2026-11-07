@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
     app.setApplicationName("0rhxPlayer");
     app.setOrganizationName("");
     app.setOrganizationDomain("");
-    app.setApplicationVersion("1.1.1");
+    app.setApplicationVersion("1.2.0");
     app.setWindowIcon(QIcon(":/assets/icons/icon.svg"));
 
     PathManager::instance()->ensureDirsExist();
@@ -2274,9 +2274,9 @@ int main(int argc, char *argv[])
                 }
             }
 
-            // Phase 10 / 12 Automated Assertions: Application Version 1.1.1
-            if (QCoreApplication::applicationVersion() != "1.1.1") {
-                qWarning() << "[Test-Phase10] Application version is not 1.1.1! Current:" << QCoreApplication::applicationVersion();
+            // Phase 10 / 12 Automated Assertions: Application Version 1.2.0
+            if (QCoreApplication::applicationVersion() != "1.2.0") {
+                qWarning() << "[Test-Phase10] Application version is not 1.2.0! Current:" << QCoreApplication::applicationVersion();
                 pass = false;
             } else {
                 qInfo() << "[Test-Phase10] Application version verified:" << QCoreApplication::applicationVersion();
@@ -2546,7 +2546,7 @@ int main(int argc, char *argv[])
 
             // 5. Phase 17: Full Host API Surface & Event Bus Verification
             qInfo() << "[Test-Plugin] Verifying Phase 17 Host APIs...";
-            if (mgr->getAppVersion() != "1.1.1") {
+            if (mgr->getAppVersion() != "1.2.0") {
                 qWarning() << "[Test-Plugin] getAppVersion mismatch:" << mgr->getAppVersion();
                 pass = false;
             }
@@ -2616,7 +2616,7 @@ int main(int argc, char *argv[])
                 root["version"] = "1.0.0";
                 root["author"] = "RinCynar";
                 root["description"] = "Test slot injections";
-                root["minAppVersion"] = "1.1.1";
+                root["minAppVersion"] = "1.2.0";
 
                 QJsonObject entries;
                 QJsonObject ctxMenu;

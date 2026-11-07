@@ -68,7 +68,7 @@ A `.0px` file is a standard ZIP archive. `plugin.json` must exist at the archive
   "description": "Standard extension definition template.",
   "category": "Tools",
   "homepage": "https://example.com",
-  "minAppVersion": "1.1.1",
+  "minAppVersion": "1.2.0",
   "permissions": [
     "audio:control",
     "audio:state",
@@ -320,7 +320,7 @@ The host exposes full engine operations through the singleton `PluginManager` (`
 
 | Method | Parameters | Return Type | Description |
 | --- | --- | --- | --- |
-| `getAppVersion` | none | `string` | Returns host application version string (e.g. `1.1.1`). |
+| `getAppVersion` | none | `string` | Returns host application version string (e.g. `1.2.0`). |
 | `getAppLanguage` | none | `string` | Returns current active language code (`en`, `ja`, `zh_CN`). |
 | `getThemeMode` | none | `string` | Returns current theme mode (`light`, `dark`, `system`). |
 | `getSeedColor` | none | `string` | Returns current Material 3 hex primary seed color. |
@@ -481,7 +481,7 @@ Plugins must explicitly request permissions in `plugin.json`:
   "description": "Standard extension definition template.",
   "category": "Tools",
   "homepage": "https://example.com",
-  "minAppVersion": "1.1.1",
+  "minAppVersion": "1.2.0",
   "permissions": [
     "audio:control",
     "audio:state",
@@ -733,7 +733,7 @@ Plugins must explicitly request permissions in `plugin.json`:
 
 | メソッド | 引数 | 戻り値の型 | 説明 |
 | --- | --- | --- | --- |
-| `getAppVersion` | なし | `string` | ホストアプリケーションのバージョン（例: `1.1.1`）を返します。 |
+| `getAppVersion` | なし | `string` | ホストアプリケーションのバージョン（例: `1.2.0`）を返します。 |
 | `getAppLanguage` | なし | `string` | 現在有効な言語コード（`en`, `ja`, `zh_CN`）を返します。 |
 | `getThemeMode` | なし | `string` | 現在のテーマモード（`light`, `dark`, `system`）を返します。 |
 | `getSeedColor` | なし | `string` | 現在の Material 3 シードカラー（16進文字列）を返します。 |
@@ -894,7 +894,7 @@ Plugins must explicitly request permissions in `plugin.json`:
   "description": "Standard extension definition template.",
   "category": "Tools",
   "homepage": "https://example.com",
-  "minAppVersion": "1.1.1",
+  "minAppVersion": "1.2.0",
   "permissions": [
     "audio:control",
     "audio:state",
@@ -1146,7 +1146,7 @@ Plugins must explicitly request permissions in `plugin.json`:
 
 | 方法名 | 参数 | 返回值类型 | 功能说明 |
 | --- | --- | --- | --- |
-| `getAppVersion` | 无 | `string` | 获取宿主播放器版本号（如 `1.1.1`）。 |
+| `getAppVersion` | 无 | `string` | 获取宿主播放器版本号（如 `1.2.0`）。 |
 | `getAppLanguage` | 无 | `string` | 获取当前生效的语言代码（`en`, `ja`, `zh_CN`）。 |
 | `getThemeMode` | 无 | `string` | 获取当前色彩模式（`light`, `dark`, `system`）。 |
 | `getSeedColor` | 无 | `string` | 获取当前 Material 3 主题种子色（十六进制字符串）。 |
