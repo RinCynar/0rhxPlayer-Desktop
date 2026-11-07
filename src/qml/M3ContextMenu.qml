@@ -435,12 +435,21 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             var p = (menuRoot.selectedTrackPaths && menuRoot.selectedTrackPaths.length > 0) ? menuRoot.selectedTrackPaths[0] : "";
-                            PluginManager.triggerPluginAction(modelData.pluginId, modelData.id, menuRoot.contextType === "playlist" ? "playlist" : "track", {
+                            var payload = {
+                                filePath: p,
                                 path: p,
                                 paths: menuRoot.selectedTrackPaths,
                                 title: menuRoot.singleTrackTitle,
-                                artist: menuRoot.singleTrackArtist
-                            });
+                                artist: menuRoot.singleTrackArtist,
+                                data: {
+                                    filePath: p,
+                                    path: p,
+                                    paths: menuRoot.selectedTrackPaths,
+                                    title: menuRoot.singleTrackTitle,
+                                    artist: menuRoot.singleTrackArtist
+                                }
+                            };
+                            PluginManager.triggerPluginAction(modelData.pluginId, modelData.id, menuRoot.contextType === "playlist" ? "playlist" : "track", payload);
                             menuRoot.close();
                         }
                     }

@@ -12,6 +12,7 @@
 
 class QNetworkAccessManager;
 class QNetworkReply;
+class QJSEngine;
 
 struct PluginMetadata {
     QString id;
@@ -74,6 +75,7 @@ public:
 
     Q_INVOKABLE void setPluginEnabled(const QString &pluginId, bool enabled);
     Q_INVOKABLE bool isPluginEnabled(const QString &pluginId) const;
+    Q_INVOKABLE bool isPluginInstalled(const QString &pluginId) const;
 
     Q_INVOKABLE QVariantMap getPluginInfo(const QString &pluginId) const;
     Q_INVOKABLE QVariantMap getPluginViewSchema(const QString &pluginId, const QString &schemaPath = QString()) const;
@@ -194,6 +196,18 @@ public:
     Q_INVOKABLE void triggerPluginAction(const QString &pluginId, const QString &actionId, const QString &slotType, const QVariantMap &payload = QVariantMap());
     Q_INVOKABLE QVariantMap executePluginHook(const QString &hookType, const QVariantMap &params = QVariantMap());
 
+    // =========================================================================
+    // Category 10: Script Runtime & Dynamic Plugin Data
+    // =========================================================================
+    Q_INVOKABLE QVariant callPluginMethod(const QString &pluginId, const QString &methodName, const QVariantList &args = QVariantList());
+    Q_INVOKABLE QVariantList getPluginQueue(const QString &pluginId) const;
+    Q_INVOKABLE void clearPluginQueue(const QString &pluginId);
+    Q_INVOKABLE void setPluginViewData(const QString &pluginId, const QString &key, const QVariant &value);
+    Q_INVOKABLE QVariant getPluginViewData(const QString &pluginId, const QString &key) const;
+    Q_INVOKABLE void notifyViewChanged(const QString &pluginId);
+    Q_INVOKABLE void showToast(const QString &message);
+    Q_INVOKABLE bool runProcess(const QString &program, const QVariant &arguments = QVariant(), const QString &workingDir = QString());
+
 signals:
     // Lifecycle & Marketplace Signals
     void pluginsChanged();
@@ -207,6 +221,8 @@ signals:
     void pluginStatusChanged(const QString &pluginId, bool enabled);
     void installProgress(const QString &pluginId, qint64 received, qint64 total);
     void installFinished(const QString &pluginId, bool success, const QString &message);
+    void toastRequested(const QString &message);
+    void pluginViewUpdated(const QString &pluginId);
 
     // =========================================================================
     // Category 9: Host Full Lifecycle Event Bus
@@ -232,12 +248,17 @@ private:
     void syncMarketInstalledState();
     void saveEnabledPluginsConfig();
     void loadEnabledPluginsConfig();
+    void initPluginScriptEngine(const QString &pluginId);
+    void unloadPluginScriptEngine(const QString &pluginId);
     QNetworkAccessManager *networkManager();
 
     QNetworkAccessManager *m_networkManager = nullptr;
     QMap<QString, PluginMetadata> m_installed;
     QList<PluginMetadata> m_market;
     QMap<QString, bool> m_enabledConfig;
+    QMap<QString, QJSEngine*> m_scriptEngines;
+    QMap<QString, QVariantList> m_pluginQueues;
+    QMap<QString, QVariantMap> m_pluginViewData;
 
     bool m_isFetchingMarket = false;
     QString m_marketStatusMessage;

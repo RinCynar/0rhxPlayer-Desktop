@@ -5,6 +5,8 @@ import rhx.audio 1.0
 import rhx.config 1.0
 import rhx.theme 1.0
 import rhx.library 1.0
+import rhx.ui 1.0
+import rhx.plugin 1.0
 
 ApplicationWindow {
     id: window
@@ -36,6 +38,7 @@ ApplicationWindow {
     property bool isNowPlayingOpen: false
     property bool showTrans: true
     property var preNowPlayingNavCollapsed: null
+    property alias toastBanner: globalToast
 
     readonly property bool isForegroundActive: window.visible && (window.visibility !== Window.Minimized) && (window.visibility !== Window.Hidden) && window.active
     onIsForegroundActiveChanged: {
@@ -418,5 +421,62 @@ ApplicationWindow {
         radius: 4
         color: Theme.primary
         z: 10001
+    }
+
+    // Global Floating Toast Notification Banner (Host & Plugins)
+    Rectangle {
+        id: globalToast
+        z: 99999
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 96
+        implicitWidth: toastRow.implicitWidth + 36
+        implicitHeight: 40
+        radius: 20
+        color: Theme.colorOnSurface
+        opacity: toastTimer.running ? 0.95 : 0.0
+        scale: toastTimer.running ? 1.0 : 0.88
+        visible: opacity > 0.0
+
+        Behavior on opacity { NumberAnimation { duration: 180 } }
+        Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+        RowLayout {
+            id: toastRow
+            anchors.centerIn: parent
+            spacing: 8
+
+            SvgIcon {
+                width: 16
+                height: 16
+                source: "qrc:/assets/icons/info.svg"
+                color: Theme.surface
+            }
+
+            Text {
+                id: toastText
+                font.pixelSize: 13
+                font.bold: true
+                color: Theme.surface
+            }
+        }
+
+        Timer {
+            id: toastTimer
+            interval: 3200
+            repeat: false
+        }
+
+        function show(msg) {
+            toastText.text = msg || "";
+            toastTimer.restart();
+        }
+    }
+
+    Connections {
+        target: PluginManager
+        function onToastRequested(message) {
+            globalToast.show(message);
+        }
     }
 }

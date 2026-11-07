@@ -1,4 +1,5 @@
 #include "PluginManager.h"
+#include "JsTimerBridge.h"
 #include "../core/PathManager.h"
 #include "../config/ConfigManager.h"
 #include "../audio/AudioEngine.h"
@@ -20,9 +21,12 @@
 #include <QNetworkReply>
 #include <QProcess>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QRegularExpression>
 #include <QUrl>
 #include <QDebug>
+#include <QJSEngine>
+#include <QJSValue>
 #include <algorithm>
 
 QVariantMap PluginMetadata::toMap() const
@@ -138,6 +142,11 @@ PluginManager::PluginManager(QObject *parent)
 
 PluginManager::~PluginManager()
 {
+    for (auto *eng : m_scriptEngines) {
+        delete eng;
+    }
+    m_scriptEngines.clear();
+
     if (m_networkManager) {
         delete m_networkManager;
         m_networkManager = nullptr;
@@ -208,6 +217,22 @@ void PluginManager::initialize()
             emit favoritesChanged(AudioEngine::instance()->currentTrack(), LibraryManager::instance()->isFavorite(AudioEngine::instance()->currentTrack()));
         });
         connect(lm, &LibraryManager::playlistsChanged, this, &PluginManager::playlistsChanged);
+    }
+
+    if (qApp) {
+        connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() {
+            for (auto *eng : m_scriptEngines) {
+                delete eng;
+            }
+            m_scriptEngines.clear();
+        });
+    }
+
+    // Initialize script runtimes for all active installed plugins
+    for (auto it = m_installed.cbegin(); it != m_installed.cend(); ++it) {
+        if (it->enabled) {
+            initPluginScriptEngine(it->id);
+        }
     }
 }
 
@@ -547,6 +572,7 @@ bool PluginManager::installPluginFrom0px(const QString &packagePath)
     m_enabledConfig[meta.id] = true;
     saveEnabledPluginsConfig();
     loadInstalledPluginFromDir(targetDir);
+    initPluginScriptEngine(meta.id);
 
     syncMarketInstalledState();
     emit pluginsChanged();
@@ -624,6 +650,10 @@ bool PluginManager::uninstallPlugin(const QString &pluginId)
         return false;
     }
 
+    unloadPluginScriptEngine(pluginId);
+    m_pluginQueues.remove(pluginId);
+    m_pluginViewData.remove(pluginId);
+
     QString dir = m_installed[pluginId].localDir;
     removeSidebarItemForPlugin(pluginId);
 
@@ -655,8 +685,10 @@ void PluginManager::setPluginEnabled(const QString &pluginId, bool enabled)
 
     if (enabled) {
         updateSidebarItemForPlugin(m_installed[pluginId]);
+        initPluginScriptEngine(pluginId);
     } else {
         removeSidebarItemForPlugin(pluginId);
+        unloadPluginScriptEngine(pluginId);
     }
 
     syncMarketInstalledState();
@@ -668,6 +700,11 @@ void PluginManager::setPluginEnabled(const QString &pluginId, bool enabled)
 bool PluginManager::isPluginEnabled(const QString &pluginId) const
 {
     return m_installed.contains(pluginId) && m_installed.value(pluginId).enabled;
+}
+
+bool PluginManager::isPluginInstalled(const QString &pluginId) const
+{
+    return m_installed.contains(pluginId);
 }
 
 QVariantMap PluginManager::getPluginInfo(const QString &pluginId) const
@@ -1570,7 +1607,7 @@ void PluginManager::clearLyrics()
 // =========================================================================
 QString PluginManager::getAppVersion() const
 {
-    return QStringLiteral("1.1.1");
+    return QCoreApplication::applicationVersion().isEmpty() ? QStringLiteral("1.1.1") : QCoreApplication::applicationVersion();
 }
 
 QString PluginManager::getAppLanguage() const
@@ -1684,7 +1721,305 @@ QVariantList PluginManager::getInjectedPlaybackControls() const
 void PluginManager::triggerPluginAction(const QString &pluginId, const QString &actionId, const QString &slotType, const QVariantMap &payload)
 {
     qInfo() << "[PluginManager] Action triggered for plugin:" << pluginId << "action:" << actionId << "slot:" << slotType;
+
+    // Track addition to C++ queue
+    if (actionId == "add_to_convert_queue" || actionId == "convert_track") {
+        QString trackPath = payload.value("filePath").toString();
+        if (trackPath.isEmpty()) trackPath = payload.value("path").toString();
+        if (trackPath.isEmpty() && payload.contains("data")) {
+            QVariantMap d = payload.value("data").toMap();
+            trackPath = d.value("filePath").toString();
+            if (trackPath.isEmpty()) trackPath = d.value("path").toString();
+        }
+
+        if (!trackPath.isEmpty()) {
+            QVariantMap task;
+            task["id"] = "task_" + QString::number(QDateTime::currentMSecsSinceEpoch());
+            QString title = payload.value("title").toString();
+            if (title.isEmpty()) title = QFileInfo(trackPath).fileName();
+            task["title"] = title;
+            task["artist"] = payload.value("artist").toString();
+            task["sourcePath"] = trackPath;
+            QString fmt = payload.value("format").toString();
+            if (fmt.isEmpty()) fmt = "MP3";
+            task["format"] = fmt.toUpper();
+            task["status"] = "pending";
+            task["progress"] = 0;
+            m_pluginQueues[pluginId].append(task);
+        }
+    } else if (actionId == "clear_queue") {
+        m_pluginQueues[pluginId].clear();
+    }
+
+    // Direct invocation on JS engine if onAction method exists
+    if (m_scriptEngines.contains(pluginId)) {
+        QJSEngine *engine = m_scriptEngines.value(pluginId);
+        QJSValue targetObj = engine->globalObject().property("AudioConverterPlugin");
+        if (!targetObj.isObject() || !targetObj.hasProperty("onAction")) {
+            targetObj = engine->globalObject().property("Converter");
+        }
+        if (!targetObj.isObject() || !targetObj.hasProperty("onAction")) {
+            targetObj = engine->globalObject().property("Gunmu");
+        }
+        if (!targetObj.isObject() || !targetObj.hasProperty("onAction")) {
+            targetObj = engine->globalObject().property("Plugin");
+        }
+        if (targetObj.isObject() && targetObj.hasProperty("onAction") && targetObj.property("onAction").isCallable()) {
+            QJSValueList args;
+            args << engine->toScriptValue(actionId);
+            args << engine->toScriptValue(slotType);
+            args << engine->toScriptValue(payload);
+            QJSValue res = targetObj.property("onAction").callWithInstance(targetObj, args);
+            if (res.isError()) {
+                qWarning() << "[PluginManager] Error calling onAction in" << pluginId << ":" << res.toString();
+            }
+        }
+    }
+
     emit pluginActionTriggered(pluginId, actionId, slotType, payload);
+    emit pluginViewUpdated(pluginId);
+}
+
+void PluginManager::initPluginScriptEngine(const QString &pluginId)
+{
+    if (!m_installed.contains(pluginId)) return;
+    const auto &meta = m_installed[pluginId];
+    if (!meta.enabled) return;
+
+    QString scriptPath = meta.localDir + "/scripts/main.js";
+    if (!QFile::exists(scriptPath)) return;
+
+    unloadPluginScriptEngine(pluginId);
+
+    QJSEngine *engine = new QJSEngine();
+    engine->installExtensions(QJSEngine::ConsoleExtension);
+
+    // Global object aliases
+    QJSValue globalObj = engine->globalObject();
+    globalObj.setProperty("window", globalObj);
+    globalObj.setProperty("globalThis", globalObj);
+    globalObj.setProperty("global", globalObj);
+
+    // Expose Host Singletons
+    globalObj.setProperty("PluginManager", engine->newQObject(this));
+    globalObj.setProperty("AudioEngine", engine->newQObject(AudioEngine::instance()));
+    globalObj.setProperty("LibraryManager", engine->newQObject(LibraryManager::instance()));
+    globalObj.setProperty("ConfigManager", engine->newQObject(ConfigManager::instance()));
+    globalObj.setProperty("PathManager", engine->newQObject(PathManager::instance()));
+
+    // Expose setTimeout / clearTimeout
+    auto *timerBridge = new JsTimerBridge(engine, engine);
+    globalObj.setProperty("_timerBridge", engine->newQObject(timerBridge));
+    engine->evaluate(
+        "function setTimeout(fn, delay) { return _timerBridge.setTimeout(fn, delay || 0); }\n"
+        "function clearTimeout(id) { _timerBridge.clearTimeout(id); }\n"
+    );
+
+    // Expose toastBanner helper
+    engine->evaluate(
+        "var toastBanner = {\n"
+        "    show: function(msg) { PluginManager.showToast(msg); }\n"
+        "};\n"
+        "window.toastBanner = toastBanner;\n"
+    );
+
+    // Load and evaluate scripts/main.js
+    QFile file(scriptPath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QString code = QString::fromUtf8(file.readAll());
+        file.close();
+
+        QJSValue res = engine->evaluate(code, scriptPath);
+        if (res.isError()) {
+            qWarning() << "[PluginManager] Script evaluation error in" << pluginId
+                       << "line" << res.property("lineNumber").toInt()
+                       << ":" << res.toString();
+        } else {
+            qInfo() << "[PluginManager] Successfully loaded and running script for:" << pluginId;
+        }
+    }
+
+    m_scriptEngines[pluginId] = engine;
+}
+
+void PluginManager::unloadPluginScriptEngine(const QString &pluginId)
+{
+    if (m_scriptEngines.contains(pluginId)) {
+        QJSEngine *eng = m_scriptEngines.take(pluginId);
+        QJSValue pluginObj = eng->globalObject().property("AudioConverterPlugin");
+        if (!pluginObj.isObject()) {
+            pluginObj = eng->globalObject().property("Converter");
+        }
+        if (!pluginObj.isObject()) {
+            pluginObj = eng->globalObject().property("Plugin");
+        }
+        if (pluginObj.isObject() && pluginObj.hasProperty("onPluginUnload")) {
+            QJSValue unloadFn = pluginObj.property("onPluginUnload");
+            if (unloadFn.isCallable()) {
+                unloadFn.callWithInstance(pluginObj);
+            }
+        }
+        delete eng;
+    }
+}
+
+QVariant PluginManager::callPluginMethod(const QString &pluginId, const QString &methodName, const QVariantList &args)
+{
+    if (!m_scriptEngines.contains(pluginId)) {
+        return QVariant();
+    }
+    QJSEngine *engine = m_scriptEngines.value(pluginId);
+    if (!engine) return QVariant();
+
+    QJSValue targetObj = engine->globalObject().property("AudioConverterPlugin");
+    if (!targetObj.isObject() || !targetObj.hasProperty(methodName)) {
+        targetObj = engine->globalObject().property("Converter");
+    }
+    if (!targetObj.isObject() || !targetObj.hasProperty(methodName)) {
+        targetObj = engine->globalObject();
+    }
+
+    if (targetObj.isObject() && targetObj.hasProperty(methodName)) {
+        QJSValue fn = targetObj.property(methodName);
+        if (fn.isCallable()) {
+            QJSValueList jsArgs;
+            for (const auto &arg : args) {
+                jsArgs.append(engine->toScriptValue(arg));
+            }
+            QJSValue res = fn.callWithInstance(targetObj, jsArgs);
+            if (res.isError()) {
+                qWarning() << "[PluginManager] Error calling" << methodName << "on" << pluginId << ":" << res.toString();
+                return QVariant();
+            }
+            return res.toVariant();
+        }
+    }
+    return QVariant();
+}
+
+QVariantList PluginManager::getPluginQueue(const QString &pluginId) const
+{
+    if (m_scriptEngines.contains(pluginId)) {
+        QJSEngine *engine = m_scriptEngines.value(pluginId);
+        QJSValue targetObj = engine->globalObject().property("AudioConverterPlugin");
+        if (!targetObj.isObject()) {
+            targetObj = engine->globalObject().property("Converter");
+        }
+        if (targetObj.isObject()) {
+            if (targetObj.hasProperty("getQueue") && targetObj.property("getQueue").isCallable()) {
+                QJSValue res = targetObj.property("getQueue").callWithInstance(targetObj);
+                if (res.isArray()) {
+                    return res.toVariant().toList();
+                }
+            } else if (targetObj.hasProperty("queue") && targetObj.property("queue").isArray()) {
+                return targetObj.property("queue").toVariant().toList();
+            }
+        }
+    }
+
+    return m_pluginQueues.value(pluginId);
+}
+
+void PluginManager::clearPluginQueue(const QString &pluginId)
+{
+    m_pluginQueues[pluginId].clear();
+    triggerPluginAction(pluginId, "clear_queue", "workbench");
+    emit pluginViewUpdated(pluginId);
+}
+
+void PluginManager::setPluginViewData(const QString &pluginId, const QString &key, const QVariant &value)
+{
+    m_pluginViewData[pluginId][key] = value;
+    emit pluginViewUpdated(pluginId);
+}
+
+QVariant PluginManager::getPluginViewData(const QString &pluginId, const QString &key) const
+{
+    if (m_pluginViewData.contains(pluginId)) {
+        return m_pluginViewData[pluginId].value(key);
+    }
+    return QVariant();
+}
+
+void PluginManager::notifyViewChanged(const QString &pluginId)
+{
+    emit pluginViewUpdated(pluginId);
+}
+
+void PluginManager::showToast(const QString &message)
+{
+    qInfo() << "[PluginManager Toast]" << message;
+    emit toastRequested(message);
+    for (auto it = m_scriptEngines.constBegin(); it != m_scriptEngines.constEnd(); ++it) {
+        emit pluginViewUpdated(it.key());
+    }
+}
+
+bool PluginManager::runProcess(const QString &program, const QVariant &arguments, const QString &workingDir)
+{
+    QStringList args;
+    if (arguments.userType() == qMetaTypeId<QStringList>() || arguments.canConvert<QStringList>()) {
+        args = arguments.toStringList();
+    }
+    if (args.isEmpty() && arguments.canConvert<QVariantList>()) {
+        const auto list = arguments.toList();
+        for (const auto &v : list) {
+            args.append(v.toString());
+        }
+    }
+    if (args.isEmpty() && arguments.userType() == qMetaTypeId<QJSValue>()) {
+        QJSValue jsVal = arguments.value<QJSValue>();
+        if (jsVal.isArray()) {
+            int len = jsVal.property("length").toInt();
+            for (int i = 0; i < len; ++i) {
+                args.append(jsVal.property(i).toString());
+            }
+        }
+    }
+
+    qInfo() << "[PluginManager] Spawning process:" << program << args << "in" << workingDir;
+
+    // Auto-create destination directory if output argument is present
+    for (int i = 0; i < args.size(); ++i) {
+        if (args[i] == "-y" && i + 1 < args.size()) {
+            QFileInfo outFi(args[i + 1]);
+            QDir().mkpath(outFi.absolutePath());
+        }
+    }
+
+    QString exePath = QStandardPaths::findExecutable(program);
+    if (exePath.isEmpty()) {
+        exePath = program;
+    }
+
+    QProcess proc;
+    if (!workingDir.isEmpty()) {
+        proc.setWorkingDirectory(workingDir);
+    }
+    proc.start(exePath, args);
+    if (!proc.waitForStarted(5000)) {
+        qWarning() << "[PluginManager] Failed to start process:" << exePath << proc.errorString();
+        showToast(tr("Failed to start %1: %2").arg(program, proc.errorString()));
+        return false;
+    }
+
+    // Process events while waiting so UI does not freeze during conversion
+    while (!proc.waitForFinished(100)) {
+        if (proc.state() == QProcess::NotRunning) {
+            break;
+        }
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+    }
+
+    if (proc.exitStatus() != QProcess::NormalExit || proc.exitCode() != 0) {
+        QString err = QString::fromUtf8(proc.readAllStandardError());
+        qWarning() << "[PluginManager] Process failed with exit code:" << proc.exitCode() << err;
+        showToast(tr("Transcoding failed (code %1)").arg(proc.exitCode()));
+        return false;
+    }
+
+    qInfo() << "[PluginManager] Process successfully finished:" << program;
+    return true;
 }
 
 QVariantMap PluginManager::executePluginHook(const QString &hookType, const QVariantMap &params)

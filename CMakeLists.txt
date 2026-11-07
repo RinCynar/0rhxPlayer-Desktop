@@ -39,6 +39,7 @@ set(PROJECT_SOURCES
     src/library/LibraryManager.cpp
     src/config/ConfigManager.h
     src/config/ConfigManager.cpp
+    src/plugin/JsTimerBridge.h
     src/plugin/PluginManager.h
     src/plugin/PluginManager.cpp
     resources.qrc
