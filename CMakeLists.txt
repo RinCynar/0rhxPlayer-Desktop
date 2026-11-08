@@ -97,7 +97,7 @@ if(WIN32)
         list(APPEND BASS_LIBRARIES ${BASS_LIB_DIR}/basswasapi.lib)
     endif()
 
-    list(APPEND PLATFORM_LIBS dwmapi uxtheme)
+    list(APPEND PLATFORM_LIBS dwmapi uxtheme advapi32)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(BASS_PLATFORM_DIR "linux-${BASS_TARGET_ARCH}")
     set(BASS_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/bass/${BASS_PLATFORM_DIR}/lib")

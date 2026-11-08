@@ -11,6 +11,93 @@
 #include <QLocale>
 #include <QDebug>
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <sddl.h>
+#endif
+
+static QString getSystemUserAvatarPath()
+{
+#ifdef Q_OS_WIN
+    // 1. Try modern Windows Public AccountPictures by current user SID
+    HANDLE hToken = NULL;
+    if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
+        DWORD dwSize = 0;
+        GetTokenInformation(hToken, TokenUser, NULL, 0, &dwSize);
+        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER && dwSize > 0) {
+            QByteArray buffer(static_cast<int>(dwSize), 0);
+            if (GetTokenInformation(hToken, TokenUser, buffer.data(), dwSize, &dwSize)) {
+                TOKEN_USER *pTokenUser = reinterpret_cast<TOKEN_USER *>(buffer.data());
+                LPWSTR stringSid = NULL;
+                if (ConvertSidToStringSidW(pTokenUser->User.Sid, &stringSid)) {
+                    QString sidStr = QString::fromWCharArray(stringSid);
+                    LocalFree(stringSid);
+
+                    QString publicDir = QString::fromLocal8Bit(qgetenv("PUBLIC"));
+                    if (publicDir.isEmpty()) {
+                        publicDir = "C:/Users/Public";
+                    }
+                    QDir accountPicDir(publicDir + "/AccountPictures/" + sidStr);
+                    if (accountPicDir.exists()) {
+                        const QStringList preferredPatterns = {
+                            "*-Image448.jpg", "*-Image424.jpg", "*-Image1080.jpg",
+                            "*-Image240.jpg", "*-Image208.jpg", "*-Image192.jpg",
+                            "*-Image96.jpg", "*.jpg", "*.png"
+                        };
+                        for (const QString &pattern : preferredPatterns) {
+                            QFileInfoList list = accountPicDir.entryInfoList({pattern}, QDir::Files | QDir::Hidden | QDir::System);
+                            if (!list.isEmpty()) {
+                                CloseHandle(hToken);
+                                return list.first().absoluteFilePath();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        CloseHandle(hToken);
+    }
+
+    // 2. Try FOLDERID_AccountPictures (%APPDATA%\Microsoft\Windows\AccountPictures)
+    QString appDataDir = QString::fromLocal8Bit(qgetenv("APPDATA"));
+    if (!appDataDir.isEmpty()) {
+        QDir userAccountDir(appDataDir + "/Microsoft/Windows/AccountPictures");
+        if (userAccountDir.exists()) {
+            QFileInfoList list = userAccountDir.entryInfoList({"*.jpg", "*.png", "*.bmp"}, QDir::Files | QDir::Hidden | QDir::System);
+            if (!list.isEmpty()) {
+                return list.first().absoluteFilePath();
+            }
+        }
+    }
+
+    // 3. Fallback to shell32 ordinal 261 (SHGetUserPicturePath)
+    HMODULE hShell32 = LoadLibraryW(L"shell32.dll");
+    if (hShell32) {
+        typedef HRESULT(WINAPI *PFNSHGETUSERPICTUREPATH)(
+            LPCWSTR pwszPicOrUserName,
+            DWORD sguppFlags,
+            LPWSTR pwszPicPath,
+            UINT picPathLen
+        );
+        PFNSHGETUSERPICTUREPATH pfnSHGetUserPicturePath =
+            reinterpret_cast<PFNSHGETUSERPICTUREPATH>(GetProcAddress(hShell32, MAKEINTRESOURCEA(261)));
+        if (pfnSHGetUserPicturePath) {
+            wchar_t szBuffer[MAX_PATH] = { 0 };
+            HRESULT hr = pfnSHGetUserPicturePath(NULL, 0x80000000, szBuffer, MAX_PATH);
+            if (SUCCEEDED(hr)) {
+                QString path = QString::fromWCharArray(szBuffer);
+                if (QFileInfo::exists(path)) {
+                    FreeLibrary(hShell32);
+                    return path;
+                }
+            }
+        }
+        FreeLibrary(hShell32);
+    }
+#endif
+    return QString();
+}
+
 ConfigManager *ConfigManager::instance()
 {
     static ConfigManager s_instance;
@@ -156,6 +243,7 @@ void ConfigManager::loadSettings()
             }
         }
     }
+    detectDefaultAvatar();
 
     // Appearance & Themes
     m_themeMode = settings.value("Appearance/ThemeMode", "system").toString();
@@ -321,7 +409,20 @@ void ConfigManager::setAvatar(const QString &avatarPath)
         m_avatar = target;
         QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("User/Avatar", m_avatar);
-        emit avatarChanged(m_avatar);
+        emit avatarChanged(avatar());
+    }
+}
+
+void ConfigManager::detectDefaultAvatar()
+{
+    QString sysAvatar = getSystemUserAvatarPath();
+    QString newDefault = sysAvatar.isEmpty() ? QString() : QUrl::fromLocalFile(sysAvatar).toString();
+    if (m_defaultAvatar != newDefault) {
+        m_defaultAvatar = newDefault;
+        emit defaultAvatarChanged(m_defaultAvatar);
+        if (m_avatar.isEmpty()) {
+            emit avatarChanged(avatar());
+        }
     }
 }
 
@@ -348,6 +449,7 @@ void ConfigManager::resetAvatar()
             dir.remove(old);
         }
     }
+    detectDefaultAvatar();
     setAvatar("");
 }
 

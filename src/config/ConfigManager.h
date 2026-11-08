@@ -15,6 +15,8 @@ class ConfigManager : public QObject {
     // User Profile
     Q_PROPERTY(QString nickname READ nickname WRITE setNickname NOTIFY nicknameChanged)
     Q_PROPERTY(QString avatar READ avatar WRITE setAvatar NOTIFY avatarChanged)
+    Q_PROPERTY(QString defaultAvatar READ defaultAvatar NOTIFY defaultAvatarChanged)
+    Q_PROPERTY(bool hasCustomAvatar READ hasCustomAvatar NOTIFY avatarChanged)
 
     // Appearance & Themes
     Q_PROPERTY(QString themeMode READ themeMode WRITE setThemeMode NOTIFY themeModeChanged)
@@ -59,7 +61,10 @@ public:
     QVariantList visibleNavItems() const;
 
     QString nickname() const { return m_nickname; }
-    QString avatar() const { return m_avatar; }
+    QString avatar() const { return !m_avatar.isEmpty() ? m_avatar : m_defaultAvatar; }
+    QString customAvatar() const { return m_avatar; }
+    QString defaultAvatar() const { return m_defaultAvatar; }
+    bool hasCustomAvatar() const { return !m_avatar.isEmpty(); }
     QString themeMode() const { return m_themeMode; }
     QString seedColor() const { return m_seedColor; }
     QString lyricsAlign() const { return m_lyricsAlign; }
@@ -95,6 +100,7 @@ public:
     Q_INVOKABLE void setAvatar(const QString &avatarPath);
     Q_INVOKABLE void openSelectAvatarDialog();
     Q_INVOKABLE void resetAvatar();
+    Q_INVOKABLE void detectDefaultAvatar();
 
     Q_INVOKABLE void setThemeMode(const QString &mode);
     Q_INVOKABLE void setSeedColor(const QString &hex);
@@ -135,6 +141,7 @@ signals:
     void navItemsChanged();
     void nicknameChanged(const QString &nickname);
     void avatarChanged(const QString &avatar);
+    void defaultAvatarChanged(const QString &defaultAvatar);
     void themeModeChanged(const QString &themeMode);
     void seedColorChanged(const QString &seedColor);
     void lyricsAlignChanged(const QString &align);
@@ -167,6 +174,7 @@ private:
     QVariantList m_allNavItems;
     QString m_nickname = "RinCynar";
     QString m_avatar = "";
+    QString m_defaultAvatar = "";
     QString m_themeMode = "system";
     QString m_seedColor = "#39C5BB";
     QString m_lyricsAlign = "right";

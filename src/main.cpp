@@ -2208,8 +2208,12 @@ int main(int argc, char *argv[])
                         pass = false;
                     }
                     ConfigManager::instance()->resetAvatar();
-                    if (!ConfigManager::instance()->avatar().isEmpty()) {
-                        qWarning() << "[Test-Phase10.1] resetAvatar failed to clear avatar!";
+                    if (ConfigManager::instance()->hasCustomAvatar()) {
+                        qWarning() << "[Test-Phase10.1] resetAvatar failed to clear custom avatar!";
+                        pass = false;
+                    }
+                    if (ConfigManager::instance()->avatar().contains("user_avatar")) {
+                        qWarning() << "[Test-Phase10.1] resetAvatar did not revert avatar to default!";
                         pass = false;
                     }
                     QFile::remove(dummyAvatar);
