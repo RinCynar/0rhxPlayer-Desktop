@@ -354,3 +354,15 @@ jobs:
           files: release-assets/0rhxPlayer-v*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Website Sync
+        if: env.WEBSITE_SYNC_TOKEN != ''
+        continue-on-error: true
+        env:
+          WEBSITE_SYNC_TOKEN: ${{ secrets.WEBSITE_SYNC_TOKEN }}
+        run: |
+          curl -s -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $WEBSITE_SYNC_TOKEN" \
+            https://api.github.com/repos/RinCynar/0rhxPlayer-Website/dispatches \
+            -d '{"event_type":"desktop-release"}'
