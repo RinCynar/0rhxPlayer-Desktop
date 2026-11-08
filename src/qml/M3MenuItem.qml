@@ -6,8 +6,8 @@ import rhx.theme 1.0
 Rectangle {
     id: itemRoot
     Layout.fillWidth: true
-    Layout.preferredHeight: 36
-    radius: 4
+    Layout.preferredHeight: 40
+    radius: 8
 
     property string text: ""
     property string secondaryText: ""
@@ -18,7 +18,7 @@ Rectangle {
 
     signal clicked()
 
-    // Official M3 State Layer: 8% onSurface for standard items; errorContainer tone for destructive actions
+    // Official ChromeOS / M3 State Layer: 8% onSurface capsule; errorContainer tone for destructive actions
     color: {
         if (!containsMouse) return "transparent";
         if (isDestructive) {
@@ -33,9 +33,9 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 10
-        anchors.rightMargin: 10
-        spacing: 12
+        anchors.leftMargin: 12
+        anchors.rightMargin: 12
+        spacing: 14
 
         SvgIcon {
             id: icon
@@ -43,16 +43,16 @@ Rectangle {
             height: 18
             source: itemRoot.iconSource
             sourceSize: Qt.size(18, 18)
-            color: itemRoot.isDestructive ? Theme.error : Theme.onSurface
+            color: itemRoot.isDestructive ? Theme.error : (itemRoot.containsMouse ? Theme.onSurface : Theme.onSurfaceVariant)
             visible: itemRoot.iconSource != ""
         }
 
         Text {
             id: label
             text: itemRoot.text
-            font.pixelSize: 12
-            font.bold: itemRoot.bold
-            color: itemRoot.isDestructive ? Theme.error : Theme.onSurface
+            font.pixelSize: 14
+            font.weight: itemRoot.bold ? Font.Medium : Font.Normal
+            color: itemRoot.isDestructive ? Theme.error : (itemRoot.containsMouse ? Theme.onSurface : Theme.onSurfaceVariant)
             Layout.fillWidth: true
             elide: Text.ElideRight
         }
@@ -60,7 +60,7 @@ Rectangle {
         Text {
             id: subLabel
             text: itemRoot.secondaryText
-            font.pixelSize: 11
+            font.pixelSize: 12
             color: itemRoot.isDestructive ? Theme.error : Theme.onSurfaceVariant
             visible: itemRoot.secondaryText !== ""
         }

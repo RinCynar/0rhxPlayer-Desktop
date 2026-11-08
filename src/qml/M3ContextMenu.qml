@@ -52,44 +52,45 @@ Item {
         onPressed: menuRoot.close()
     }
 
-    // Subtle M3 Level 2 Elevation Shadow
+    // Subtle ChromeOS / M3 Ambient Elevation Shadow
     Rectangle {
         anchors.fill: menuBox
         anchors.topMargin: 2
-        anchors.bottomMargin: -2
-        radius: menuBox.radius
-        color: Qt.rgba(0, 0, 0, Theme.isDark ? 0.25 : 0.08)
+        anchors.bottomMargin: -3
+        anchors.leftMargin: -1
+        anchors.rightMargin: -1
+        radius: menuBox.radius + 1
+        color: Qt.rgba(0, 0, 0, Theme.isDark ? 0.28 : 0.06)
         opacity: menuRoot.opacity
         visible: menuRoot.visible
         z: menuBox.z - 1
     }
 
-    // Floating Menu Card (100% Solid M3 Surface Container High, Radius: 8px)
+    // Floating Menu Card (Solid ChromeOS / Material You Surface, Radius: 8px)
     Rectangle {
         id: menuBox
-        width: 220
-        height: menuCol.implicitHeight + 12
+        width: 236
+        height: menuCol.implicitHeight + 16
         radius: 8
-        color: Theme.surfaceContainerHigh
+        color: Theme.isDark ? Theme.surfaceContainer : Theme.surfaceContainerLowest
         border.width: 1
-        border.color: Qt.rgba(Theme.outlineVariant.r, Theme.outlineVariant.g, Theme.outlineVariant.b, Theme.isDark ? 0.45 : 0.55)
+        border.color: Qt.rgba(Theme.outlineVariant.r, Theme.outlineVariant.g, Theme.outlineVariant.b, Theme.isDark ? 0.35 : 0.45)
         clip: true
 
         ColumnLayout {
             id: menuCol
             anchors.top: parent.top
-            anchors.topMargin: 6
+            anchors.topMargin: 8
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.leftMargin: 6
-            anchors.rightMargin: 6
+            anchors.leftMargin: 4
+            anchors.rightMargin: 4
             spacing: 2
 
             // Menu Item 1: Insert to Queue
             M3MenuItem {
                 iconSource: "qrc:/assets/icons/queue.svg"
                 text: qsTr("Insert to Queue")
-                bold: true
                 onClicked: {
                     LibraryManager.insertTracksToQueue(menuRoot.selectedTrackPaths);
                     menuRoot.close();
@@ -98,9 +99,8 @@ Item {
 
             // Menu Item 2: Favorite (Add to Favorites)
             M3MenuItem {
-                iconSource: "qrc:/assets/icons/heart.svg"
+                iconSource: "qrc:/assets/icons/heart_outline.svg"
                 text: qsTr("Favorite")
-                bold: true
                 onClicked: {
                     LibraryManager.toggleFavorites(menuRoot.selectedTrackPaths);
                     menuRoot.close();
@@ -109,7 +109,7 @@ Item {
 
             // Menu Item 3: Add to Playlist
             M3MenuItem {
-                iconSource: "qrc:/assets/icons/playlist.svg"
+                iconSource: "qrc:/assets/icons/playlist_add.svg"
                 text: qsTr("Add to Playlist...")
                 onClicked: {
                     var paths = menuRoot.selectedTrackPaths;
@@ -120,14 +120,20 @@ Item {
                 }
             }
 
-            // Separator: 1px height, Theme.outlineVariant with 0.5 opacity, 8px total edge margin
-            Rectangle {
+            // Separator: 1px height, Theme.outlineVariant with 0.3 opacity, 8px indent, 6px vertical spacing
+            Item {
                 Layout.fillWidth: true
-                Layout.leftMargin: 2
-                Layout.rightMargin: 2
-                height: 1
-                color: Theme.outlineVariant
-                opacity: 0.5
+                Layout.preferredHeight: 9
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 8
+                    anchors.rightMargin: 8
+                    height: 1
+                    color: Theme.outlineVariant
+                    opacity: 0.3
+                }
             }
 
             // Menu Item 4a: Remove from Playlist (when in playlist view)
@@ -156,14 +162,20 @@ Item {
                 }
             }
 
-            // Separator: 1px height, Theme.outlineVariant with 0.5 opacity, 8px total edge margin
-            Rectangle {
+            // Separator: 1px height, Theme.outlineVariant with 0.3 opacity, 8px indent, 6px vertical spacing
+            Item {
                 Layout.fillWidth: true
-                Layout.leftMargin: 2
-                Layout.rightMargin: 2
-                height: 1
-                color: Theme.outlineVariant
-                opacity: 0.5
+                Layout.preferredHeight: 9
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 8
+                    anchors.rightMargin: 8
+                    height: 1
+                    color: Theme.outlineVariant
+                    opacity: 0.3
+                }
             }
 
             // Menu Item 5: Track Details
