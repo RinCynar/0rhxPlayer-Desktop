@@ -52,25 +52,38 @@ Item {
         onPressed: menuRoot.close()
     }
 
-    // Floating Menu Card
+    // Soft Drop Shadow Layers bound to Theme.shadow
+    Rectangle {
+        anchors.fill: menuBox
+        anchors.margins: -4
+        anchors.topMargin: -2
+        anchors.bottomMargin: -6
+        radius: 16
+        color: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.28)
+        opacity: menuRoot.opacity
+        visible: menuRoot.visible
+    }
+    Rectangle {
+        anchors.fill: menuBox
+        anchors.margins: -2
+        anchors.topMargin: -1
+        anchors.bottomMargin: -3
+        radius: 14
+        color: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.16)
+        opacity: menuRoot.opacity
+        visible: menuRoot.visible
+    }
+
+    // Floating Menu Card (Material 3 Dynamic Surface Container High)
     Rectangle {
         id: menuBox
         width: 220
         height: menuCol.implicitHeight + 16
         radius: 12
-        color: Theme.surfaceContainerHighest
+        color: Qt.rgba(Theme.surfaceContainerHigh.r, Theme.surfaceContainerHigh.g, Theme.surfaceContainerHigh.b, 0.94)
         border.width: 1
-        border.color: Theme.borderSubtle
+        border.color: Theme.outlineVariant
         clip: true
-
-        // Drop shadow feel via subtle outline
-        Rectangle {
-            anchors.fill: parent
-            radius: parent.radius
-            color: "transparent"
-            border.width: 1
-            border.color: Theme.borderSubtle
-        }
 
         ColumnLayout {
             id: menuCol
@@ -81,314 +94,108 @@ Item {
             spacing: 2
 
             // Menu Item 1: Insert to Queue
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 34
-                color: item1Mouse.containsMouse ? Theme.surfaceContainerLow : "transparent"
-                radius: 6
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 10
-
-                    SvgIcon {
-                        width: 15
-                        height: 15
-                        source: "qrc:/assets/icons/queue.svg"
-                        color: Theme.primary
-                    }
-
-                    Text {
-                        text: qsTr("Insert to Queue")
-                        font.pixelSize: 12
-                        font.bold: true
-                        color: Theme.textPrimary
-                        Layout.fillWidth: true
-                    }
-                }
-
-                MouseArea {
-                    id: item1Mouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        LibraryManager.insertTracksToQueue(menuRoot.selectedTrackPaths);
-                        menuRoot.close();
-                    }
+            M3MenuItem {
+                iconSource: "qrc:/assets/icons/queue.svg"
+                text: qsTr("Insert to Queue")
+                bold: true
+                onClicked: {
+                    LibraryManager.insertTracksToQueue(menuRoot.selectedTrackPaths);
+                    menuRoot.close();
                 }
             }
 
             // Menu Item 2: Favorite (Add to Favorites)
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 34
-                color: item2Mouse.containsMouse ? Theme.surfaceContainerLow : "transparent"
-                radius: 6
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 10
-
-                    SvgIcon {
-                        width: 15
-                        height: 15
-                        source: "qrc:/assets/icons/heart.svg"
-                        color: "#EF4444"
-                    }
-
-                    Text {
-                        text: qsTr("Favorite")
-                        font.pixelSize: 12
-                        font.bold: true
-                        color: Theme.textPrimary
-                        Layout.fillWidth: true
-                    }
-                }
-
-                MouseArea {
-                    id: item2Mouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        LibraryManager.toggleFavorites(menuRoot.selectedTrackPaths);
-                        menuRoot.close();
-                    }
+            M3MenuItem {
+                iconSource: "qrc:/assets/icons/heart.svg"
+                text: qsTr("Favorite")
+                bold: true
+                onClicked: {
+                    LibraryManager.toggleFavorites(menuRoot.selectedTrackPaths);
+                    menuRoot.close();
                 }
             }
 
             // Menu Item 3: Add to Playlist
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 34
-                color: item3Mouse.containsMouse ? Theme.surfaceContainerLow : "transparent"
-                radius: 6
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 10
-
-                    SvgIcon {
-                        width: 15
-                        height: 15
-                        source: "qrc:/assets/icons/playlist.svg"
-                        color: Theme.textPrimary
-                    }
-
-                    Text {
-                        text: qsTr("Add to Playlist...")
-                        font.pixelSize: 12
-                        color: Theme.textPrimary
-                        Layout.fillWidth: true
-                    }
-                }
-
-                MouseArea {
-                    id: item3Mouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        var paths = menuRoot.selectedTrackPaths;
-                        menuRoot.close();
-                        if (typeof playlistSelectDialog !== "undefined") {
-                            playlistSelectDialog.openForTracks(paths);
-                        }
+            M3MenuItem {
+                iconSource: "qrc:/assets/icons/playlist.svg"
+                text: qsTr("Add to Playlist...")
+                onClicked: {
+                    var paths = menuRoot.selectedTrackPaths;
+                    menuRoot.close();
+                    if (typeof playlistSelectDialog !== "undefined") {
+                        playlistSelectDialog.openForTracks(paths);
                     }
                 }
             }
 
-            // Divider
+            // Separator
             Rectangle {
                 Layout.fillWidth: true
                 Layout.leftMargin: 8
                 Layout.rightMargin: 8
                 height: 1
-                color: Theme.borderSubtle
+                color: Theme.outlineVariant
+                opacity: 0.5
             }
 
             // Menu Item 4a: Remove from Playlist (when in playlist view)
-            Rectangle {
+            M3MenuItem {
                 visible: menuRoot.contextType === "playlist"
-                Layout.fillWidth: true
-                Layout.preferredHeight: 34
-                color: itemPlRemoveMouse.containsMouse ? Qt.rgba(0.9, 0.2, 0.2, 0.15) : "transparent"
-                radius: 6
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 10
-
-                    SvgIcon {
-                        width: 14
-                        height: 14
-                        source: "qrc:/assets/icons/trash.svg"
-                        color: itemPlRemoveMouse.containsMouse ? "#EF4444" : Theme.textMuted
-                    }
-
-                    Text {
-                        text: qsTr("Remove from Playlist")
-                        font.pixelSize: 12
-                        color: itemPlRemoveMouse.containsMouse ? "#EF4444" : Theme.textPrimary
-                        Layout.fillWidth: true
-                    }
-                }
-
-                MouseArea {
-                    id: itemPlRemoveMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        var paths = menuRoot.selectedTrackPaths;
-                        menuRoot.close();
-                        LibraryManager.removeTracksFromPlaylist(LibraryManager.currentPlaylistId, paths);
-                    }
+                iconSource: "qrc:/assets/icons/trash.svg"
+                text: qsTr("Remove from Playlist")
+                isDestructive: true
+                onClicked: {
+                    var paths = menuRoot.selectedTrackPaths;
+                    menuRoot.close();
+                    LibraryManager.removeTracksFromPlaylist(LibraryManager.currentPlaylistId, paths);
                 }
             }
 
             // Menu Item 4b: Delete / Remove from Library
-            Rectangle {
+            M3MenuItem {
                 visible: menuRoot.contextType !== "playlist"
-                Layout.fillWidth: true
-                Layout.preferredHeight: 34
-                color: item4Mouse.containsMouse ? Qt.rgba(0.9, 0.2, 0.2, 0.15) : "transparent"
-                radius: 6
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 10
-
-                    SvgIcon {
-                        width: 14
-                        height: 14
-                        source: "qrc:/assets/icons/trash.svg"
-                        color: item4Mouse.containsMouse ? "#EF4444" : Theme.textMuted
-                    }
-
-                    Text {
-                        text: qsTr("Delete")
-                        font.pixelSize: 12
-                        color: item4Mouse.containsMouse ? "#EF4444" : Theme.textPrimary
-                        Layout.fillWidth: true
-                    }
-                }
-
-                MouseArea {
-                    id: item4Mouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        var paths = menuRoot.selectedTrackPaths;
-                        menuRoot.close();
-                        menuRoot.deleteRequested(paths);
-                    }
+                iconSource: "qrc:/assets/icons/trash.svg"
+                text: qsTr("Delete")
+                isDestructive: true
+                onClicked: {
+                    var paths = menuRoot.selectedTrackPaths;
+                    menuRoot.close();
+                    menuRoot.deleteRequested(paths);
                 }
             }
 
-            // Divider
+            // Separator
             Rectangle {
                 Layout.fillWidth: true
                 Layout.leftMargin: 8
                 Layout.rightMargin: 8
                 height: 1
-                color: Theme.borderSubtle
+                color: Theme.outlineVariant
+                opacity: 0.5
             }
 
             // Menu Item 5: Track Details
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 34
-                color: item5Mouse.containsMouse ? Theme.surfaceContainerLow : "transparent"
-                radius: 6
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 10
-
-                    SvgIcon {
-                        width: 14
-                        height: 14
-                        source: "qrc:/assets/icons/info.svg"
-                        color: Theme.textMuted
-                    }
-
-                    Text {
-                        text: qsTr("Track Details")
-                        font.pixelSize: 12
-                        color: Theme.textPrimary
-                        Layout.fillWidth: true
-                    }
-                }
-
-                MouseArea {
-                    id: item5Mouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        var p = (menuRoot.selectedTrackPaths && menuRoot.selectedTrackPaths.length > 0) ? menuRoot.selectedTrackPaths[0] : "";
-                        menuRoot.close();
-                        if (p && typeof trackInfoDialog !== "undefined") {
-                            trackInfoDialog.showTrack(p);
-                        }
+            M3MenuItem {
+                iconSource: "qrc:/assets/icons/info.svg"
+                text: qsTr("Track Details")
+                onClicked: {
+                    var p = (menuRoot.selectedTrackPaths && menuRoot.selectedTrackPaths.length > 0) ? menuRoot.selectedTrackPaths[0] : "";
+                    menuRoot.close();
+                    if (p && typeof trackInfoDialog !== "undefined") {
+                        trackInfoDialog.showTrack(p);
                     }
                 }
             }
 
             // Menu Item 6: Show in File Explorer
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 34
-                color: item6Mouse.containsMouse ? Theme.surfaceContainerLow : "transparent"
-                radius: 6
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
-                    spacing: 10
-
-                    SvgIcon {
-                        width: 14
-                        height: 14
-                        source: "qrc:/assets/icons/folder_open.svg"
-                        color: Theme.textMuted
-                    }
-
-                    Text {
-                        text: qsTr("Open in File Explorer")
-                        font.pixelSize: 12
-                        color: Theme.textPrimary
-                        Layout.fillWidth: true
-                    }
-                }
-
-                MouseArea {
-                    id: item6Mouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        var p = (menuRoot.selectedTrackPaths && menuRoot.selectedTrackPaths.length > 0) ? menuRoot.selectedTrackPaths[0] : "";
-                        menuRoot.close();
-                        if (p) {
-                            LibraryManager.showInExplorer(p);
-                        }
+            M3MenuItem {
+                iconSource: "qrc:/assets/icons/folder_open.svg"
+                text: qsTr("Open in File Explorer")
+                onClicked: {
+                    var p = (menuRoot.selectedTrackPaths && menuRoot.selectedTrackPaths.length > 0) ? menuRoot.selectedTrackPaths[0] : "";
+                    menuRoot.close();
+                    if (p) {
+                        LibraryManager.showInExplorer(p);
                     }
                 }
             }
@@ -400,58 +207,28 @@ Item {
                     title: menuRoot.singleTrackTitle,
                     artist: menuRoot.singleTrackArtist
                 })
-                delegate: Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 34
-                    color: itemPluginMouse.containsMouse ? Theme.surfaceContainerLow : "transparent"
-                    radius: 6
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 12
-                        anchors.rightMargin: 12
-                        spacing: 10
-
-                        SvgIcon {
-                            width: 14
-                            height: 14
-                            source: modelData.icon || "qrc:/assets/icons/plugin.svg"
-                            color: Theme.primary
-                        }
-
-                        Text {
-                            text: modelData.title
-                            font.pixelSize: 12
-                            color: Theme.textPrimary
-                            Layout.fillWidth: true
-                            elide: Text.ElideRight
-                        }
-                    }
-
-                    MouseArea {
-                        id: itemPluginMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            var p = (menuRoot.selectedTrackPaths && menuRoot.selectedTrackPaths.length > 0) ? menuRoot.selectedTrackPaths[0] : "";
-                            var payload = {
+                delegate: M3MenuItem {
+                    iconSource: modelData.icon || "qrc:/assets/icons/plugin.svg"
+                    text: modelData.title
+                    isDestructive: Boolean(modelData.isDestructive)
+                    onClicked: {
+                        var p = (menuRoot.selectedTrackPaths && menuRoot.selectedTrackPaths.length > 0) ? menuRoot.selectedTrackPaths[0] : "";
+                        var payload = {
+                            filePath: p,
+                            path: p,
+                            paths: menuRoot.selectedTrackPaths,
+                            title: menuRoot.singleTrackTitle,
+                            artist: menuRoot.singleTrackArtist,
+                            data: {
                                 filePath: p,
                                 path: p,
                                 paths: menuRoot.selectedTrackPaths,
                                 title: menuRoot.singleTrackTitle,
-                                artist: menuRoot.singleTrackArtist,
-                                data: {
-                                    filePath: p,
-                                    path: p,
-                                    paths: menuRoot.selectedTrackPaths,
-                                    title: menuRoot.singleTrackTitle,
-                                    artist: menuRoot.singleTrackArtist
-                                }
-                            };
-                            PluginManager.triggerPluginAction(modelData.pluginId, modelData.id, menuRoot.contextType === "playlist" ? "playlist" : "track", payload);
-                            menuRoot.close();
-                        }
+                                artist: menuRoot.singleTrackArtist
+                            }
+                        };
+                        PluginManager.triggerPluginAction(modelData.pluginId, modelData.id, menuRoot.contextType === "playlist" ? "playlist" : "track", payload);
+                        menuRoot.close();
                     }
                 }
             }

@@ -92,6 +92,7 @@
         <file>src/qml/TrackInfoDialog.qml</file>
         <file>src/qml/PlaylistSelectDialog.qml</file>
         <file>src/qml/M3ContextMenu.qml</file>
+        <file>src/qml/M3MenuItem.qml</file>
         <file>src/qml/SplashScreen.qml</file>
         <file>src/qml/qmldir</file>
         <file>translations/0rhxplayer_zh_CN.qm</file>

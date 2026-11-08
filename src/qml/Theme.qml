@@ -280,6 +280,15 @@ QtObject {
     readonly property alias onSecondaryContainer: theme.colorOnSecondaryContainer
     readonly property alias onTertiaryContainer: theme.colorOnTertiaryContainer
 
+    // Material 3 Error & Shadow Tokens
+    property color error: isDark ? "#FFB4AB" : "#BA1A1A"
+    property color colorOnError: isDark ? "#690005" : "#FFFFFF"
+    property color errorContainer: isDark ? "#93000A" : "#FFDAD6"
+    property color colorOnErrorContainer: isDark ? "#FFDAD6" : "#410002"
+    readonly property alias onError: theme.colorOnError
+    readonly property alias onErrorContainer: theme.colorOnErrorContainer
+    property color shadow: "#000000"
+
     property color surface: "#0E1514"
     property color colorOnSurface: "#DEE4E3"
     property color surfaceVariant: "#3F4948"
@@ -341,6 +350,12 @@ QtObject {
         outline = tokens.outline;
         outlineVariant = tokens.outlineVariant;
         borderSubtle = tokens.borderSubtle;
+
+        error = dark ? "#FFB4AB" : "#BA1A1A";
+        colorOnError = dark ? "#690005" : "#FFFFFF";
+        errorContainer = dark ? "#93000A" : "#FFDAD6";
+        colorOnErrorContainer = dark ? "#FFDAD6" : "#410002";
+        shadow = "#000000";
 
         textPrimary = dark ? "#FFFFFF" : tokens.colorOnSurface;
         textSecondary = tokens.colorOnSurfaceVariant;
