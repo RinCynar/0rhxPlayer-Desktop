@@ -108,8 +108,8 @@ Item {
             anchors.topMargin: 8
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.leftMargin: 4
-            anchors.rightMargin: 4
+            anchors.leftMargin: 0
+            anchors.rightMargin: 0
             spacing: 2
 
             // Group 1: Playback & Playlist Management
@@ -146,7 +146,7 @@ Item {
                 }
             }
 
-            // Single Middle Separator: 1px height, Theme.outlineVariant at 0.15 opacity, 12px horizontal inset (4 + 8)
+            // Single Middle Separator: 1px height, Theme.outlineVariant at 0.15 opacity, 12px horizontal inset
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 13
@@ -154,8 +154,8 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.leftMargin: 8
-                    anchors.rightMargin: 8
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
                     height: 1
                     color: Theme.outlineVariant
                     opacity: 0.15

@@ -3,11 +3,10 @@ import QtQuick.Layouts
 import rhx.ui 1.0
 import rhx.theme 1.0
 
-Rectangle {
+Item {
     id: itemRoot
     Layout.fillWidth: true
     Layout.preferredHeight: 40
-    radius: 8
 
     property string text: ""
     property string secondaryText: ""
@@ -18,24 +17,35 @@ Rectangle {
 
     signal clicked()
 
-    // Official ChromeOS / M3 State Layer: 8% onSurface capsule; errorContainer tone for destructive actions
-    color: {
-        if (!containsMouse) return "transparent";
-        if (isDestructive) {
-            return Qt.rgba(Theme.errorContainer.r, Theme.errorContainer.g, Theme.errorContainer.b, Theme.isDark ? 0.35 : 0.60);
+    // Full-rounded Pill Indicator (两头全圆药丸胶囊)
+    Rectangle {
+        id: pillIndicator
+        anchors.fill: parent
+        anchors.leftMargin: 6
+        anchors.rightMargin: 6
+        radius: height / 2
+        color: {
+            if (!itemRoot.containsMouse) return "transparent";
+            if (itemRoot.isDestructive) return Theme.errorContainer;
+            return Theme.secondaryContainer;
         }
-        return Qt.rgba(Theme.onSurface.r, Theme.onSurface.g, Theme.onSurface.b, 0.08);
-    }
 
-    Behavior on color {
-        ColorAnimation { duration: 100 }
+        scale: mouseArea.pressed ? 0.98 : 1.0
+
+        Behavior on color {
+            ColorAnimation { duration: 120 }
+        }
+
+        Behavior on scale {
+            NumberAnimation { duration: 80; easing.type: Easing.OutQuad }
+        }
     }
 
     RowLayout {
-        anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        spacing: 14
+        anchors.fill: pillIndicator
+        anchors.leftMargin: 14
+        anchors.rightMargin: 14
+        spacing: 12
 
         SvgIcon {
             id: icon
@@ -43,8 +53,17 @@ Rectangle {
             height: 18
             source: itemRoot.iconSource
             sourceSize: Qt.size(18, 18)
-            color: itemRoot.isDestructive ? Theme.error : (itemRoot.containsMouse ? Theme.onSurface : Theme.onSurfaceVariant)
+            color: {
+                if (itemRoot.isDestructive) {
+                    return itemRoot.containsMouse ? Theme.onErrorContainer : Theme.error;
+                }
+                return itemRoot.containsMouse ? Theme.onSecondaryContainer : Theme.onSurfaceVariant;
+            }
             visible: itemRoot.iconSource != ""
+
+            Behavior on color {
+                ColorAnimation { duration: 120 }
+            }
         }
 
         Text {
@@ -52,17 +71,35 @@ Rectangle {
             text: itemRoot.text
             font.pixelSize: 14
             font.weight: itemRoot.bold ? Font.Medium : Font.Normal
-            color: itemRoot.isDestructive ? Theme.error : (itemRoot.containsMouse ? Theme.onSurface : Theme.onSurfaceVariant)
+            color: {
+                if (itemRoot.isDestructive) {
+                    return itemRoot.containsMouse ? Theme.onErrorContainer : Theme.error;
+                }
+                return itemRoot.containsMouse ? Theme.onSecondaryContainer : Theme.onSurface;
+            }
             Layout.fillWidth: true
             elide: Text.ElideRight
+
+            Behavior on color {
+                ColorAnimation { duration: 120 }
+            }
         }
 
         Text {
             id: subLabel
             text: itemRoot.secondaryText
             font.pixelSize: 12
-            color: itemRoot.isDestructive ? Theme.error : Theme.onSurfaceVariant
+            color: {
+                if (itemRoot.isDestructive) {
+                    return itemRoot.containsMouse ? Theme.onErrorContainer : Theme.error;
+                }
+                return itemRoot.containsMouse ? Theme.onSecondaryContainer : Theme.onSurfaceVariant;
+            }
             visible: itemRoot.secondaryText !== ""
+
+            Behavior on color {
+                ColorAnimation { duration: 120 }
+            }
         }
     }
 
