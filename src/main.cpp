@@ -10,6 +10,9 @@
 #include <QDebug>
 
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <QStandardPaths>
 #include <QTextStream>
 #include <QSystemTrayIcon>
