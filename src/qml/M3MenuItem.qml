@@ -13,6 +13,10 @@ Item {
     property url iconSource: ""
     property bool isDestructive: false
     property bool bold: false
+    property color iconColor: "transparent"
+    property color hoverIconColor: "transparent"
+    property color textColor: "transparent"
+    property color hoverTextColor: "transparent"
     readonly property bool containsMouse: mouseArea.containsMouse
 
     signal clicked()
@@ -57,7 +61,14 @@ Item {
                 if (itemRoot.isDestructive) {
                     return itemRoot.containsMouse ? Theme.onErrorContainer : Theme.error;
                 }
-                return itemRoot.containsMouse ? Theme.onSecondaryContainer : Theme.onSurfaceVariant;
+                if (itemRoot.containsMouse) {
+                    if (itemRoot.hoverIconColor.a > 0) return itemRoot.hoverIconColor;
+                    return Theme.onSecondaryContainer;
+                }
+                if (itemRoot.iconColor.a > 0) {
+                    return itemRoot.iconColor;
+                }
+                return Theme.onSurfaceVariant;
             }
             visible: itemRoot.iconSource != ""
 
@@ -75,7 +86,14 @@ Item {
                 if (itemRoot.isDestructive) {
                     return itemRoot.containsMouse ? Theme.onErrorContainer : Theme.error;
                 }
-                return itemRoot.containsMouse ? Theme.onSecondaryContainer : Theme.onSurface;
+                if (itemRoot.containsMouse) {
+                    if (itemRoot.hoverTextColor.a > 0) return itemRoot.hoverTextColor;
+                    return Theme.onSecondaryContainer;
+                }
+                if (itemRoot.textColor.a > 0) {
+                    return itemRoot.textColor;
+                }
+                return Theme.onSurface;
             }
             Layout.fillWidth: true
             elide: Text.ElideRight
@@ -93,7 +111,10 @@ Item {
                 if (itemRoot.isDestructive) {
                     return itemRoot.containsMouse ? Theme.onErrorContainer : Theme.error;
                 }
-                return itemRoot.containsMouse ? Theme.onSecondaryContainer : Theme.onSurfaceVariant;
+                if (itemRoot.containsMouse) {
+                    return Theme.onSecondaryContainer;
+                }
+                return Theme.onSurfaceVariant;
             }
             visible: itemRoot.secondaryText !== ""
 

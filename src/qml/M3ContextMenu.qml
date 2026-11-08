@@ -18,6 +18,15 @@ Item {
     property string singleTrackArtist: ""
     property string contextType: "library" // "library", "queue", "playlist", "home"
 
+    readonly property bool isTrackFavorite: {
+        var dummy = LibraryManager.favoriteCount;
+        if (!selectedTrackPaths || selectedTrackPaths.length === 0) return false;
+        for (var i = 0; i < selectedTrackPaths.length; i++) {
+            if (!LibraryManager.isFavorite(selectedTrackPaths[i])) return false;
+        }
+        return true;
+    }
+
     signal deleteRequested(var paths)
 
     function show(posX, posY, paths, title, artist, ctx) {
@@ -123,10 +132,13 @@ Item {
                 }
             }
 
-            // Item 2: Favorite (Add to Favorites)
+            // Item 2: Favorite / Unfavorite (Dynamic Favorite State)
             M3MenuItem {
-                iconSource: "qrc:/assets/icons/heart_outline.svg"
-                text: qsTr("Favorite")
+                property bool isFav: menuRoot.isTrackFavorite
+                iconSource: isFav ? "qrc:/assets/icons/heart_filled.svg" : "qrc:/assets/icons/heart_outline.svg"
+                iconColor: isFav ? (Theme.isDark ? "#EF4444" : Theme.error) : "transparent"
+                hoverIconColor: isFav ? (Theme.isDark ? "#EF4444" : Theme.error) : "transparent"
+                text: isFav ? qsTr("Unfavorite") : qsTr("Favorite")
                 onClicked: {
                     LibraryManager.toggleFavorites(menuRoot.selectedTrackPaths);
                     menuRoot.close();
