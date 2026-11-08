@@ -24,6 +24,7 @@
 #include <QStandardPaths>
 #include <QRegularExpression>
 #include <QUrl>
+#include <QDateTime>
 #include <QDebug>
 #include <QJSEngine>
 #include <QJSValue>
@@ -1800,12 +1801,18 @@ void PluginManager::initPluginScriptEngine(const QString &pluginId)
     globalObj.setProperty("globalThis", globalObj);
     globalObj.setProperty("global", globalObj);
 
-    // Expose Host Singletons
-    globalObj.setProperty("PluginManager", engine->newQObject(this));
-    globalObj.setProperty("AudioEngine", engine->newQObject(AudioEngine::instance()));
-    globalObj.setProperty("LibraryManager", engine->newQObject(LibraryManager::instance()));
-    globalObj.setProperty("ConfigManager", engine->newQObject(ConfigManager::instance()));
-    globalObj.setProperty("PathManager", engine->newQObject(PathManager::instance()));
+    // Expose Host Singletons with explicit C++ ownership
+    auto exposeHostSingleton = [engine, &globalObj](const QString &name, QObject *obj) {
+        if (!obj) return;
+        QJSEngine::setObjectOwnership(obj, QJSEngine::CppOwnership);
+        globalObj.setProperty(name, engine->newQObject(obj));
+    };
+
+    exposeHostSingleton("PluginManager", this);
+    exposeHostSingleton("AudioEngine", AudioEngine::instance());
+    exposeHostSingleton("LibraryManager", LibraryManager::instance());
+    exposeHostSingleton("ConfigManager", ConfigManager::instance());
+    exposeHostSingleton("PathManager", PathManager::instance());
 
     // Expose setTimeout / clearTimeout
     auto *timerBridge = new JsTimerBridge(engine, engine);

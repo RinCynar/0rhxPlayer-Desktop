@@ -88,11 +88,11 @@ Copy-Item (Join-Path $RootDir "translations\*.qm") (Join-Path $StageDir "transla
 $WindeployqtCmd = ""
 $qtDirs = @(
     $QtBinDir,
-    (if ($env:QT_DIR) { Join-Path $env:QT_DIR "bin" } else { $null }),
-    (if ($env:QT_ROOT) { Join-Path $env:QT_ROOT "bin" } else { $null }),
-    (if ($env:QT_ROOT_DIR) { Join-Path $env:QT_ROOT_DIR "bin" } else { $null }),
-    (if ($env:Qt6_DIR) { (Resolve-Path "$env:Qt6_DIR\..\..\..\bin" -ErrorAction SilentlyContinue).Path } else { $null }),
-    (if ($env:CMAKE_PREFIX_PATH) { Join-Path $env:CMAKE_PREFIX_PATH "bin" } else { $null })
+    $(if ($env:QT_DIR) { Join-Path $env:QT_DIR "bin" } else { $null }),
+    $(if ($env:QT_ROOT) { Join-Path $env:QT_ROOT "bin" } else { $null }),
+    $(if ($env:QT_ROOT_DIR) { Join-Path $env:QT_ROOT_DIR "bin" } else { $null }),
+    $(if ($env:Qt6_DIR) { (Resolve-Path "$env:Qt6_DIR\..\..\..\bin" -ErrorAction SilentlyContinue).Path } else { $null }),
+    $(if ($env:CMAKE_PREFIX_PATH) { Join-Path $env:CMAKE_PREFIX_PATH "bin" } else { $null })
 )
 foreach ($qd in $qtDirs) {
     if ($qd -and (Test-Path (Join-Path $qd "windeployqt.exe"))) {
