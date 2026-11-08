@@ -6,8 +6,8 @@ import rhx.theme 1.0
 Rectangle {
     id: itemRoot
     Layout.fillWidth: true
-    Layout.preferredHeight: 34
-    radius: 6
+    Layout.preferredHeight: 36
+    radius: 4
 
     property string text: ""
     property string secondaryText: ""
@@ -18,7 +18,7 @@ Rectangle {
 
     signal clicked()
 
-    // M3 State Layer: 8% onSurface for standard items; errorContainer tone for destructive actions
+    // Official M3 State Layer: 8% onSurface for standard items; errorContainer tone for destructive actions
     color: {
         if (!containsMouse) return "transparent";
         if (isDestructive) {
@@ -33,16 +33,16 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        spacing: 10
+        anchors.leftMargin: 10
+        anchors.rightMargin: 10
+        spacing: 12
 
         SvgIcon {
             id: icon
-            width: 15
-            height: 15
+            width: 18
+            height: 18
             source: itemRoot.iconSource
-            sourceSize: Qt.size(15, 15)
+            sourceSize: Qt.size(18, 18)
             color: itemRoot.isDestructive ? Theme.error : Theme.onSurface
             visible: itemRoot.iconSource != ""
         }

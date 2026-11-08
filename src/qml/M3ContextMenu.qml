@@ -52,45 +52,37 @@ Item {
         onPressed: menuRoot.close()
     }
 
-    // Soft Drop Shadow Layers bound to Theme.shadow
+    // Subtle M3 Level 2 Elevation Shadow
     Rectangle {
         anchors.fill: menuBox
-        anchors.margins: -4
-        anchors.topMargin: -2
-        anchors.bottomMargin: -6
-        radius: 16
-        color: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.28)
+        anchors.topMargin: 2
+        anchors.bottomMargin: -2
+        radius: menuBox.radius
+        color: Qt.rgba(0, 0, 0, Theme.isDark ? 0.25 : 0.08)
         opacity: menuRoot.opacity
         visible: menuRoot.visible
-    }
-    Rectangle {
-        anchors.fill: menuBox
-        anchors.margins: -2
-        anchors.topMargin: -1
-        anchors.bottomMargin: -3
-        radius: 14
-        color: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.16)
-        opacity: menuRoot.opacity
-        visible: menuRoot.visible
+        z: menuBox.z - 1
     }
 
-    // Floating Menu Card (Material 3 Dynamic Surface Container High)
+    // Floating Menu Card (100% Solid M3 Surface Container High, Radius: 8px)
     Rectangle {
         id: menuBox
         width: 220
-        height: menuCol.implicitHeight + 16
-        radius: 12
-        color: Qt.rgba(Theme.surfaceContainerHigh.r, Theme.surfaceContainerHigh.g, Theme.surfaceContainerHigh.b, 0.94)
+        height: menuCol.implicitHeight + 12
+        radius: 8
+        color: Theme.surfaceContainerHigh
         border.width: 1
-        border.color: Theme.outlineVariant
+        border.color: Qt.rgba(Theme.outlineVariant.r, Theme.outlineVariant.g, Theme.outlineVariant.b, Theme.isDark ? 0.45 : 0.55)
         clip: true
 
         ColumnLayout {
             id: menuCol
             anchors.top: parent.top
-            anchors.topMargin: 8
+            anchors.topMargin: 6
             anchors.left: parent.left
             anchors.right: parent.right
+            anchors.leftMargin: 6
+            anchors.rightMargin: 6
             spacing: 2
 
             // Menu Item 1: Insert to Queue
@@ -128,11 +120,11 @@ Item {
                 }
             }
 
-            // Separator
+            // Separator: 1px height, Theme.outlineVariant with 0.5 opacity, 8px total edge margin
             Rectangle {
                 Layout.fillWidth: true
-                Layout.leftMargin: 8
-                Layout.rightMargin: 8
+                Layout.leftMargin: 2
+                Layout.rightMargin: 2
                 height: 1
                 color: Theme.outlineVariant
                 opacity: 0.5
@@ -164,11 +156,11 @@ Item {
                 }
             }
 
-            // Separator
+            // Separator: 1px height, Theme.outlineVariant with 0.5 opacity, 8px total edge margin
             Rectangle {
                 Layout.fillWidth: true
-                Layout.leftMargin: 8
-                Layout.rightMargin: 8
+                Layout.leftMargin: 2
+                Layout.rightMargin: 2
                 height: 1
                 color: Theme.outlineVariant
                 opacity: 0.5
