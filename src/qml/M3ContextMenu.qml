@@ -52,29 +52,54 @@ Item {
         onPressed: menuRoot.close()
     }
 
-    // Subtle ChromeOS / M3 Ambient Elevation Shadow
-    Rectangle {
+    // Soft Diffuse M3 Elevation Shadow (blur: 16px, offset: 4px, Theme.shadow at 0.12 opacity)
+    Item {
         anchors.fill: menuBox
-        anchors.topMargin: 2
-        anchors.bottomMargin: -3
-        anchors.leftMargin: -1
-        anchors.rightMargin: -1
-        radius: menuBox.radius + 1
-        color: Qt.rgba(0, 0, 0, Theme.isDark ? 0.28 : 0.06)
-        opacity: menuRoot.opacity
-        visible: menuRoot.visible
         z: menuBox.z - 1
+        visible: menuRoot.visible
+        opacity: menuRoot.opacity
+
+        // Outer soft ambient layer (spread ~6px, offset 4px)
+        Rectangle {
+            anchors.fill: parent
+            anchors.leftMargin: -6
+            anchors.rightMargin: -6
+            anchors.topMargin: -2
+            anchors.bottomMargin: -10
+            radius: menuBox.radius + 6
+            color: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.03)
+        }
+        // Mid diffusion layer (spread ~4px, offset 3px)
+        Rectangle {
+            anchors.fill: parent
+            anchors.leftMargin: -4
+            anchors.rightMargin: -4
+            anchors.topMargin: -1
+            anchors.bottomMargin: -7
+            radius: menuBox.radius + 4
+            color: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.04)
+        }
+        // Inner key directional layer (spread ~2px, offset 2px)
+        Rectangle {
+            anchors.fill: parent
+            anchors.leftMargin: -2
+            anchors.rightMargin: -2
+            anchors.topMargin: 0
+            anchors.bottomMargin: -4
+            radius: menuBox.radius + 2
+            color: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.05)
+        }
     }
 
-    // Floating Menu Card (Solid ChromeOS / Material You Surface, Radius: 8px)
+    // Floating Menu Card (Harmonious Material You Surface Container, Radius: 8px)
     Rectangle {
         id: menuBox
         width: 236
         height: menuCol.implicitHeight + 16
         radius: 8
-        color: Theme.isDark ? Theme.surfaceContainer : Theme.surfaceContainerLowest
+        color: Theme.surfaceContainer
         border.width: 1
-        border.color: Qt.rgba(Theme.outlineVariant.r, Theme.outlineVariant.g, Theme.outlineVariant.b, Theme.isDark ? 0.35 : 0.45)
+        border.color: Qt.rgba(Theme.outlineVariant.r, Theme.outlineVariant.g, Theme.outlineVariant.b, 0.18)
         clip: true
 
         ColumnLayout {
@@ -87,7 +112,8 @@ Item {
             anchors.rightMargin: 4
             spacing: 2
 
-            // Menu Item 1: Insert to Queue
+            // Group 1: Playback & Playlist Management
+            // Item 1: Insert to Queue
             M3MenuItem {
                 iconSource: "qrc:/assets/icons/queue.svg"
                 text: qsTr("Insert to Queue")
@@ -97,7 +123,7 @@ Item {
                 }
             }
 
-            // Menu Item 2: Favorite (Add to Favorites)
+            // Item 2: Favorite (Add to Favorites)
             M3MenuItem {
                 iconSource: "qrc:/assets/icons/heart_outline.svg"
                 text: qsTr("Favorite")
@@ -107,7 +133,7 @@ Item {
                 }
             }
 
-            // Menu Item 3: Add to Playlist
+            // Item 3: Add to Playlist
             M3MenuItem {
                 iconSource: "qrc:/assets/icons/playlist_add.svg"
                 text: qsTr("Add to Playlist...")
@@ -120,10 +146,10 @@ Item {
                 }
             }
 
-            // Separator: 1px height, Theme.outlineVariant with 0.3 opacity, 8px indent, 6px vertical spacing
+            // Single Middle Separator: 1px height, Theme.outlineVariant at 0.15 opacity, 12px horizontal inset (4 + 8)
             Item {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 9
+                Layout.preferredHeight: 13
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.left: parent.left
@@ -132,53 +158,12 @@ Item {
                     anchors.rightMargin: 8
                     height: 1
                     color: Theme.outlineVariant
-                    opacity: 0.3
+                    opacity: 0.15
                 }
             }
 
-            // Menu Item 4a: Remove from Playlist (when in playlist view)
-            M3MenuItem {
-                visible: menuRoot.contextType === "playlist"
-                iconSource: "qrc:/assets/icons/trash.svg"
-                text: qsTr("Remove from Playlist")
-                isDestructive: true
-                onClicked: {
-                    var paths = menuRoot.selectedTrackPaths;
-                    menuRoot.close();
-                    LibraryManager.removeTracksFromPlaylist(LibraryManager.currentPlaylistId, paths);
-                }
-            }
-
-            // Menu Item 4b: Delete / Remove from Library
-            M3MenuItem {
-                visible: menuRoot.contextType !== "playlist"
-                iconSource: "qrc:/assets/icons/trash.svg"
-                text: qsTr("Delete")
-                isDestructive: true
-                onClicked: {
-                    var paths = menuRoot.selectedTrackPaths;
-                    menuRoot.close();
-                    menuRoot.deleteRequested(paths);
-                }
-            }
-
-            // Separator: 1px height, Theme.outlineVariant with 0.3 opacity, 8px indent, 6px vertical spacing
-            Item {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 9
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 8
-                    anchors.rightMargin: 8
-                    height: 1
-                    color: Theme.outlineVariant
-                    opacity: 0.3
-                }
-            }
-
-            // Menu Item 5: Track Details
+            // Group 2: Metadata, File Operations & Actions
+            // Item 4: Track Details
             M3MenuItem {
                 iconSource: "qrc:/assets/icons/info.svg"
                 text: qsTr("Track Details")
@@ -191,7 +176,7 @@ Item {
                 }
             }
 
-            // Menu Item 6: Show in File Explorer
+            // Item 5: Show in File Explorer
             M3MenuItem {
                 iconSource: "qrc:/assets/icons/folder_open.svg"
                 text: qsTr("Open in File Explorer")
@@ -234,6 +219,32 @@ Item {
                         PluginManager.triggerPluginAction(modelData.pluginId, modelData.id, menuRoot.contextType === "playlist" ? "playlist" : "track", payload);
                         menuRoot.close();
                     }
+                }
+            }
+
+            // Destructive Action: Naturally Anchored at Bottom (Item 6a: Remove from Playlist)
+            M3MenuItem {
+                visible: menuRoot.contextType === "playlist"
+                iconSource: "qrc:/assets/icons/trash.svg"
+                text: qsTr("Remove from Playlist")
+                isDestructive: true
+                onClicked: {
+                    var paths = menuRoot.selectedTrackPaths;
+                    menuRoot.close();
+                    LibraryManager.removeTracksFromPlaylist(LibraryManager.currentPlaylistId, paths);
+                }
+            }
+
+            // Destructive Action: Naturally Anchored at Bottom (Item 6b: Delete / Remove from Library)
+            M3MenuItem {
+                visible: menuRoot.contextType !== "playlist"
+                iconSource: "qrc:/assets/icons/trash.svg"
+                text: qsTr("Delete")
+                isDestructive: true
+                onClicked: {
+                    var paths = menuRoot.selectedTrackPaths;
+                    menuRoot.close();
+                    menuRoot.deleteRequested(paths);
                 }
             }
         }
