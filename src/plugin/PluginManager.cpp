@@ -1,4 +1,5 @@
 #include "PluginManager.h"
+#include "PluginTaskModel.h"
 #include "JsTimerBridge.h"
 #include "../core/PathManager.h"
 #include "../config/ConfigManager.h"
@@ -138,6 +139,7 @@ PluginManager *PluginManager::instance()
 PluginManager::PluginManager(QObject *parent)
     : QObject(parent)
 {
+    m_taskModel = new PluginTaskModel(this);
     loadEnabledPluginsConfig();
 }
 
@@ -788,31 +790,93 @@ QVariantList PluginManager::executeSearchHook(const QString &query)
     QVariantList results;
     for (auto it = m_installed.cbegin(); it != m_installed.cend(); ++it) {
         if (!it->enabled) continue;
-        if (!it->hooks.value("search").toBool()) continue;
+        if (!it->hooks.value("search").toBool() && !it->hooks.value("globalSearch").toBool()) continue;
 
-        // Check if plugin has mock or static data file
-        QString mockPath = it->localDir + "/mock_data/search_results.json";
-        QFile file(mockPath);
-        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-            if (doc.isArray()) {
-                const auto arr = doc.array();
-                for (const auto &v : arr) {
-                    if (v.isObject()) {
-                        QJsonObject o = v.toObject();
-                        QString title = o["title"].toString();
-                        QString artist = o["artist"].toString();
-                        if (query.isEmpty() || title.contains(query, Qt::CaseInsensitive) || artist.contains(query, Qt::CaseInsensitive)) {
-                            QVariantMap item = o.toVariantMap();
-                            item["sourcePlugin"] = it->name;
-                            results.append(item);
-                        }
+        const QString &pluginId = it.key();
+        QJSValue targetObj = getPluginScriptObject(pluginId);
+        if (!targetObj.isObject()) continue;
+
+        QJSEngine *engine = m_scriptEngines.value(pluginId);
+        if (!engine) continue;
+
+        QJSValue jsRes;
+        if (targetObj.hasProperty("onHook") && targetObj.property("onHook").isCallable()) {
+            QVariantMap params;
+            params["query"] = query;
+            QJSValueList args;
+            args << engine->toScriptValue(QString("search"));
+            args << engine->toScriptValue(params);
+            jsRes = targetObj.property("onHook").callWithInstance(targetObj, args);
+        } else if (targetObj.hasProperty("search") && targetObj.property("search").isCallable()) {
+            QJSValueList args;
+            args << engine->toScriptValue(query);
+            jsRes = targetObj.property("search").callWithInstance(targetObj, args);
+        } else if (targetObj.hasProperty("globalSearch") && targetObj.property("globalSearch").isCallable()) {
+            QJSValueList args;
+            args << engine->toScriptValue(query);
+            jsRes = targetObj.property("globalSearch").callWithInstance(targetObj, args);
+        }
+
+        if (jsRes.isArray()) {
+            QVariantList items = jsRes.toVariant().toList();
+            for (const auto &itemVar : items) {
+                if (itemVar.canConvert<QVariantMap>()) {
+                    QVariantMap item = itemVar.toMap();
+                    if (!item.contains("sourcePlugin")) {
+                        item["sourcePlugin"] = it->name;
                     }
+                    results.append(item);
                 }
             }
         }
     }
     return results;
+}
+
+QVariantMap PluginManager::executeLyricsHook(const QString &title, const QString &artist, qint64 durationMs)
+{
+    QVariantMap result;
+    for (auto it = m_installed.cbegin(); it != m_installed.cend(); ++it) {
+        if (!it->enabled) continue;
+        if (!it->hooks.value("lyricsProvider").toBool()) continue;
+
+        const QString &pluginId = it.key();
+        QJSValue targetObj = getPluginScriptObject(pluginId);
+        if (!targetObj.isObject()) continue;
+
+        QJSEngine *engine = m_scriptEngines.value(pluginId);
+        if (!engine) continue;
+
+        QJSValue jsRes;
+        if (targetObj.hasProperty("onHook") && targetObj.property("onHook").isCallable()) {
+            QVariantMap params;
+            params["title"] = title;
+            params["artist"] = artist;
+            params["durationMs"] = durationMs;
+            QJSValueList args;
+            args << engine->toScriptValue(QString("lyricsProvider"));
+            args << engine->toScriptValue(params);
+            jsRes = targetObj.property("onHook").callWithInstance(targetObj, args);
+        } else if (targetObj.hasProperty("lyricsProvider") && targetObj.property("lyricsProvider").isCallable()) {
+            QJSValueList args;
+            args << engine->toScriptValue(title);
+            args << engine->toScriptValue(artist);
+            jsRes = targetObj.property("lyricsProvider").callWithInstance(targetObj, args);
+        }
+
+        if (jsRes.isString()) {
+            result["lrc"] = jsRes.toString();
+            result["sourcePlugin"] = it->name;
+            return result;
+        } else if (jsRes.isObject()) {
+            QVariantMap map = jsRes.toVariant().toMap();
+            if (!map.isEmpty()) {
+                map["sourcePlugin"] = it->name;
+                return map;
+            }
+        }
+    }
+    return result;
 }
 
 void PluginManager::fetchMarketIndex(const QString &customUrl)
@@ -1724,12 +1788,159 @@ QVariantList PluginManager::getInjectedPlaybackControls() const
     return controls;
 }
 
+PluginTaskModel* PluginManager::taskModel() const
+{
+    return m_taskModel;
+}
+
+QString PluginManager::startAsyncTask(const QString &pluginId, const QString &program, const QVariant &arguments, const QString &workingDir, const QVariantMap &meta)
+{
+    QStringList args;
+    if (arguments.userType() == qMetaTypeId<QStringList>() || arguments.canConvert<QStringList>()) {
+        args = arguments.toStringList();
+    }
+    if (args.isEmpty() && arguments.canConvert<QVariantList>()) {
+        const auto list = arguments.toList();
+        for (const auto &v : list) {
+            args.append(v.toString());
+        }
+    }
+    if (args.isEmpty() && arguments.userType() == qMetaTypeId<QJSValue>()) {
+        QJSValue jsVal = arguments.value<QJSValue>();
+        if (jsVal.isArray()) {
+            int len = jsVal.property("length").toInt();
+            for (int i = 0; i < len; ++i) {
+                args.append(jsVal.property(i).toString());
+            }
+        }
+    }
+
+    QString title = meta.value("title").toString();
+    QString src = meta.value("sourcePath").toString();
+    if (src.isEmpty()) src = meta.value("filePath").toString();
+    if (src.isEmpty()) src = meta.value("path").toString();
+    QString tgt = meta.value("targetPath").toString();
+    QString fmt = meta.value("format").toString();
+
+    QString taskId = m_taskModel->addTask(pluginId, title, src, tgt, fmt);
+    m_taskModel->startTask(taskId, program, args, workingDir);
+    return taskId;
+}
+
+void PluginManager::registerPluginObject(const QString &pluginId, const QJSValue &object)
+{
+    if (object.isObject()) {
+        m_pluginObjects[pluginId] = object;
+    }
+}
+
+QJSValue PluginManager::getPluginScriptObject(const QString &pluginId) const
+{
+    if (!m_scriptEngines.contains(pluginId)) {
+        return QJSValue();
+    }
+    if (m_pluginObjects.contains(pluginId) && m_pluginObjects.value(pluginId).isObject()) {
+        return m_pluginObjects.value(pluginId);
+    }
+
+    QJSEngine *engine = m_scriptEngines.value(pluginId);
+    if (!engine) return QJSValue();
+
+    QJSValue globalObj = engine->globalObject();
+
+    // 1. Check module.exports
+    QJSValue moduleObj = globalObj.property("module");
+    if (moduleObj.isObject()) {
+        QJSValue exportsObj = moduleObj.property("exports");
+        if (exportsObj.isObject()) {
+            QJSValue keys = engine->evaluate("Object.keys(module.exports)");
+            if (keys.isArray() && keys.property("length").toInt() > 0) {
+                return exportsObj;
+            }
+        }
+    }
+
+    // 2. Check global 'Plugin' or 'plugin'
+    if (globalObj.property("Plugin").isObject()) {
+        return globalObj.property("Plugin");
+    }
+    if (globalObj.property("plugin").isObject()) {
+        return globalObj.property("plugin");
+    }
+
+    // 3. Dynamic scan: check all properties of globalObj for any object exposing plugin lifecycle / action methods
+    // without hardcoding any specific plugin names
+    QJSValue candidate = engine->evaluate(
+        "(function() {\n"
+        "    var names = Object.getOwnPropertyNames(globalThis);\n"
+        "    var ignore = ['window', 'globalThis', 'global', 'op', '_timerBridge', 'toastBanner',\n"
+        "                  'PluginManager', 'AudioEngine', 'LibraryManager', 'ConfigManager', 'PathManager',\n"
+        "                  'console', 'module', 'exports'];\n"
+        "    for (var i = 0; i < names.length; ++i) {\n"
+        "        var name = names[i];\n"
+        "        if (ignore.indexOf(name) !== -1) continue;\n"
+        "        var obj = globalThis[name];\n"
+        "        if (obj && typeof obj === 'object') {\n"
+        "            if (typeof obj.onAction === 'function' || typeof obj.onHook === 'function' ||\n"
+        "                typeof obj.onPluginLoad === 'function' || typeof obj.onPluginUnload === 'function' ||\n"
+        "                typeof obj.getQueue === 'function') {\n"
+        "                return obj;\n"
+        "            }\n"
+        "        }\n"
+        "    }\n"
+        "    return null;\n"
+        "})()"
+    );
+    if (candidate.isObject()) {
+        return candidate;
+    }
+
+    return globalObj;
+}
+
+QVariant PluginManager::getPluginState(const QString &pluginId, const QString &key, const QVariant &defaultValue) const
+{
+    if (m_pluginStateStore.contains(pluginId)) {
+        const auto &store = m_pluginStateStore[pluginId];
+        if (store.contains(key)) {
+            return store.value(key);
+        }
+    }
+    return defaultValue;
+}
+
+void PluginManager::setPluginState(const QString &pluginId, const QString &key, const QVariant &value)
+{
+    m_pluginStateStore[pluginId][key] = value;
+    emit pluginStateChanged(pluginId, key, value);
+    emit pluginViewUpdated(pluginId);
+}
+
+QVariantMap PluginManager::getAllPluginState(const QString &pluginId) const
+{
+    return m_pluginStateStore.value(pluginId);
+}
+
+void PluginManager::setAllPluginState(const QString &pluginId, const QVariantMap &state)
+{
+    m_pluginStateStore[pluginId] = state;
+    for (auto it = state.cbegin(); it != state.cend(); ++it) {
+        emit pluginStateChanged(pluginId, it.key(), it.value());
+    }
+    emit pluginViewUpdated(pluginId);
+}
+
+void PluginManager::invokePluginAction(const QString &pluginId, const QString &actionId, const QVariantMap &payload)
+{
+    triggerPluginAction(pluginId, actionId, "workbench", payload);
+}
+
 void PluginManager::triggerPluginAction(const QString &pluginId, const QString &actionId, const QString &slotType, const QVariantMap &payload)
 {
     qInfo() << "[PluginManager] Action triggered for plugin:" << pluginId << "action:" << actionId << "slot:" << slotType;
 
-    // Track addition to C++ queue
-    if (actionId == "add_to_convert_queue" || actionId == "convert_track") {
+    // Generic track queuing if payload contains track file path
+    if (actionId.contains("queue", Qt::CaseInsensitive) || actionId.contains("task", Qt::CaseInsensitive) || slotType == "track") {
         QString trackPath = payload.value("filePath").toString();
         if (trackPath.isEmpty()) trackPath = payload.value("path").toString();
         if (trackPath.isEmpty() && payload.contains("data")) {
@@ -1738,46 +1949,55 @@ void PluginManager::triggerPluginAction(const QString &pluginId, const QString &
             if (trackPath.isEmpty()) trackPath = d.value("path").toString();
         }
 
-        if (!trackPath.isEmpty()) {
-            QVariantMap task;
-            task["id"] = "task_" + QString::number(QDateTime::currentMSecsSinceEpoch());
+        if (!trackPath.isEmpty() && actionId != "clear_queue") {
             QString title = payload.value("title").toString();
             if (title.isEmpty()) title = QFileInfo(trackPath).fileName();
+            QString fmt = payload.value("format").toString();
+            if (m_taskModel) {
+                m_taskModel->addTask(pluginId, title, trackPath, QString(), fmt);
+            }
+
+            QVariantMap task;
+            task["id"] = "task_" + QString::number(QDateTime::currentMSecsSinceEpoch());
             task["title"] = title;
             task["artist"] = payload.value("artist").toString();
             task["sourcePath"] = trackPath;
-            QString fmt = payload.value("format").toString();
-            if (fmt.isEmpty()) fmt = "MP3";
-            task["format"] = fmt.toUpper();
+            if (!fmt.isEmpty()) {
+                task["format"] = fmt.toUpper();
+            }
             task["status"] = "pending";
             task["progress"] = 0;
             m_pluginQueues[pluginId].append(task);
         }
-    } else if (actionId == "clear_queue") {
+    }
+    if (actionId == "clear_queue" || actionId == "clear_tasks") {
         m_pluginQueues[pluginId].clear();
+        if (m_taskModel) {
+            m_taskModel->clearTasks(pluginId);
+        }
     }
 
     // Direct invocation on JS engine if onAction method exists
     if (m_scriptEngines.contains(pluginId)) {
         QJSEngine *engine = m_scriptEngines.value(pluginId);
-        QJSValue targetObj = engine->globalObject().property("AudioConverterPlugin");
-        if (!targetObj.isObject() || !targetObj.hasProperty("onAction")) {
-            targetObj = engine->globalObject().property("Converter");
-        }
-        if (!targetObj.isObject() || !targetObj.hasProperty("onAction")) {
-            targetObj = engine->globalObject().property("Gunmu");
-        }
-        if (!targetObj.isObject() || !targetObj.hasProperty("onAction")) {
-            targetObj = engine->globalObject().property("Plugin");
-        }
-        if (targetObj.isObject() && targetObj.hasProperty("onAction") && targetObj.property("onAction").isCallable()) {
-            QJSValueList args;
-            args << engine->toScriptValue(actionId);
-            args << engine->toScriptValue(slotType);
-            args << engine->toScriptValue(payload);
-            QJSValue res = targetObj.property("onAction").callWithInstance(targetObj, args);
-            if (res.isError()) {
-                qWarning() << "[PluginManager] Error calling onAction in" << pluginId << ":" << res.toString();
+        QJSValue targetObj = getPluginScriptObject(pluginId);
+        if (targetObj.isObject()) {
+            if (targetObj.hasProperty("onAction") && targetObj.property("onAction").isCallable()) {
+                QJSValueList args;
+                args << engine->toScriptValue(actionId);
+                args << engine->toScriptValue(slotType);
+                args << engine->toScriptValue(payload);
+                QJSValue res = targetObj.property("onAction").callWithInstance(targetObj, args);
+                if (res.isError()) {
+                    qWarning() << "[PluginManager] Error calling onAction in" << pluginId << ":" << res.toString();
+                }
+            } else if (targetObj.hasProperty(actionId) && targetObj.property(actionId).isCallable()) {
+                QJSValueList args;
+                args << engine->toScriptValue(payload);
+                QJSValue res = targetObj.property(actionId).callWithInstance(targetObj, args);
+                if (res.isError()) {
+                    qWarning() << "[PluginManager] Error calling" << actionId << "in" << pluginId << ":" << res.toString();
+                }
             }
         }
     }
@@ -1805,6 +2025,13 @@ void PluginManager::initPluginScriptEngine(const QString &pluginId)
     globalObj.setProperty("window", globalObj);
     globalObj.setProperty("globalThis", globalObj);
     globalObj.setProperty("global", globalObj);
+
+    // CommonJS support
+    QJSValue moduleObj = engine->newObject();
+    QJSValue exportsObj = engine->newObject();
+    moduleObj.setProperty("exports", exportsObj);
+    globalObj.setProperty("module", moduleObj);
+    globalObj.setProperty("exports", exportsObj);
 
     // Expose Host Singletons with explicit C++ ownership
     auto exposeHostSingleton = [engine, &globalObj](const QString &name, QObject *obj) {
@@ -1835,6 +2062,21 @@ void PluginManager::initPluginScriptEngine(const QString &pluginId)
         "window.toastBanner = toastBanner;\n"
     );
 
+    // Expose op state and registration APIs
+    QString opScript = QString(
+        "var op = window.op || {};\n"
+        "op.pluginId = '%1';\n"
+        "op.state = {\n"
+        "    get: function(key, defVal) { return PluginManager.getPluginState(op.pluginId, key, defVal); },\n"
+        "    set: function(key, val) { PluginManager.setPluginState(op.pluginId, key, val); },\n"
+        "    getAll: function() { return PluginManager.getAllPluginState(op.pluginId); }\n"
+        "};\n"
+        "op.registerPlugin = function(obj) { PluginManager.registerPluginObject(op.pluginId, obj); };\n"
+        "window.op = op;\n"
+        "globalThis.op = op;\n"
+    ).arg(pluginId);
+    engine->evaluate(opScript);
+
     // Load and evaluate scripts/main.js
     QFile file(scriptPath);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -1852,19 +2094,23 @@ void PluginManager::initPluginScriptEngine(const QString &pluginId)
     }
 
     m_scriptEngines[pluginId] = engine;
+
+    // Cache resolved plugin object and trigger onPluginLoad lifecycle hook
+    QJSValue pluginObj = getPluginScriptObject(pluginId);
+    if (pluginObj.isObject()) {
+        m_pluginObjects[pluginId] = pluginObj;
+        if (pluginObj.hasProperty("onPluginLoad") && pluginObj.property("onPluginLoad").isCallable()) {
+            pluginObj.property("onPluginLoad").callWithInstance(pluginObj);
+        }
+    }
 }
 
 void PluginManager::unloadPluginScriptEngine(const QString &pluginId)
 {
     if (m_scriptEngines.contains(pluginId)) {
         QJSEngine *eng = m_scriptEngines.take(pluginId);
-        QJSValue pluginObj = eng->globalObject().property("AudioConverterPlugin");
-        if (!pluginObj.isObject()) {
-            pluginObj = eng->globalObject().property("Converter");
-        }
-        if (!pluginObj.isObject()) {
-            pluginObj = eng->globalObject().property("Plugin");
-        }
+        QJSValue pluginObj = getPluginScriptObject(pluginId);
+        m_pluginObjects.remove(pluginId);
         if (pluginObj.isObject() && pluginObj.hasProperty("onPluginUnload")) {
             QJSValue unloadFn = pluginObj.property("onPluginUnload");
             if (unloadFn.isCallable()) {
@@ -1883,10 +2129,7 @@ QVariant PluginManager::callPluginMethod(const QString &pluginId, const QString 
     QJSEngine *engine = m_scriptEngines.value(pluginId);
     if (!engine) return QVariant();
 
-    QJSValue targetObj = engine->globalObject().property("AudioConverterPlugin");
-    if (!targetObj.isObject() || !targetObj.hasProperty(methodName)) {
-        targetObj = engine->globalObject().property("Converter");
-    }
+    QJSValue targetObj = getPluginScriptObject(pluginId);
     if (!targetObj.isObject() || !targetObj.hasProperty(methodName)) {
         targetObj = engine->globalObject();
     }
@@ -1911,21 +2154,15 @@ QVariant PluginManager::callPluginMethod(const QString &pluginId, const QString 
 
 QVariantList PluginManager::getPluginQueue(const QString &pluginId) const
 {
-    if (m_scriptEngines.contains(pluginId)) {
-        QJSEngine *engine = m_scriptEngines.value(pluginId);
-        QJSValue targetObj = engine->globalObject().property("AudioConverterPlugin");
-        if (!targetObj.isObject()) {
-            targetObj = engine->globalObject().property("Converter");
-        }
-        if (targetObj.isObject()) {
-            if (targetObj.hasProperty("getQueue") && targetObj.property("getQueue").isCallable()) {
-                QJSValue res = targetObj.property("getQueue").callWithInstance(targetObj);
-                if (res.isArray()) {
-                    return res.toVariant().toList();
-                }
-            } else if (targetObj.hasProperty("queue") && targetObj.property("queue").isArray()) {
-                return targetObj.property("queue").toVariant().toList();
+    QJSValue targetObj = getPluginScriptObject(pluginId);
+    if (targetObj.isObject()) {
+        if (targetObj.hasProperty("getQueue") && targetObj.property("getQueue").isCallable()) {
+            QJSValue res = targetObj.property("getQueue").callWithInstance(targetObj);
+            if (res.isArray()) {
+                return res.toVariant().toList();
             }
+        } else if (targetObj.hasProperty("queue") && targetObj.property("queue").isArray()) {
+            return targetObj.property("queue").toVariant().toList();
         }
     }
 
@@ -1935,6 +2172,9 @@ QVariantList PluginManager::getPluginQueue(const QString &pluginId) const
 void PluginManager::clearPluginQueue(const QString &pluginId)
 {
     m_pluginQueues[pluginId].clear();
+    if (m_taskModel) {
+        m_taskModel->clearTasks(pluginId);
+    }
     triggerPluginAction(pluginId, "clear_queue", "workbench");
     emit pluginViewUpdated(pluginId);
 }
@@ -2015,12 +2255,10 @@ bool PluginManager::runProcess(const QString &program, const QVariant &arguments
         return false;
     }
 
-    // Process events while waiting so UI does not freeze during conversion
-    while (!proc.waitForFinished(100)) {
-        if (proc.state() == QProcess::NotRunning) {
-            break;
-        }
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+    if (!proc.waitForFinished(5000)) {
+        qWarning() << "[PluginManager] Process execution timed out:" << exePath;
+        proc.kill();
+        return false;
     }
 
     if (proc.exitStatus() != QProcess::NormalExit || proc.exitCode() != 0) {
@@ -2037,8 +2275,37 @@ bool PluginManager::runProcess(const QString &program, const QVariant &arguments
 QVariantMap PluginManager::executePluginHook(const QString &hookType, const QVariantMap &params)
 {
     QVariantMap res;
-    if (hookType == "search") {
+    if (hookType == "search" || hookType == "globalSearch") {
         res["results"] = executeSearchHook(params.value("query").toString());
+        return res;
+    }
+    if (hookType == "lyricsProvider") {
+        return executeLyricsHook(params.value("title").toString(),
+                                 params.value("artist").toString(),
+                                 params.value("durationMs").toLongLong());
+    }
+
+    // Generic dynamic hook dispatch across all enabled plugins
+    for (auto it = m_installed.cbegin(); it != m_installed.cend(); ++it) {
+        if (!it->enabled) continue;
+        if (!it->hooks.value(hookType).toBool()) continue;
+
+        const QString &pluginId = it.key();
+        QJSValue targetObj = getPluginScriptObject(pluginId);
+        if (!targetObj.isObject()) continue;
+
+        QJSEngine *engine = m_scriptEngines.value(pluginId);
+        if (!engine) continue;
+
+        if (targetObj.hasProperty("onHook") && targetObj.property("onHook").isCallable()) {
+            QJSValueList args;
+            args << engine->toScriptValue(hookType);
+            args << engine->toScriptValue(params);
+            QJSValue hookRes = targetObj.property("onHook").callWithInstance(targetObj, args);
+            if (hookRes.isObject()) {
+                res[pluginId] = hookRes.toVariant();
+            }
+        }
     }
     return res;
 }

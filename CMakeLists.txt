@@ -42,6 +42,8 @@ set(PROJECT_SOURCES
     src/plugin/JsTimerBridge.h
     src/plugin/PluginManager.h
     src/plugin/PluginManager.cpp
+    src/plugin/PluginTaskModel.h
+    src/plugin/PluginTaskModel.cpp
     resources.qrc
 )
 

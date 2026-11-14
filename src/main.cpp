@@ -30,6 +30,7 @@
 #include "library/LibraryManager.h"
 #include "config/ConfigManager.h"
 #include "plugin/PluginManager.h"
+#include "plugin/PluginTaskModel.h"
 #include "model/TrackModel.h"
 #include "model/AlbumModel.h"
 #include "model/LyricModel.h"
@@ -281,6 +282,7 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonInstance("rhx.library", 1, 0, "LibraryManager", LibraryManager::instance());
     qmlRegisterSingletonInstance("rhx.config", 1, 0, "ConfigManager", ConfigManager::instance());
     qmlRegisterSingletonInstance("rhx.plugin", 1, 0, "PluginManager", PluginManager::instance());
+    qmlRegisterType<PluginTaskModel>("rhx.plugin", 1, 0, "PluginTaskModel");
     qmlRegisterType<SvgIcon>("rhx.ui", 1, 0, "SvgIcon");
     qmlRegisterType<RoundedImage>("rhx.ui", 1, 0, "RoundedImage");
     qmlRegisterType<TrackModel>("rhx.model", 1, 0, "TrackModel");
@@ -486,9 +488,6 @@ int main(int argc, char *argv[])
         engine.trimComponentCache();
         QPixmapCache::clear();
         RoundedImage::trimCache();
-#if defined(_WIN32)
-        SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
-#endif
     };
 
     // Settle working set after startup burst (font loading, D3D pipeline, initial QML compilation)
@@ -2587,7 +2586,7 @@ int main(int argc, char *argv[])
             // 4. Test Installing a mock .0px plugin
             QString tempPkgDir = pm->pluginsCacheDir() + "/mock_package_src";
             QDir().mkpath(tempPkgDir + "/views");
-            QDir().mkpath(tempPkgDir + "/mock_data");
+            QDir().mkpath(tempPkgDir + "/scripts");
 
             QFile manifest(tempPkgDir + "/plugin.json");
             if (manifest.open(QIODevice::WriteOnly)) {
@@ -2608,6 +2607,7 @@ int main(int argc, char *argv[])
 
                 QJsonObject hooks;
                 hooks["search"] = true;
+                hooks["lyricsProvider"] = true;
                 root["hooks"] = hooks;
 
                 manifest.write(QJsonDocument(root).toJson());
@@ -2623,16 +2623,22 @@ int main(int argc, char *argv[])
                 schemaFile.close();
             }
 
-            QFile searchData(tempPkgDir + "/mock_data/search_results.json");
-            if (searchData.open(QIODevice::WriteOnly)) {
-                QJsonArray arr;
-                QJsonObject t;
-                t["title"] = "Echo Night Song";
-                t["artist"] = "Echo Artist";
-                t["album"] = "Echo Album";
-                arr.append(t);
-                searchData.write(QJsonDocument(arr).toJson());
-                searchData.close();
+            QFile scriptFile(tempPkgDir + "/scripts/main.js");
+            if (scriptFile.open(QIODevice::WriteOnly)) {
+                QString jsCode =
+                    "module.exports = {\n"
+                    "    onHook: function(hookType, params) {\n"
+                    "        if (hookType === 'search') {\n"
+                    "            return [{ title: 'Echo Night Song', artist: 'Echo Artist', album: 'Echo Album' }];\n"
+                    "        }\n"
+                    "        if (hookType === 'lyricsProvider') {\n"
+                    "            return { lrc: '[00:01.00]Echo Lyric Line 1\\n[00:05.00]Echo Lyric Line 2' };\n"
+                    "        }\n"
+                    "        return null;\n"
+                    "    }\n"
+                    "};\n";
+                scriptFile.write(jsCode.toUtf8());
+                scriptFile.close();
             }
 
             // Install directly from folder archive extraction
@@ -2670,7 +2676,14 @@ int main(int argc, char *argv[])
             // Verify Search Hook Execution
             QVariantList searchRes = mgr->executeSearchHook("Echo");
             if (searchRes.isEmpty() || searchRes[0].toMap().value("title").toString() != "Echo Night Song") {
-                qWarning() << "[Test-Plugin] executeSearchHook failed to return expected mock results!";
+                qWarning() << "[Test-Plugin] executeSearchHook failed to return expected results from script!";
+                pass = false;
+            }
+
+            // Verify Lyrics Provider Hook Execution
+            QVariantMap lyricRes = mgr->executeLyricsHook("Echo Song", "Echo Artist");
+            if (!lyricRes.contains("lrc") || !lyricRes.value("lrc").toString().contains("Echo Lyric Line 1")) {
+                qWarning() << "[Test-Plugin] executeLyricsHook failed to return expected lyrics from script!";
                 pass = false;
             }
 
@@ -2864,6 +2877,89 @@ int main(int argc, char *argv[])
             }
             QDir(slotPkgDir).removeRecursively();
 
+            // Phase 20: Persistent Plugin State Store Verification
+            qInfo() << "[Test-Plugin] Verifying Phase 20 Persistent Plugin State Store...";
+            QString testPid = "top.rincynar.statetest";
+            if (mgr->getPluginState(testPid, "quality", "default_val").toString() != "default_val") {
+                qWarning() << "[Test-Plugin] State Store fallback default failed!";
+                pass = false;
+            }
+            mgr->setPluginState(testPid, "format", "FLAC");
+            mgr->setPluginState(testPid, "sampleRate", "96.0 kHz");
+            if (mgr->getPluginState(testPid, "format").toString() != "FLAC" ||
+                mgr->getPluginState(testPid, "sampleRate").toString() != "96.0 kHz") {
+                qWarning() << "[Test-Plugin] State Store set/get failed!";
+                pass = false;
+            }
+            QVariantMap allSt = mgr->getAllPluginState(testPid);
+            if (allSt.value("format").toString() != "FLAC" || allSt.value("sampleRate").toString() != "96.0 kHz") {
+                qWarning() << "[Test-Plugin] State Store getAllPluginState failed!";
+                pass = false;
+            }
+
+            // Phase 20: True Async Task Model & Process Bus Verification
+            qInfo() << "[Test-Plugin] Verifying Phase 20 PluginTaskModel async bus...";
+            auto *tm = mgr->taskModel();
+            if (!tm) {
+                qWarning() << "[Test-Plugin] PluginTaskModel instance is null!";
+                pass = false;
+            } else {
+                tm->setPluginFilter("top.rincynar.tasktest");
+                QString tid = tm->addTask("top.rincynar.tasktest", "Async Track", "C:/Music/test.flac", "C:/Music/test.wav", "WAV");
+                if (tm->count() != 1 || tm->getTask(tid).value("status").toString() != "pending") {
+                    qWarning() << "[Test-Plugin] PluginTaskModel addTask failed! count:" << tm->count();
+                    pass = false;
+                }
+                tm->setPluginFilter("other.filter");
+                if (tm->count() != 0) {
+                    qWarning() << "[Test-Plugin] PluginTaskModel filter failed! Expected 0 got:" << tm->count();
+                    pass = false;
+                }
+                tm->setPluginFilter("top.rincynar.tasktest");
+                if (tm->count() != 1) {
+                    qWarning() << "[Test-Plugin] PluginTaskModel filter restore failed!";
+                    pass = false;
+                }
+                tm->cancelTask(tid);
+                if (tm->getTask(tid).value("status").toString() != "canceled") {
+                    qWarning() << "[Test-Plugin] PluginTaskModel cancelTask failed!";
+                    pass = false;
+                }
+                tm->retryTask(tid);
+                if (tm->getTask(tid).value("status").toString() != "pending") {
+                    qWarning() << "[Test-Plugin] PluginTaskModel retryTask failed!";
+                    pass = false;
+                }
+                tm->clearTasks("top.rincynar.tasktest");
+                if (tm->count() != 0) {
+                    qWarning() << "[Test-Plugin] PluginTaskModel clearTasks failed!";
+                    pass = false;
+                }
+
+                // Verify real non-blocking async process execution via startAsyncTask
+                QVariantMap taskMeta;
+                taskMeta["title"] = "Async Echo Task";
+                taskMeta["sourcePath"] = "C:/Music/echo.flac";
+                QString asyncId = mgr->startAsyncTask("top.rincynar.tasktest", "cmd", QStringList() << "/c" << "echo Task Completed", QString(), taskMeta);
+                if (asyncId.isEmpty()) {
+                    qWarning() << "[Test-Plugin] startAsyncTask failed to spawn task!";
+                    pass = false;
+                } else {
+                    for (int w = 0; w < 20; ++w) {
+                        QCoreApplication::processEvents();
+                        QThread::msleep(50);
+                        if (tm->getTask(asyncId).value("status").toString() == "completed") break;
+                    }
+                    QString finalSt = tm->getTask(asyncId).value("status").toString();
+                    qInfo() << "[Test-Plugin] startAsyncTask final status:" << finalSt;
+                    if (finalSt != "completed") {
+                        qWarning() << "[Test-Plugin] startAsyncTask did not complete normally! Got:" << finalSt;
+                        pass = false;
+                    }
+                }
+                tm->clearTasks("top.rincynar.tasktest");
+            }
+
             // 6. Test QJSEngine script execution and dynamic queue retrieval
             qInfo() << "[Test-Plugin] Testing JavaScript runtime and transcode queue...";
             if (mgr->isPluginInstalled("top.rincynar.converter")) {
@@ -2916,18 +3012,21 @@ int main(int argc, char *argv[])
             mainWindow->setProperty("keepAllViewsLoaded", false);
             QCoreApplication::processEvents();
 
-            auto getRamMb = []() -> double {
+            auto getMemStats = []() -> QPair<double, double> {
 #if defined(_WIN32)
-                PROCESS_MEMORY_COUNTERS pmc;
-                if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
-                    return static_cast<double>(pmc.WorkingSetSize) / (1024.0 * 1024.0);
+                PROCESS_MEMORY_COUNTERS_EX pmc;
+                if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
+                    double ws = static_cast<double>(pmc.WorkingSetSize) / (1024.0 * 1024.0);
+                    double priv = static_cast<double>(pmc.PrivateUsage) / (1024.0 * 1024.0);
+                    return {ws, priv};
                 }
 #endif
-                return 0.0;
+                return {0.0, 0.0};
             };
 
-            double initRam = getRamMb();
-            qInfo() << "[Test-Phase19] Initial boot WorkingSet RAM:" << QString::number(initRam, 'f', 2) << "MB";
+            auto initMem = getMemStats();
+            qInfo() << "[Test-Phase19] Initial boot memory - WorkingSet:" << QString::number(initMem.first, 'f', 2)
+                    << "MB | Real Private Bytes:" << QString::number(initMem.second, 'f', 2) << "MB";
 
             // 1. Initial State: Only homeLoader should be active
             QObject *homeL = mainWindow->findChild<QObject*>("homeLoader");
@@ -3024,8 +3123,9 @@ int main(int argc, char *argv[])
                 pass = false;
             }
 
-            double npRam = getRamMb();
-            qInfo() << "[Test-Phase19] Full NowPlaying WorkingSet RAM:" << QString::number(npRam, 'f', 2) << "MB";
+            auto npMem = getMemStats();
+            qInfo() << "[Test-Phase19] Full NowPlaying memory - WorkingSet:" << QString::number(npMem.first, 'f', 2)
+                    << "MB | Real Private Bytes:" << QString::number(npMem.second, 'f', 2) << "MB";
 
             // 7. Close NowPlaying -> verify underlying view restored
             mainWindow->setProperty("isNowPlayingOpen", false);
@@ -3040,8 +3140,9 @@ int main(int argc, char *argv[])
                 pass = false;
             }
 
-            double finalRam = getRamMb();
-            qInfo() << "[Test-Phase19] Post-recycle WorkingSet RAM:" << QString::number(finalRam, 'f', 2) << "MB";
+            auto finalMem = getMemStats();
+            qInfo() << "[Test-Phase19] Post-recycle memory - WorkingSet:" << QString::number(finalMem.first, 'f', 2)
+                    << "MB | Real Private Bytes:" << QString::number(finalMem.second, 'f', 2) << "MB";
         }
 
         qInfo() << "=== Phase 19 Lifecycle & Transition Test Result:" << (pass ? "PASSED" : "FAILED") << "===";

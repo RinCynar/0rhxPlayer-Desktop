@@ -9,6 +9,8 @@
 #include <QJsonArray>
 #include <QMap>
 #include <QPointer>
+#include <QJSValue>
+#include "PluginTaskModel.h"
 
 class QNetworkAccessManager;
 class QNetworkReply;
@@ -48,6 +50,7 @@ class PluginManager : public QObject {
     Q_PROPERTY(QStringList categories READ categories NOTIFY categoriesChanged)
     Q_PROPERTY(bool isFetchingMarket READ isFetchingMarket NOTIFY fetchingMarketChanged)
     Q_PROPERTY(QString marketStatusMessage READ marketStatusMessage NOTIFY marketStatusMessageChanged)
+    Q_PROPERTY(PluginTaskModel* taskModel READ taskModel CONSTANT)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY errorOccurred)
 
 public:
@@ -81,6 +84,7 @@ public:
     Q_INVOKABLE QVariantMap getPluginInfo(const QString &pluginId) const;
     Q_INVOKABLE QVariantMap getPluginViewSchema(const QString &pluginId, const QString &schemaPath = QString()) const;
     Q_INVOKABLE QVariantList executeSearchHook(const QString &query);
+    Q_INVOKABLE QVariantMap executeLyricsHook(const QString &title, const QString &artist, qint64 durationMs = 0);
     Q_INVOKABLE QString getPluginAssetPath(const QString &pluginId, const QString &relPath) const;
 
     // Helper for testing and zip extraction
@@ -195,11 +199,20 @@ public:
     Q_INVOKABLE QVariantList getInjectedMenuItems(const QString &slotType, const QVariantMap &contextData = QVariantMap()) const;
     Q_INVOKABLE QVariantList getInjectedPlaybackControls() const;
     Q_INVOKABLE void triggerPluginAction(const QString &pluginId, const QString &actionId, const QString &slotType, const QVariantMap &payload = QVariantMap());
+    Q_INVOKABLE void invokePluginAction(const QString &pluginId, const QString &actionId, const QVariantMap &payload = QVariantMap());
     Q_INVOKABLE QVariantMap executePluginHook(const QString &hookType, const QVariantMap &params = QVariantMap());
 
     // =========================================================================
     // Category 10: Script Runtime & Dynamic Plugin Data
     // =========================================================================
+    PluginTaskModel* taskModel() const;
+    Q_INVOKABLE QString startAsyncTask(const QString &pluginId, const QString &program, const QVariant &arguments = QVariant(), const QString &workingDir = QString(), const QVariantMap &meta = QVariantMap());
+    Q_INVOKABLE void registerPluginObject(const QString &pluginId, const QJSValue &object);
+    Q_INVOKABLE QJSValue getPluginScriptObject(const QString &pluginId) const;
+    Q_INVOKABLE QVariant getPluginState(const QString &pluginId, const QString &key, const QVariant &defaultValue = QVariant()) const;
+    Q_INVOKABLE void setPluginState(const QString &pluginId, const QString &key, const QVariant &value);
+    Q_INVOKABLE QVariantMap getAllPluginState(const QString &pluginId) const;
+    Q_INVOKABLE void setAllPluginState(const QString &pluginId, const QVariantMap &state);
     Q_INVOKABLE QVariant callPluginMethod(const QString &pluginId, const QString &methodName, const QVariantList &args = QVariantList());
     Q_INVOKABLE QVariantList getPluginQueue(const QString &pluginId) const;
     Q_INVOKABLE void clearPluginQueue(const QString &pluginId);
@@ -224,6 +237,7 @@ signals:
     void installFinished(const QString &pluginId, bool success, const QString &message);
     void toastRequested(const QString &message);
     void pluginViewUpdated(const QString &pluginId);
+    void pluginStateChanged(const QString &pluginId, const QString &key, const QVariant &value);
 
     // =========================================================================
     // Category 9: Host Full Lifecycle Event Bus
@@ -253,11 +267,14 @@ private:
     void unloadPluginScriptEngine(const QString &pluginId);
     QNetworkAccessManager *networkManager();
 
+    PluginTaskModel *m_taskModel = nullptr;
     QNetworkAccessManager *m_networkManager = nullptr;
     QMap<QString, PluginMetadata> m_installed;
     QList<PluginMetadata> m_market;
     QMap<QString, bool> m_enabledConfig;
     QMap<QString, QJSEngine*> m_scriptEngines;
+    QMap<QString, QJSValue> m_pluginObjects;
+    QMap<QString, QVariantMap> m_pluginStateStore;
     QMap<QString, QVariantList> m_pluginQueues;
     QMap<QString, QVariantMap> m_pluginViewData;
 
