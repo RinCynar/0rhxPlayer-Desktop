@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="1.2.0"
+VERSION="1.2.1"
 BUILD_DIR="build"
 DIST_DIR="dist"
 ARCH="x64"
@@ -161,18 +161,20 @@ if [[ -z "${APPIMAGETOOL_BIN}" ]]; then
   fi
   TOOL_URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${TOOL_DOWNLOAD_ARCH}.AppImage"
   echo "Downloading appimagetool (${TOOL_DOWNLOAD_ARCH}) from ${TOOL_URL}..."
-  if ! curl -fsSL -o "${TOOLS_DIR}/appimagetool" "${TOOL_URL}"; then
-    FALLBACK_URL="https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-${TOOL_DOWNLOAD_ARCH}.AppImage"
-    echo "Falling back to AppImageKit release 13..."
-    curl -fsSL -o "${TOOLS_DIR}/appimagetool" "${FALLBACK_URL}"
+  if ! curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused -o "${TOOLS_DIR}/appimagetool" "${TOOL_URL}"; then
+    FALLBACK_URL="https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-${TOOL_DOWNLOAD_ARCH}.AppImage"
+    echo "Falling back to appimagetool release 1.9.1..."
+    curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused -o "${TOOLS_DIR}/appimagetool" "${FALLBACK_URL}" || true
   fi
-  chmod +x "${TOOLS_DIR}/appimagetool"
-  APPIMAGETOOL_BIN="${TOOLS_DIR}/appimagetool"
+  if [[ -f "${TOOLS_DIR}/appimagetool" && -s "${TOOLS_DIR}/appimagetool" ]]; then
+    chmod +x "${TOOLS_DIR}/appimagetool"
+    APPIMAGETOOL_BIN="${TOOLS_DIR}/appimagetool"
+  fi
 fi
 
 # Extract appimagetool if running as an AppImage to circumvent FUSE restrictions on CI
 EXTRACTED_DIR="${TOOLS_DIR}/appimagetool-extracted"
-if [[ -f "${APPIMAGETOOL_BIN}" && ! -d "${EXTRACTED_DIR}" ]]; then
+if [[ -n "${APPIMAGETOOL_BIN}" && -f "${APPIMAGETOOL_BIN}" && ! -d "${EXTRACTED_DIR}" ]]; then
   echo "Extracting appimagetool to bypass CI FUSE requirement..."
   CURR_DIR="$(pwd)"
   cd "${TOOLS_DIR}"
@@ -188,31 +190,36 @@ if [[ -x "${EXTRACTED_DIR}/AppRun" ]]; then
   APPIMAGETOOL_EXEC="${EXTRACTED_DIR}/AppRun"
 fi
 
-echo "Running appimagetool (${APPIMAGE_ARCH}) on ${APP_DIR}..."
-if ! ARCH="${APPIMAGE_ARCH}" "${APPIMAGETOOL_EXEC}" --no-appstream "${APP_DIR}" "${APPIMAGE_OUTPUT}" 2>&1; then
-  echo "appimagetool execution had errors or was unavailable. Falling back to mksquashfs + type2-runtime..."
+if [[ -n "${APPIMAGETOOL_EXEC}" ]]; then
+  echo "Running appimagetool (${APPIMAGE_ARCH}) on ${APP_DIR}..."
+  if ! ARCH="${APPIMAGE_ARCH}" "${APPIMAGETOOL_EXEC}" --no-appstream "${APP_DIR}" "${APPIMAGE_OUTPUT}" 2>&1; then
+    echo "appimagetool execution had errors or was unavailable. Falling back to mksquashfs + type2-runtime..."
+  fi
 fi
 
 if [[ ! -f "${APPIMAGE_OUTPUT}" || ! -s "${APPIMAGE_OUTPUT}" ]]; then
   echo "Generating AppImage via mksquashfs and runtime-${APPIMAGE_ARCH}..."
   RUNTIME_BIN="${TOOLS_DIR}/runtime-${APPIMAGE_ARCH}"
   if [[ ! -f "${RUNTIME_BIN}" ]]; then
-    curl -fsSL -o "${RUNTIME_BIN}" "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-${APPIMAGE_ARCH}" || \
-    curl -fsSL -o "${RUNTIME_BIN}" "https://raw.githubusercontent.com/AppImage/AppImageKit/master/resources/runtime-${APPIMAGE_ARCH}"
+    curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused -o "${RUNTIME_BIN}" "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-${APPIMAGE_ARCH}" || true
   fi
-  chmod +x "${RUNTIME_BIN}"
-  SQUASHFS_TMP="${DIST_FULL_PATH}/temp_app.squashfs"
-  rm -f "${SQUASHFS_TMP}"
-  if command -v mksquashfs >/dev/null 2>&1; then
-    mksquashfs "${APP_DIR}" "${SQUASHFS_TMP}" -root-owned -noappend -comp zstd 2>/dev/null || \
-    mksquashfs "${APP_DIR}" "${SQUASHFS_TMP}" -root-owned -noappend -comp xz 2>/dev/null || \
-    mksquashfs "${APP_DIR}" "${SQUASHFS_TMP}" -root-owned -noappend
-  else
-    "${EXTRACTED_DIR}/usr/lib/appimagekit/mksquashfs" "${APP_DIR}" "${SQUASHFS_TMP}" -root-owned -noappend -comp zstd 2>/dev/null || \
-    "${EXTRACTED_DIR}/usr/lib/appimagekit/mksquashfs" "${APP_DIR}" "${SQUASHFS_TMP}" -root-owned -noappend
+  if [[ -f "${RUNTIME_BIN}" && -s "${RUNTIME_BIN}" ]]; then
+    chmod +x "${RUNTIME_BIN}"
+    SQUASHFS_TMP="${DIST_FULL_PATH}/temp_app.squashfs"
+    rm -f "${SQUASHFS_TMP}"
+    if command -v mksquashfs >/dev/null 2>&1; then
+      mksquashfs "${APP_DIR}" "${SQUASHFS_TMP}" -root-owned -noappend -comp zstd 2>/dev/null || \
+      mksquashfs "${APP_DIR}" "${SQUASHFS_TMP}" -root-owned -noappend -comp xz 2>/dev/null || \
+      mksquashfs "${APP_DIR}" "${SQUASHFS_TMP}" -root-owned -noappend
+    elif [[ -x "${EXTRACTED_DIR}/usr/lib/appimagekit/mksquashfs" ]]; then
+      "${EXTRACTED_DIR}/usr/lib/appimagekit/mksquashfs" "${APP_DIR}" "${SQUASHFS_TMP}" -root-owned -noappend -comp zstd 2>/dev/null || \
+      "${EXTRACTED_DIR}/usr/lib/appimagekit/mksquashfs" "${APP_DIR}" "${SQUASHFS_TMP}" -root-owned -noappend
+    fi
+    if [[ -f "${SQUASHFS_TMP}" && -s "${SQUASHFS_TMP}" ]]; then
+      cat "${RUNTIME_BIN}" "${SQUASHFS_TMP}" > "${APPIMAGE_OUTPUT}"
+      rm -f "${SQUASHFS_TMP}"
+    fi
   fi
-  cat "${RUNTIME_BIN}" "${SQUASHFS_TMP}" > "${APPIMAGE_OUTPUT}"
-  rm -f "${SQUASHFS_TMP}"
 fi
 
 chmod +x "${APPIMAGE_OUTPUT}"

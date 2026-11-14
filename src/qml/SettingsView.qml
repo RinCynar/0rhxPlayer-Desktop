@@ -2075,7 +2075,7 @@ Item {
                                     color: Theme.primaryContainer
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "v1.2.0"
+                                        text: "v1.2.1"
                                         font.pixelSize: 10
                                         font.bold: true
                                         color: Theme.colorOnPrimaryContainer
