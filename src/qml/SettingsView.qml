@@ -14,6 +14,27 @@ Item {
 
     signal navigateTab(string tabId)
     property string searchFilter: ""
+
+    function saveStateSnapshot() {
+        return {
+            contentY: (settingsScroll && settingsScroll.contentItem) ? settingsScroll.contentItem.contentY : 0,
+            searchFilter: searchFilter
+        };
+    }
+
+    function restoreStateSnapshot(snap) {
+        if (!snap) return;
+        if (snap.searchFilter !== undefined && snap.searchFilter.length > 0) {
+            searchFilter = snap.searchFilter;
+        }
+        if (snap.contentY !== undefined && snap.contentY > 0) {
+            Qt.callLater(function() {
+                if (settingsScroll && settingsScroll.contentItem) {
+                    settingsScroll.contentItem.contentY = snap.contentY;
+                }
+            });
+        }
+    }
     property bool colorPickerExpanded: false
     property real currentHue: 180.0
 

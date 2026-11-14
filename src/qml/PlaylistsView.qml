@@ -35,6 +35,19 @@ Item {
     property var selectedTrackPaths: []
     property int lastSelectedIndex: -1
 
+    function saveStateSnapshot() {
+        return {
+            selectedPlaylistId: selectedPlaylistId
+        };
+    }
+
+    function restoreStateSnapshot(snap) {
+        if (!snap) return;
+        if (snap.selectedPlaylistId !== undefined) {
+            selectedPlaylistId = snap.selectedPlaylistId;
+        }
+    }
+
     function isTrackSelected(path) {
         if (!path || !selectedTrackPaths) return false;
         return selectedTrackPaths.indexOf(path) !== -1;

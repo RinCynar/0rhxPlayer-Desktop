@@ -18,6 +18,19 @@ Item {
     property string searchQuery: ""
     property string toastMessage: ""
 
+    function saveStateSnapshot() {
+        return {
+            selectedCategory: selectedCategory,
+            searchQuery: searchQuery
+        };
+    }
+
+    function restoreStateSnapshot(snap) {
+        if (!snap) return;
+        if (snap.selectedCategory) selectedCategory = snap.selectedCategory;
+        if (snap.searchQuery !== undefined) searchQuery = snap.searchQuery;
+    }
+
     Component.onCompleted: {
         PluginManager.refreshInstalledPlugins();
         if (PluginManager.marketPlugins.length === 0 && !PluginManager.isFetchingMarket) {

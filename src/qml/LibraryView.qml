@@ -93,6 +93,40 @@ Item {
     property var selectedTrackPaths: []
     property int lastSelectedIndex: -1
 
+    function saveStateSnapshot() {
+        var snap = {
+            currentTab: currentTab,
+            selectedGroup: selectedGroup,
+            selectedTrackPaths: selectedTrackPaths
+        };
+        try {
+            if (typeof trackListView !== "undefined" && trackListView && trackListView.visible) {
+                snap.trackContentY = trackListView.contentY;
+            }
+        } catch (e) {}
+        console.log("[Snapshot] Saved library snap: currentTab=" + snap.currentTab + " selectedGroup=" + JSON.stringify(snap.selectedGroup));
+        return snap;
+    }
+
+    function restoreStateSnapshot(snap) {
+        if (!snap) return;
+        console.log("[Snapshot] Restoring library snap: currentTab=" + snap.currentTab + " selectedGroup=" + JSON.stringify(snap.selectedGroup));
+        if (snap.currentTab) currentTab = snap.currentTab;
+        if (snap.selectedGroup) selectedGroup = snap.selectedGroup;
+        if (snap.selectedTrackPaths) selectedTrackPaths = snap.selectedTrackPaths;
+        try {
+            if (snap.trackContentY !== undefined) {
+                Qt.callLater(function() {
+                    try {
+                        if (typeof trackListView !== "undefined" && trackListView && trackListView.visible) {
+                            trackListView.contentY = snap.trackContentY;
+                        }
+                    } catch (e) {}
+                });
+            }
+        } catch (e) {}
+    }
+
     function isTrackSelected(path) {
         if (!path || !selectedTrackPaths) return false;
         return selectedTrackPaths.indexOf(path) !== -1;
@@ -991,7 +1025,7 @@ Item {
                                     Layout.fillWidth: true
 
                                     Text {
-                                        text: libraryRoot.selectedGroup ? libraryRoot.selectedGroup.name : ""
+                                        text: (libraryRoot.selectedGroup && libraryRoot.selectedGroup.name) ? libraryRoot.selectedGroup.name : ""
                                         font.pixelSize: 18
                                         font.bold: true
                                         color: Theme.textPrimary
@@ -1000,7 +1034,7 @@ Item {
                                     }
 
                                     Text {
-                                        text: libraryRoot.selectedGroup ? libraryRoot.selectedGroup.subTitle : ""
+                                        text: (libraryRoot.selectedGroup && libraryRoot.selectedGroup.subTitle) ? libraryRoot.selectedGroup.subTitle : ""
                                         font.pixelSize: 12
                                         color: Theme.textMuted
                                     }

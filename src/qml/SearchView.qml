@@ -29,6 +29,28 @@ Item {
         return (count || 0) + " " + qsTr("tracks");
     }
 
+    function saveStateSnapshot() {
+        return {
+            query: searchField ? searchField.text : "",
+            contentY: searchFlickable ? searchFlickable.contentY : 0
+        };
+    }
+
+    function restoreStateSnapshot(snap) {
+        if (!snap) return;
+        if (searchField && snap.query !== undefined && snap.query.length > 0) {
+            searchField.text = snap.query;
+            LibraryManager.search(snap.query);
+        }
+        if (snap.contentY !== undefined && snap.contentY > 0) {
+            Qt.callLater(function() {
+                if (searchFlickable) {
+                    searchFlickable.contentY = snap.contentY;
+                }
+            });
+        }
+    }
+
     Timer {
         id: searchDebounceTimer
         interval: 180

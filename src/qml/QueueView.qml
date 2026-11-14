@@ -28,6 +28,25 @@ Item {
     property var selectedTrackPaths: []
     property int lastSelectedIndex: -1
 
+    function saveStateSnapshot() {
+        return {
+            subTab: subTab,
+            contentY: queueListView ? queueListView.contentY : 0
+        };
+    }
+
+    function restoreStateSnapshot(snap) {
+        if (!snap) return;
+        if (snap.subTab) subTab = snap.subTab;
+        if (snap.contentY !== undefined && snap.contentY > 0) {
+            Qt.callLater(function() {
+                if (queueListView) {
+                    queueListView.contentY = snap.contentY;
+                }
+            });
+        }
+    }
+
     property int favVersion: 0
     Connections {
         target: LibraryManager

@@ -50,6 +50,21 @@ ScrollView {
     property bool isRefreshing: false
     property var selectedTrackPaths: []
 
+    function saveStateSnapshot() {
+        return {
+            contentY: contentItem ? contentItem.contentY : 0
+        };
+    }
+
+    function restoreStateSnapshot(snap) {
+        if (!snap) return;
+        if (snap.contentY !== undefined && snap.contentY > 0) {
+            Qt.callLater(function() {
+                if (contentItem) contentItem.contentY = snap.contentY;
+            });
+        }
+    }
+
     function clearSelection() {
         selectedTrackPaths = [];
     }

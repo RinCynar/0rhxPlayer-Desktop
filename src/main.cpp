@@ -39,6 +39,7 @@
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <psapi.h>
 #include <dwmapi.h>
 #include <uxtheme.h>
 #include <QAbstractNativeEventFilter>
@@ -433,7 +434,7 @@ int main(int argc, char *argv[])
     bool isTestRun = false;
     for (int i = 1; i < argc; ++i) {
         QString arg = QString::fromLocal8Bit(argv[i]);
-        if (arg.contains("--test-") || arg.contains("--demo-")) {
+        if ((arg.contains("--test-") || arg.contains("--demo-")) && !arg.contains("--test-phase19")) {
             isTestRun = true;
             break;
         }
@@ -441,6 +442,7 @@ int main(int argc, char *argv[])
 
     if (isTestRun) {
         if (mainWindow) {
+            mainWindow->setProperty("isTestRun", true);
             QMetaObject::invokeMethod(mainWindow, "loadAllViews");
         }
         LibraryManager::instance()->ensureDataLoaded();
@@ -2900,6 +2902,149 @@ int main(int argc, char *argv[])
             }
 
         qInfo() << "=== Plugin Integration Test Result:" << (pass ? "PASSED" : "FAILED") << "===";
+        QTimer::singleShot(150, &app, [pass]() {
+            QCoreApplication::exit(pass ? 0 : 1);
+        });
+    }
+
+    if (app.arguments().contains("--test-phase19")) {
+        qInfo() << "=== Testing Phase 19: Dynamic Page Lifecycle, State Snapshot & M3 Transitions ===";
+        bool pass = true;
+
+        if (mainWindow) {
+            mainWindow->setProperty("isTestRun", false); // Test full dynamic lifecycle
+            mainWindow->setProperty("keepAllViewsLoaded", false);
+            QCoreApplication::processEvents();
+
+            auto getRamMb = []() -> double {
+#if defined(_WIN32)
+                PROCESS_MEMORY_COUNTERS pmc;
+                if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+                    return static_cast<double>(pmc.WorkingSetSize) / (1024.0 * 1024.0);
+                }
+#endif
+                return 0.0;
+            };
+
+            double initRam = getRamMb();
+            qInfo() << "[Test-Phase19] Initial boot WorkingSet RAM:" << QString::number(initRam, 'f', 2) << "MB";
+
+            // 1. Initial State: Only homeLoader should be active
+            QObject *homeL = mainWindow->findChild<QObject*>("homeLoader");
+            QObject *libL = mainWindow->findChild<QObject*>("libraryLoader");
+            QObject *searchL = mainWindow->findChild<QObject*>("searchLoader");
+            bool homeActive = homeL ? homeL->property("active").toBool() : false;
+            bool libActive = libL ? libL->property("active").toBool() : false;
+            bool searchActive = searchL ? searchL->property("active").toBool() : false;
+            qInfo() << "[Test-Phase19] Initial active state - home:" << homeActive << "library:" << libActive << "search:" << searchActive;
+            if (!homeActive || libActive || searchActive) {
+                qWarning() << "[Test-Phase19] Initial active state failed: non-active loaders must be inactive!";
+                pass = false;
+            }
+
+            // 2. Switch to library
+            mainWindow->setProperty("currentTab", "library");
+            QCoreApplication::processEvents();
+            QThread::msleep(260); // allow 200ms transition to finish
+            QCoreApplication::processEvents();
+
+            homeActive = homeL ? homeL->property("active").toBool() : false;
+            libActive = libL ? libL->property("active").toBool() : false;
+            qInfo() << "[Test-Phase19] After switch to library - home active (must be false):" << homeActive
+                    << "library active (must be true):" << libActive;
+            if (homeActive || !libActive) {
+                qWarning() << "[Test-Phase19] Single-page active requirement failed!";
+                pass = false;
+            }
+
+            // 3. Set library state: select album and scroll content
+            QObject *libView = libL ? libL->property("item").value<QObject*>() : nullptr;
+            if (!libView) libView = mainWindow->findChild<QObject*>("libraryView");
+            qInfo() << "[Test-Phase19] libView found in step 3:" << libView;
+            if (libView) {
+                libView->setProperty("currentTab", "albums");
+                QVariantMap grp;
+                grp["type"] = "album";
+                grp["name"] = "Snapshot Test Album";
+                libView->setProperty("selectedGroup", grp);
+            }
+            QCoreApplication::processEvents();
+
+            // 4. Switch to settings
+            mainWindow->setProperty("currentTab", "settings");
+            QCoreApplication::processEvents();
+            QThread::msleep(260);
+            QCoreApplication::processEvents();
+
+            QObject *setL = mainWindow->findChild<QObject*>("settingsLoader");
+            bool setActive = setL ? setL->property("active").toBool() : false;
+            libActive = libL ? libL->property("active").toBool() : false;
+            qInfo() << "[Test-Phase19] After switch to settings - settings active:" << setActive
+                    << "library active (must be false):" << libActive;
+            if (!setActive || libActive) {
+                qWarning() << "[Test-Phase19] LibraryView was not dynamically unloaded!";
+                pass = false;
+            }
+
+            // 5. Switch back to library -> verify state snapshot restored!
+            mainWindow->setProperty("currentTab", "library");
+            QCoreApplication::processEvents();
+            QThread::msleep(260);
+            QCoreApplication::processEvents();
+
+            libView = libL ? libL->property("item").value<QObject*>() : nullptr;
+            if (!libView) libView = mainWindow->findChild<QObject*>("libraryView");
+            if (!libView) {
+                qWarning() << "[Test-Phase19] LibraryView failed to recreate!";
+                pass = false;
+            } else {
+                QString tabRestored = libView->property("currentTab").toString();
+                QVariant grpRestored = libView->property("selectedGroup");
+                qInfo() << "[Test-Phase19] Restored library currentTab:" << tabRestored
+                        << "selectedGroup name:" << grpRestored.toMap().value("name").toString();
+                if (tabRestored != "albums" || grpRestored.toMap().value("name").toString() != "Snapshot Test Album") {
+                    qWarning() << "[Test-Phase19] State snapshot restoration failed!";
+                    pass = false;
+                }
+            }
+
+            // 6. Test NowPlaying full-screen occlusion & complete view unloading
+            mainWindow->setProperty("isNowPlayingOpen", true);
+            QCoreApplication::processEvents();
+            QThread::msleep(450); // wait for 380ms NowPlaying expansion
+            QCoreApplication::processEvents();
+
+            libActive = libL ? libL->property("active").toBool() : false;
+            setActive = setL ? setL->property("active").toBool() : false;
+            homeActive = homeL ? homeL->property("active").toBool() : false;
+            qInfo() << "[Test-Phase19] With NowPlaying fully expanded - library active:" << libActive
+                    << "settings active:" << setActive << "home active:" << homeActive;
+            if (libActive || setActive || homeActive) {
+                qWarning() << "[Test-Phase19] Underlying views were not unloaded when NowPlaying expanded!";
+                pass = false;
+            }
+
+            double npRam = getRamMb();
+            qInfo() << "[Test-Phase19] Full NowPlaying WorkingSet RAM:" << QString::number(npRam, 'f', 2) << "MB";
+
+            // 7. Close NowPlaying -> verify underlying view restored
+            mainWindow->setProperty("isNowPlayingOpen", false);
+            QCoreApplication::processEvents();
+            QThread::msleep(400); // wait for 320ms collapse
+            QCoreApplication::processEvents();
+
+            libActive = libL ? libL->property("active").toBool() : false;
+            qInfo() << "[Test-Phase19] After NowPlaying collapsed - library active (must be true):" << libActive;
+            if (!libActive) {
+                qWarning() << "[Test-Phase19] Underlying view failed to restore after NowPlaying closed!";
+                pass = false;
+            }
+
+            double finalRam = getRamMb();
+            qInfo() << "[Test-Phase19] Post-recycle WorkingSet RAM:" << QString::number(finalRam, 'f', 2) << "MB";
+        }
+
+        qInfo() << "=== Phase 19 Lifecycle & Transition Test Result:" << (pass ? "PASSED" : "FAILED") << "===";
         QTimer::singleShot(150, &app, [pass]() {
             QCoreApplication::exit(pass ? 0 : 1);
         });

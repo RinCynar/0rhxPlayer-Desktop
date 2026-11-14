@@ -2,6 +2,8 @@
 #include "../library/LibraryManager.h"
 #include "../audio/AudioEngine.h"
 #include "../core/PathManager.h"
+#include "../ui/RoundedImage.h"
+#include <QPixmapCache>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -874,5 +876,14 @@ void ConfigManager::unregisterPluginNavItem(const QString &pluginId)
         saveSettings();
         emit navItemsChanged();
     }
+}
+
+void ConfigManager::trimMemory()
+{
+    QPixmapCache::clear();
+    RoundedImage::trimCache();
+#ifdef Q_OS_WIN
+    SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
+#endif
 }
 

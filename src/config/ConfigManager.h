@@ -136,6 +136,7 @@ public:
     Q_INVOKABLE void addSearchHistory(const QString &query);
     Q_INVOKABLE void removeSearchHistory(const QString &query);
     Q_INVOKABLE void clearSearchHistory();
+    Q_INVOKABLE void trimMemory();
 
 signals:
     void navItemsChanged();
