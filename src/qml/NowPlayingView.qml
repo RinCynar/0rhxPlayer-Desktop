@@ -67,9 +67,8 @@ Item {
     Behavior on y {
         NumberAnimation {
             id: yAnim
-            duration: root.isOpen ? 380 : 320
-            easing.type: root.isOpen ? Easing.OutBack : Easing.OutCubic
-            easing.overshoot: 1.12
+            duration: Theme.motionDurationSlow
+            easing.type: Easing.OutCubic
         }
     }
 
@@ -447,6 +446,137 @@ Item {
                     function onActiveIndexChanged(idx) {
                         if (root.isOpen && !lyricsList.userInteracting && idx >= 0) {
                             lyricsList.currentIndex = idx;
+                        }
+                    }
+                }
+
+                // Multi-Source Lyrics Switcher Floating Pill
+                Rectangle {
+                    id: lyricsSourceBtn
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.topMargin: 10
+                    anchors.rightMargin: 14
+                    z: 60
+                    height: 28
+                    radius: 14
+                    width: lrcSrcRow.implicitWidth + 16
+                    color: lrcSrcM.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
+                    border.color: Theme.borderSubtle
+                    opacity: lrcSrcM.containsMouse ? 1.0 : 0.7
+                    Behavior on opacity { NumberAnimation { duration: 150 } }
+
+                    RowLayout {
+                        id: lrcSrcRow
+                        anchors.centerIn: parent
+                        spacing: 6
+                        SvgIcon {
+                            width: 12
+                            height: 12
+                            source: "qrc:/assets/icons/refresh.svg"
+                            color: Theme.primary
+                        }
+                        Text {
+                            text: qsTr("Lyrics Source")
+                            font.pixelSize: 11
+                            color: Theme.textSecondary
+                        }
+                    }
+
+                    MouseArea {
+                        id: lrcSrcM
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: lyricsCandidatesPopup.open()
+                    }
+                }
+
+                Popup {
+                    id: lyricsCandidatesPopup
+                    anchors.centerIn: parent
+                    width: 320
+                    height: Math.min(320, candCol.implicitHeight + 28)
+                    modal: true
+                    focus: true
+                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                    background: Rectangle {
+                        radius: 16
+                        color: Theme.surfaceContainer
+                        border.color: Theme.borderSubtle
+                        border.width: 1
+                    }
+
+                    property var candidatesList: []
+
+                    onAboutToShow: {
+                        candidatesList = PluginManager.fetchLyricsCandidates(AudioEngine.currentTitle, AudioEngine.currentArtist, AudioEngine.durationMs);
+                    }
+
+                    ColumnLayout {
+                        id: candCol
+                        anchors.fill: parent
+                        anchors.margins: 14
+                        spacing: 8
+
+                        Text {
+                            text: qsTr("Lyrics Candidates (%1)").arg(lyricsCandidatesPopup.candidatesList.length)
+                            font.pixelSize: 13
+                            font.bold: true
+                            color: Theme.textPrimary
+                        }
+
+                        ListView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            model: lyricsCandidatesPopup.candidatesList
+                            spacing: 6
+                            delegate: Rectangle {
+                                width: ListView.view.width
+                                height: 42
+                                radius: 8
+                                color: cM.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
+                                border.color: Theme.borderSubtle
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    spacing: 8
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 2
+                                        Text {
+                                            text: modelData.sourcePlugin || modelData.pluginId || "Plugin"
+                                            font.pixelSize: 11
+                                            font.bold: true
+                                            color: Theme.textPrimary
+                                        }
+                                        Text {
+                                            text: (modelData.title || "") + " - " + (modelData.artist || "")
+                                            font.pixelSize: 10
+                                            color: Theme.textSecondary
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+                                }
+                                MouseArea {
+                                    id: cM
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        PluginManager.applyLyricCandidate(modelData);
+                                        lyricsCandidatesPopup.close();
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            visible: lyricsCandidatesPopup.candidatesList.length === 0
+                            text: qsTr("No lyrics found from enabled plugins.")
+                            font.pixelSize: 11
+                            color: Theme.textMuted
                         }
                     }
                 }

@@ -44,6 +44,8 @@ set(PROJECT_SOURCES
     src/plugin/PluginManager.cpp
     src/plugin/PluginTaskModel.h
     src/plugin/PluginTaskModel.cpp
+    src/plugin/PluginScriptSandboxFacade.h
+    src/plugin/PluginScriptSandboxFacade.cpp
     resources.qrc
 )
 

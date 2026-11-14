@@ -80,6 +80,7 @@ public:
     Q_INVOKABLE void retryTask(const QString &taskId);
     Q_INVOKABLE void removeTask(const QString &taskId);
     Q_INVOKABLE void clearTasks(const QString &pluginId = QString());
+    Q_INVOKABLE void updateTaskProgress(const QString &taskId, int progress, const QString &status = QString(), const QString &errorMsg = QString());
     Q_INVOKABLE QVariantMap getTask(const QString &taskId) const;
     Q_INVOKABLE QVariantList getTasks(const QString &pluginId = QString()) const;
 

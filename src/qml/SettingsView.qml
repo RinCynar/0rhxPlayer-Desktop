@@ -927,7 +927,7 @@ Item {
                                     scale: isSelected ? 1.15 : (dotMouse.containsMouse ? 1.08 : 1.0)
 
                                     Behavior on scale {
-                                        NumberAnimation { duration: 150; easing.type: Easing.OutBack }
+                                        NumberAnimation { duration: Theme.motionDurationFast; easing.type: Easing.OutCubic }
                                     }
 
                                     SvgIcon {
@@ -1246,6 +1246,33 @@ Item {
                             checked: ConfigManager.autoCollapseRail
                             onToggled: function(c) {
                                 ConfigManager.setAutoCollapseRail(c);
+                            }
+                        }
+                    }
+
+                    // Reduce Motion Toggle (Task 23.3)
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
+                        ColumnLayout {
+                            spacing: 2
+                            Text {
+                                text: qsTr("Reduce Motion")
+                                font.pixelSize: 13
+                                font.bold: true
+                                color: Theme.textPrimary
+                            }
+                            Text {
+                                text: qsTr("Minimize animations and transitions across the interface")
+                                font.pixelSize: 11
+                                color: Theme.textMuted
+                            }
+                        }
+                        Item { Layout.fillWidth: true }
+                        M3Switch {
+                            checked: ConfigManager.reduceMotion
+                            onToggled: function(c) {
+                                ConfigManager.setReduceMotion(c);
                             }
                         }
                     }

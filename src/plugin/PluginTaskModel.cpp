@@ -458,6 +458,26 @@ void PluginTaskModel::removeTask(const QString &taskId)
     emit activeCountChanged();
 }
 
+void PluginTaskModel::updateTaskProgress(const QString &taskId, int progress, const QString &status, const QString &errorMsg)
+{
+    int realIdx = findTaskIndex(taskId);
+    if (realIdx < 0) return;
+
+    m_tasks[realIdx].progress = qBound(0, progress, 100);
+    if (!status.isEmpty()) {
+        m_tasks[realIdx].status = status;
+    }
+    if (!errorMsg.isEmpty()) {
+        m_tasks[realIdx].errorMsg = errorMsg;
+    }
+
+    int row = findFilteredRow(taskId);
+    if (row >= 0) {
+        emit dataChanged(index(row, 0), index(row, 0), {ProgressRole, StatusRole, ErrorMsgRole});
+    }
+    emit activeCountChanged();
+}
+
 void PluginTaskModel::clearTasks(const QString &pluginId)
 {
     cancelAllTasks(pluginId);

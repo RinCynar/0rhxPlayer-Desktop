@@ -542,9 +542,8 @@ Item {
 
                             Behavior on scale {
                                 NumberAnimation {
-                                    duration: chipMouse.pressed ? 90 : 240
-                                    easing.type: chipMouse.pressed ? Easing.OutQuad : Easing.OutBack
-                                    easing.overshoot: 1.3
+                                    duration: Theme.motionDurationFast
+                                    easing.type: Easing.OutCubic
                                 }
                             }
                             Behavior on color { ColorAnimation { duration: 150 } }
@@ -2271,13 +2270,12 @@ Item {
                 y: libraryRoot.selectedGroup != null ? 0 : 16
                 Behavior on y {
                     NumberAnimation {
-                        duration: 280
-                        easing.type: libraryRoot.selectedGroup != null ? Easing.OutBack : Easing.OutCubic
-                        easing.overshoot: 1.1
+                        duration: Theme.motionDurationMedium
+                        easing.type: Easing.OutCubic
                     }
                 }
             }
-            Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic } }
 
             Loader {
                 anchors.fill: parent
@@ -2301,13 +2299,12 @@ Item {
                 y: libraryRoot.selectedGroup == null ? 0 : -10
                 Behavior on y {
                     NumberAnimation {
-                        duration: 280
-                        easing.type: libraryRoot.selectedGroup == null ? Easing.OutBack : Easing.OutCubic
-                        easing.overshoot: 1.1
+                        duration: Theme.motionDurationMedium
+                        easing.type: Easing.OutCubic
                     }
                 }
             }
-            Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic } }
 
             // Tab 1: Single Tracks (Tracks)
             Item {
@@ -2323,13 +2320,12 @@ Item {
                     y: titlesTabItem.isTabActive ? 0 : 12
                     Behavior on y {
                         NumberAnimation {
-                            duration: 260
-                            easing.type: titlesTabItem.isTabActive ? Easing.OutBack : Easing.OutCubic
-                            easing.overshoot: 1.12
+                            duration: Theme.motionDurationMedium
+                            easing.type: Easing.OutCubic
                         }
                     }
                 }
-                Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic } }
 
                 Loader {
                     anchors.fill: parent
@@ -2351,13 +2347,12 @@ Item {
                     y: libraryRoot.currentTab === "albums" ? 0 : 12
                     Behavior on y {
                         NumberAnimation {
-                            duration: 260
-                            easing.type: libraryRoot.currentTab === "albums" ? Easing.OutBack : Easing.OutCubic
-                            easing.overshoot: 1.12
+                            duration: Theme.motionDurationMedium
+                            easing.type: Easing.OutCubic
                         }
                     }
                 }
-                Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic } }
 
                 Loader {
                     anchors.fill: parent
@@ -2379,13 +2374,12 @@ Item {
                     y: libraryRoot.currentTab === "artists" ? 0 : 12
                     Behavior on y {
                         NumberAnimation {
-                            duration: 260
-                            easing.type: libraryRoot.currentTab === "artists" ? Easing.OutBack : Easing.OutCubic
-                            easing.overshoot: 1.12
+                            duration: Theme.motionDurationMedium
+                            easing.type: Easing.OutCubic
                         }
                     }
                 }
-                Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic } }
 
                 Loader {
                     anchors.fill: parent
@@ -2407,13 +2401,12 @@ Item {
                     y: libraryRoot.currentTab === "folders" ? 0 : 12
                     Behavior on y {
                         NumberAnimation {
-                            duration: 260
-                            easing.type: libraryRoot.currentTab === "folders" ? Easing.OutBack : Easing.OutCubic
-                            easing.overshoot: 1.12
+                            duration: Theme.motionDurationMedium
+                            easing.type: Easing.OutCubic
                         }
                     }
                 }
-                Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic } }
 
                 Loader {
                     anchors.fill: parent

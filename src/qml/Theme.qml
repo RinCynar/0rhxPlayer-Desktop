@@ -10,46 +10,109 @@ QtObject {
     property string themeMode: (typeof ConfigManager !== "undefined" && ConfigManager && ConfigManager.themeMode) ? ConfigManager.themeMode : "dark"
     readonly property bool isDark: themeMode === "light" ? false : true
 
-    // ========================================================================
-    // Dynamic M3 Palette Engine
-    // Supports 8 Authentic M3 Presets + Full Algorithmic HSL Tone Generation
-    // ========================================================================
-    function hslToHex(h, s, l) {
-        l /= 100;
-        var a = s * Math.min(l, 1 - l) / 100;
-        var f = function(n) {
-            var k = (n + h / 30) % 12;
-            var color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-            return Math.round(255 * color).toString(16).padStart(2, '0');
-        };
-        return "#" + f(0) + f(8) + f(4);
-    }
+    // Motion Spec & Reduced Motion support
+    readonly property bool reduceMotion: (typeof ConfigManager !== "undefined" && ConfigManager && ConfigManager.reduceMotion) ? ConfigManager.reduceMotion : false
+    readonly property int motionDurationFast: reduceMotion ? 0 : 100
+    readonly property int motionDurationMedium: reduceMotion ? 0 : 180
+    readonly property int motionDurationSlow: reduceMotion ? 0 : 250
 
-    function hexToHsl(hex) {
-        var clean = hex.replace("#", "");
+    // ========================================================================
+    // Dynamic M3 HCT (Hue, Chroma, Tone) Engine
+    // Standards-Compliant Material You Color Calculation & Contrast Guarantees
+    // ========================================================================
+    function hexToRgb(hex) {
+        var clean = (hex || "#39C5BB").replace("#", "").trim();
         if (clean.length === 3) {
             clean = clean.split('').map(function(c) { return c + c; }).join('');
         }
         var r = parseInt(clean.substring(0, 2), 16) / 255;
         var g = parseInt(clean.substring(2, 4), 16) / 255;
         var b = parseInt(clean.substring(4, 6), 16) / 255;
+        return [isNaN(r) ? 0.22 : r, isNaN(g) ? 0.77 : g, isNaN(b) ? 0.73 : b];
+    }
 
-        var max = Math.max(r, g, b), min = Math.min(r, g, b);
-        var h, s, l = (max + min) / 2;
+    function srgbToLinear(c) {
+        return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    }
 
-        if (max === min) {
-            h = s = 0; // achromatic
-        } else {
-            var d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            switch (max) {
-                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                case g: h = (b - r) / d + 2; break;
-                case b: h = (r - g) / d + 4; break;
+    function linearToSrgb(c) {
+        return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1.0 / 2.4) - 0.055;
+    }
+
+    function rgbToHct(r, g, b) {
+        var rLin = srgbToLinear(r);
+        var gLin = srgbToLinear(g);
+        var bLin = srgbToLinear(b);
+
+        // Matrix transform to CIE XYZ D65
+        var x = 0.4124 * rLin + 0.3576 * gLin + 0.1805 * bLin;
+        var y = 0.2126 * rLin + 0.7152 * gLin + 0.0722 * bLin;
+        var z = 0.0193 * rLin + 0.1192 * gLin + 0.9505 * bLin;
+
+        // Tone T is CIE L* in [0, 100]
+        var yn = y / 1.0;
+        var L = yn > (216.0 / 24389.0) ? (116.0 * Math.cbrt(yn) - 16.0) : ((24389.0 / 27.0) * yn);
+        var t = Math.max(0, Math.min(100, L));
+
+        // CIELAB a* and b*
+        var f = function(val) {
+            return val > (216.0 / 24389.0) ? Math.cbrt(val) : ((24389.0 / 27.0 * val + 16.0) / 116.0);
+        };
+        var aStar = 500.0 * (f(x / 0.95047) - f(yn));
+        var bStar = 200.0 * (f(yn) - f(z / 1.08883));
+
+        var chroma = Math.sqrt(aStar * aStar + bStar * bStar);
+        var hue = Math.atan2(bStar, aStar) * 180.0 / Math.PI;
+        if (hue < 0) hue += 360.0;
+
+        return { h: hue, c: chroma, t: t };
+    }
+
+    function hctToHex(h, c, t) {
+        var L = Math.max(0, Math.min(100, t));
+        var rad = h * Math.PI / 180.0;
+        var curC = Math.max(0, c);
+
+        for (var iter = 0; iter < 12; ++iter) {
+            var aStar = curC * Math.cos(rad);
+            var bStar = curC * Math.sin(rad);
+
+            var fy = (L + 16.0) / 116.0;
+            var fx = aStar / 500.0 + fy;
+            var fz = fy - bStar / 200.0;
+
+            var fx3 = fx * fx * fx;
+            var fz3 = fz * fz * fz;
+
+            var xr = fx3 > (216.0 / 24389.0) ? fx3 : (116.0 * fx - 16.0) / (24389.0 / 27.0);
+            var yr = L > 8.0 ? Math.pow((L + 16.0) / 116.0, 3) : L / (24389.0 / 27.0);
+            var zr = fz3 > (216.0 / 24389.0) ? fz3 : (116.0 * fz - 16.0) / (24389.0 / 27.0);
+
+            var x = xr * 0.95047;
+            var y = yr * 1.00000;
+            var z = zr * 1.08883;
+
+            var rLin =  3.2406 * x - 1.5372 * y - 0.4986 * z;
+            var gLin = -0.9689 * x + 1.8758 * y + 0.0415 * z;
+            var bLin =  0.0557 * x - 0.2040 * y + 1.0570 * z;
+
+            var inGamut = rLin >= -0.001 && rLin <= 1.001 &&
+                          gLin >= -0.001 && gLin <= 1.001 &&
+                          bLin >= -0.001 && bLin <= 1.001;
+
+            if (inGamut || curC <= 0.1) {
+                var r = Math.max(0, Math.min(1, linearToSrgb(Math.max(0, Math.min(1, rLin)))));
+                var g = Math.max(0, Math.min(1, linearToSrgb(Math.max(0, Math.min(1, gLin)))));
+                var b = Math.max(0, Math.min(1, linearToSrgb(Math.max(0, Math.min(1, bLin)))));
+                var rHex = Math.round(r * 255).toString(16).padStart(2, '0');
+                var gHex = Math.round(g * 255).toString(16).padStart(2, '0');
+                var bHex = Math.round(b * 255).toString(16).padStart(2, '0');
+                return "#" + rHex + gHex + bHex;
             }
-            h *= 60;
+            curC *= 0.85;
         }
-        return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+
+        return t > 50 ? "#FFFFFF" : "#000000";
     }
 
     function getPresetTokens(hex, dark) {
@@ -190,64 +253,83 @@ QtObject {
         var preset = getPresetTokens(hex, dark);
         if (preset) return preset;
 
-        // Custom color algorithmic M3 generation
-        var hsl = hexToHsl(hex || "#39C5BB");
-        var h = hsl.h;
-        var s = hsl.s;
+        // Custom seed color dynamic HCT Material 3 generation
+        var rgb = hexToRgb(hex || "#39C5BB");
+        var hct = rgbToHct(rgb[0], rgb[1], rgb[2]);
+        var h = hct.h;
+        var c = hct.c;
+
+        // Tone Palettes according to M3 specification
+        var primaryChroma = Math.max(c, 48);
+        var secChroma = Math.max(16, c * 0.35);
+        var tertChroma = Math.max(24, c * 0.45);
+        var tertHue = (h + 60) % 360;
+        var neutralChroma = 4;
+        var neutralVarChroma = 8;
 
         if (dark) {
             return {
-                primary: hslToHex(h, Math.min(s, 85), 76),
-                colorOnPrimary: hslToHex(h, Math.min(s, 90), 16),
-                primaryContainer: hslToHex(h, Math.min(s, 75), 28),
-                colorOnPrimaryContainer: hslToHex(h, Math.min(s, 90), 88),
-                secondary: hslToHex(h, 25, 75),
-                colorOnSecondary: hslToHex(h, 25, 18),
-                secondaryContainer: hslToHex(h, 25, 30),
-                colorOnSecondaryContainer: hslToHex(h, 25, 88),
-                tertiary: hslToHex((h + 60) % 360, 35, 78),
-                colorOnTertiary: hslToHex((h + 60) % 360, 35, 18),
-                tertiaryContainer: hslToHex((h + 60) % 360, 35, 30),
-                colorOnTertiaryContainer: hslToHex((h + 60) % 360, 35, 90),
-                surface: hslToHex(h, 12, 7),
-                colorOnSurface: hslToHex(h, 12, 90),
-                surfaceVariant: hslToHex(h, 12, 28),
-                colorOnSurfaceVariant: hslToHex(h, 12, 78),
-                surfaceContainerLowest: hslToHex(h, 12, 5),
-                surfaceContainerLow: hslToHex(h, 12, 10),
-                surfaceContainer: hslToHex(h, 12, 12),
-                surfaceContainerHigh: hslToHex(h, 12, 16),
-                surfaceContainerHighest: hslToHex(h, 12, 21),
-                outline: hslToHex(h, 10, 56),
-                outlineVariant: hslToHex(h, 10, 28),
-                borderSubtle: hslToHex(h, 10, 15)
+                primary: hctToHex(h, primaryChroma, 80),
+                colorOnPrimary: hctToHex(h, primaryChroma, 20),
+                primaryContainer: hctToHex(h, primaryChroma, 30),
+                colorOnPrimaryContainer: hctToHex(h, primaryChroma, 90),
+
+                secondary: hctToHex(h, secChroma, 80),
+                colorOnSecondary: hctToHex(h, secChroma, 20),
+                secondaryContainer: hctToHex(h, secChroma, 30),
+                colorOnSecondaryContainer: hctToHex(h, secChroma, 90),
+
+                tertiary: hctToHex(tertHue, tertChroma, 80),
+                colorOnTertiary: hctToHex(tertHue, tertChroma, 20),
+                tertiaryContainer: hctToHex(tertHue, tertChroma, 30),
+                colorOnTertiaryContainer: hctToHex(tertHue, tertChroma, 90),
+
+                surface: hctToHex(h, neutralChroma, 6),
+                colorOnSurface: hctToHex(h, neutralChroma, 90),
+                surfaceVariant: hctToHex(h, neutralVarChroma, 30),
+                colorOnSurfaceVariant: hctToHex(h, neutralVarChroma, 80),
+
+                surfaceContainerLowest: hctToHex(h, neutralChroma, 4),
+                surfaceContainerLow: hctToHex(h, neutralChroma, 10),
+                surfaceContainer: hctToHex(h, neutralChroma, 12),
+                surfaceContainerHigh: hctToHex(h, neutralChroma, 17),
+                surfaceContainerHighest: hctToHex(h, neutralChroma, 22),
+
+                outline: hctToHex(h, neutralVarChroma, 60),
+                outlineVariant: hctToHex(h, neutralVarChroma, 30),
+                borderSubtle: hctToHex(h, neutralVarChroma, 15)
             };
         } else {
             return {
-                primary: hslToHex(h, Math.min(s, 90), 38),
+                primary: hctToHex(h, primaryChroma, 40),
                 colorOnPrimary: "#FFFFFF",
-                primaryContainer: hslToHex(h, Math.min(s, 90), 85),
-                colorOnPrimaryContainer: hslToHex(h, Math.min(s, 90), 12),
-                secondary: hslToHex(h, 20, 38),
+                primaryContainer: hctToHex(h, primaryChroma, 90),
+                colorOnPrimaryContainer: hctToHex(h, primaryChroma, 10),
+
+                secondary: hctToHex(h, secChroma, 40),
                 colorOnSecondary: "#FFFFFF",
-                secondaryContainer: hslToHex(h, 25, 88),
-                colorOnSecondaryContainer: hslToHex(h, 25, 12),
-                tertiary: hslToHex((h + 60) % 360, 30, 40),
+                secondaryContainer: hctToHex(h, secChroma, 90),
+                colorOnSecondaryContainer: hctToHex(h, secChroma, 10),
+
+                tertiary: hctToHex(tertHue, tertChroma, 40),
                 colorOnTertiary: "#FFFFFF",
-                tertiaryContainer: hslToHex((h + 60) % 360, 35, 88),
-                colorOnTertiaryContainer: hslToHex((h + 60) % 360, 35, 12),
-                surface: hslToHex(h, 15, 98),
-                colorOnSurface: hslToHex(h, 12, 10),
-                surfaceVariant: hslToHex(h, 12, 88),
-                colorOnSurfaceVariant: hslToHex(h, 12, 28),
+                tertiaryContainer: hctToHex(tertHue, tertChroma, 90),
+                colorOnTertiaryContainer: hctToHex(tertHue, tertChroma, 10),
+
+                surface: hctToHex(h, neutralChroma, 98),
+                colorOnSurface: hctToHex(h, neutralChroma, 10),
+                surfaceVariant: hctToHex(h, neutralVarChroma, 90),
+                colorOnSurfaceVariant: hctToHex(h, neutralVarChroma, 30),
+
                 surfaceContainerLowest: "#FFFFFF",
-                surfaceContainerLow: hslToHex(h, 12, 96),
-                surfaceContainer: hslToHex(h, 12, 94),
-                surfaceContainerHigh: hslToHex(h, 12, 92),
-                surfaceContainerHighest: hslToHex(h, 12, 89),
-                outline: hslToHex(h, 10, 48),
-                outlineVariant: hslToHex(h, 10, 78),
-                borderSubtle: hslToHex(h, 10, 88)
+                surfaceContainerLow: hctToHex(h, neutralChroma, 96),
+                surfaceContainer: hctToHex(h, neutralChroma, 94),
+                surfaceContainerHigh: hctToHex(h, neutralChroma, 92),
+                surfaceContainerHighest: hctToHex(h, neutralChroma, 90),
+
+                outline: hctToHex(h, neutralVarChroma, 50),
+                outlineVariant: hctToHex(h, neutralVarChroma, 80),
+                borderSubtle: hctToHex(h, neutralVarChroma, 88)
             };
         }
     }
@@ -363,17 +445,8 @@ QtObject {
         iconNeutral = tokens.outline;
     }
 
-    property var _connections: Connections {
-        target: ConfigManager
-        function onSeedColorChanged() {
-            theme.updatePalette();
-        }
-        function onThemeModeChanged() {
-            theme.updatePalette();
-        }
-    }
-
     onSeedColorChanged: updatePalette()
+    onThemeModeChanged: updatePalette()
     onIsDarkChanged: updatePalette()
     Component.onCompleted: updatePalette()
 }

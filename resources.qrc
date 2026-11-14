@@ -94,6 +94,13 @@
         <file>src/qml/PlaylistSelectDialog.qml</file>
         <file>src/qml/M3ContextMenu.qml</file>
         <file>src/qml/M3MenuItem.qml</file>
+        <file>src/qml/components/M3Button.qml</file>
+        <file>src/qml/components/M3IconButton.qml</file>
+        <file>src/qml/components/M3Chip.qml</file>
+        <file>src/qml/components/M3TextField.qml</file>
+        <file>src/qml/components/M3Badge.qml</file>
+        <file>src/qml/components/M3Dialog.qml</file>
+        <file>src/qml/components/qmldir</file>
         <file>src/qml/SplashScreen.qml</file>
         <file>src/qml/qmldir</file>
         <file>translations/0rhxplayer_zh_CN.qm</file>

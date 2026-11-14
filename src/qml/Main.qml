@@ -145,7 +145,7 @@ ApplicationWindow {
             property: "opacity"
             from: 0.0
             to: 1.0
-            duration: 200
+            duration: Theme.motionDurationMedium
             easing.type: Easing.OutCubic
         }
         NumberAnimation {
@@ -153,7 +153,7 @@ ApplicationWindow {
             property: "y"
             from: 14
             to: 0
-            duration: 200
+            duration: Theme.motionDurationMedium
             easing.type: Easing.OutCubic
         }
         NumberAnimation {
@@ -161,7 +161,7 @@ ApplicationWindow {
             property: "opacity"
             from: 1.0
             to: 0.0
-            duration: 180
+            duration: Theme.motionDurationMedium
             easing.type: Easing.OutCubic
         }
         NumberAnimation {
@@ -169,7 +169,7 @@ ApplicationWindow {
             property: "y"
             from: 0
             to: -14
-            duration: 180
+            duration: Theme.motionDurationMedium
             easing.type: Easing.OutCubic
         }
 

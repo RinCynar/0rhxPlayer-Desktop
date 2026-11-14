@@ -262,6 +262,7 @@ void ConfigManager::loadSettings()
     }
     m_showTrans = settings.value("Lyrics/ShowTrans", true).toBool();
     m_autoCollapseRail = settings.value("Interface/AutoCollapseRail", true).toBool();
+    m_reduceMotion = settings.value("Interface/ReduceMotion", false).toBool();
 
     // Audio Settings
     m_audioDriver = settings.value("Audio/Driver", "WASAPI Exclusive").toString();
@@ -528,6 +529,16 @@ void ConfigManager::setAutoCollapseRail(bool collapse)
         QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
         settings.setValue("Interface/AutoCollapseRail", m_autoCollapseRail);
         emit autoCollapseRailChanged(m_autoCollapseRail);
+    }
+}
+
+void ConfigManager::setReduceMotion(bool reduce)
+{
+    if (m_reduceMotion != reduce) {
+        m_reduceMotion = reduce;
+        QSettings settings(PathManager::instance()->configFile(), QSettings::IniFormat);
+        settings.setValue("Interface/ReduceMotion", m_reduceMotion);
+        emit reduceMotionChanged(m_reduceMotion);
     }
 }
 

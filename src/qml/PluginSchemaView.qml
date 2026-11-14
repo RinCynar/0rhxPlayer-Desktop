@@ -7,6 +7,7 @@ import rhx.config 1.0
 import rhx.theme 1.0
 import rhx.audio 1.0
 import rhx.ui 1.0
+import "components"
 
 Item {
     id: root
@@ -92,30 +93,14 @@ Item {
             Layout.fillWidth: true
             spacing: 14
 
-            Rectangle {
-                width: 36
-                height: 36
-                radius: 18
-                color: backMouse.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
-                border.color: Theme.borderSubtle
-
-                SvgIcon {
-                    anchors.centerIn: parent
-                    width: 16
-                    height: 16
-                    source: "qrc:/assets/icons/chevron_left.svg"
-                    color: Theme.textPrimary
-                }
-
-                MouseArea {
-                    id: backMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (typeof window !== "undefined") {
-                            window.currentTab = "plugins";
-                        }
+            M3IconButton {
+                icon: "qrc:/assets/icons/chevron_left.svg"
+                size: 36
+                iconSize: 16
+                variant: "standard"
+                onClicked: {
+                    if (typeof window !== "undefined") {
+                        window.currentTab = "plugins";
                     }
                 }
             }
@@ -177,64 +162,27 @@ Item {
                                 }
 
                                 // Queue Item Count Badge (driven by PluginTaskModel)
-                                Rectangle {
+                                M3Badge {
                                     visible: (sectionCard.secType === "queue" || sectionCard.secType === "task_list") && PluginManager.taskModel && PluginManager.taskModel.count > 0
-                                    implicitWidth: countText.implicitWidth + 16
-                                    implicitHeight: 24
-                                    radius: 12
-                                    color: Theme.primaryContainer
-
-                                    Text {
-                                        id: countText
-                                        anchors.centerIn: parent
-                                        text: qsTr("%1 items").arg(PluginManager.taskModel ? PluginManager.taskModel.count : 0)
-                                        font.pixelSize: 11
-                                        font.bold: true
-                                        color: Theme.colorOnPrimaryContainer
-                                    }
+                                    text: qsTr("%1 items").arg(PluginManager.taskModel ? PluginManager.taskModel.count : 0)
+                                    variant: "primary"
                                 }
 
                                 // Clear Queue Button
-                                Rectangle {
+                                M3Button {
                                     visible: (sectionCard.secType === "queue" || sectionCard.secType === "task_list") && PluginManager.taskModel && PluginManager.taskModel.count > 0
-                                    implicitWidth: clearRow.implicitWidth + 16
-                                    implicitHeight: 26
-                                    radius: 13
-                                    color: clearMouse.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
-                                    border.color: Theme.borderSubtle
-
-                                    RowLayout {
-                                        id: clearRow
-                                        anchors.centerIn: parent
-                                        spacing: 6
-
-                                        SvgIcon {
-                                            width: 13
-                                            height: 13
-                                            source: "qrc:/assets/icons/trash.svg"
-                                            color: Theme.textSecondary
+                                    text: qsTr("Clear Queue")
+                                    icon: "qrc:/assets/icons/trash.svg"
+                                    iconSize: 13
+                                    variant: "tonal"
+                                    implicitHeight: 28
+                                    onClicked: {
+                                        var cid = root.getCleanId();
+                                        if (PluginManager.taskModel) {
+                                            PluginManager.taskModel.clearTasks(cid);
                                         }
-
-                                        Text {
-                                            text: qsTr("Clear Queue")
-                                            font.pixelSize: 11
-                                            color: Theme.textSecondary
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: clearMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            var cid = root.getCleanId();
-                                            if (PluginManager.taskModel) {
-                                                PluginManager.taskModel.clearTasks(cid);
-                                            }
-                                            PluginManager.clearPluginQueue(cid);
-                                            PluginManager.invokePluginAction(cid, "clear_queue", {});
-                                        }
+                                        PluginManager.clearPluginQueue(cid);
+                                        PluginManager.invokePluginAction(cid, "clear_queue", {});
                                     }
                                 }
                             }
@@ -257,47 +205,26 @@ Item {
 
                                 Repeater {
                                     model: (sectionCard.sec && sectionCard.sec.options) ? sectionCard.sec.options : []
-                                    delegate: Rectangle {
+                                    delegate: M3Chip {
                                         readonly property string optVal: String(typeof modelData === "object" && modelData.value !== undefined ? modelData.value : modelData)
                                         readonly property string optLabel: String(typeof modelData === "object" && modelData.label !== undefined ? modelData.label : modelData)
-                                        readonly property bool isSelected: String(sectionCard.secVal).toUpperCase() === optVal.toUpperCase()
+                                        text: optLabel
+                                        selected: String(sectionCard.secVal).toUpperCase() === optVal.toUpperCase()
+                                        onClicked: {
+                                            var cid = root.getCleanId();
+                                            var k = sectionCard.secKey;
+                                            if (k) {
+                                                PluginManager.setPluginState(cid, k, optVal);
+                                            }
+                                            // Dispatch universal action
+                                            var actId = (sectionCard.sec && sectionCard.sec.actionId) ? sectionCard.sec.actionId : (k ? (k + "_changed") : "option_selected");
+                                            PluginManager.invokePluginAction(cid, actId, { key: k, value: optVal });
 
-                                        implicitWidth: chipText.implicitWidth + 24
-                                        implicitHeight: 32
-                                        radius: 16
-                                        color: isSelected ? Theme.primary : (chipMouse.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh)
-                                        border.color: isSelected ? Theme.primary : Theme.borderSubtle
-
-                                        Text {
-                                            id: chipText
-                                            anchors.centerIn: parent
-                                            text: optLabel
-                                            font.pixelSize: 12
-                                            font.bold: isSelected
-                                            color: isSelected ? Theme.colorOnPrimary : Theme.textPrimary
-                                        }
-
-                                        MouseArea {
-                                            id: chipMouse
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                var cid = root.getCleanId();
-                                                var k = sectionCard.secKey;
-                                                if (k) {
-                                                    PluginManager.setPluginState(cid, k, optVal);
-                                                }
-                                                // Dispatch universal action
-                                                var actId = (sectionCard.sec && sectionCard.sec.actionId) ? sectionCard.sec.actionId : (k ? (k + "_changed") : "option_selected");
-                                                PluginManager.invokePluginAction(cid, actId, { key: k, value: optVal });
-
-                                                // Backward compatibility for scripts implementing setFormat or setOption
-                                                if (k === "format") {
-                                                    PluginManager.callPluginMethod(cid, "setFormat", [optVal.toLowerCase()]);
-                                                } else if (k) {
-                                                    PluginManager.callPluginMethod(cid, "setOption", [k, optVal]);
-                                                }
+                                            // Backward compatibility for scripts implementing setFormat or setOption
+                                            if (k === "format") {
+                                                PluginManager.callPluginMethod(cid, "setFormat", [optVal.toLowerCase()]);
+                                            } else if (k) {
+                                                PluginManager.callPluginMethod(cid, "setOption", [k, optVal]);
                                             }
                                         }
                                     }
@@ -392,62 +319,45 @@ Item {
                                     }
                                 }
 
-                                Rectangle {
-                                    implicitWidth: 80
+                                M3Button {
+                                    text: qsTr("Browse")
+                                    variant: "tonal"
                                     implicitHeight: 40
-                                    radius: 10
-                                    color: browseMouse.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
-                                    border.color: Theme.borderSubtle
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: qsTr("Browse")
-                                        font.pixelSize: 12
-                                        font.bold: true
-                                        color: Theme.primary
-                                    }
-
-                                    MouseArea {
-                                        id: browseMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            if (sectionCard.secType === "folder_picker") {
-                                                folderDialog.open();
-                                            } else {
-                                                fileDialog.open();
-                                            }
+                                    onClicked: {
+                                        if (sectionCard.secType === "folder_picker") {
+                                            folderDialog.open();
+                                        } else {
+                                            fileDialog.open();
                                         }
                                     }
+                                }
 
-                                    FileDialog {
-                                        id: fileDialog
-                                        title: qsTr("Select File")
-                                        onAccepted: {
-                                            var p = selectedFile.toString();
-                                            if (p.indexOf("file:///") === 0) p = p.substring(8);
-                                            var cid = root.getCleanId();
-                                            var k = sectionCard.secKey;
-                                            if (k) {
-                                                PluginManager.setPluginState(cid, k, p);
-                                                PluginManager.invokePluginAction(cid, (sectionCard.sec && sectionCard.sec.actionId) ? sectionCard.sec.actionId : (k + "_changed"), { key: k, value: p });
-                                            }
+                                FileDialog {
+                                    id: fileDialog
+                                    title: qsTr("Select File")
+                                    onAccepted: {
+                                        var p = selectedFile.toString();
+                                        if (p.indexOf("file:///") === 0) p = p.substring(8);
+                                        var cid = root.getCleanId();
+                                        var k = sectionCard.secKey;
+                                        if (k) {
+                                            PluginManager.setPluginState(cid, k, p);
+                                            PluginManager.invokePluginAction(cid, (sectionCard.sec && sectionCard.sec.actionId) ? sectionCard.sec.actionId : (k + "_changed"), { key: k, value: p });
                                         }
                                     }
+                                }
 
-                                    FolderDialog {
-                                        id: folderDialog
-                                        title: qsTr("Select Directory")
-                                        onAccepted: {
-                                            var p = selectedFolder.toString();
-                                            if (p.indexOf("file:///") === 0) p = p.substring(8);
-                                            var cid = root.getCleanId();
-                                            var k = sectionCard.secKey;
-                                            if (k) {
-                                                PluginManager.setPluginState(cid, k, p);
-                                                PluginManager.invokePluginAction(cid, (sectionCard.sec && sectionCard.sec.actionId) ? sectionCard.sec.actionId : (k + "_changed"), { key: k, value: p });
-                                            }
+                                FolderDialog {
+                                    id: folderDialog
+                                    title: qsTr("Select Directory")
+                                    onAccepted: {
+                                        var p = selectedFolder.toString();
+                                        if (p.indexOf("file:///") === 0) p = p.substring(8);
+                                        var cid = root.getCleanId();
+                                        var k = sectionCard.secKey;
+                                        if (k) {
+                                            PluginManager.setPluginState(cid, k, p);
+                                            PluginManager.invokePluginAction(cid, (sectionCard.sec && sectionCard.sec.actionId) ? sectionCard.sec.actionId : (k + "_changed"), { key: k, value: p });
                                         }
                                     }
                                 }
@@ -466,34 +376,14 @@ Item {
                                     color: Theme.textPrimary
                                 }
 
-                                Rectangle {
-                                    implicitWidth: 44
-                                    implicitHeight: 24
-                                    radius: 12
-                                    color: Boolean(sectionCard.secVal) ? Theme.primary : Theme.surfaceContainerHighest
-                                    border.color: Theme.borderSubtle
-
-                                    Rectangle {
-                                        width: 18
-                                        height: 18
-                                        radius: 9
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        x: Boolean(sectionCard.secVal) ? 22 : 4
-                                        color: Boolean(sectionCard.secVal) ? Theme.colorOnPrimary : Theme.textSecondary
-                                        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            var nextVal = !Boolean(sectionCard.secVal);
-                                            var cid = root.getCleanId();
-                                            var k = sectionCard.secKey;
-                                            if (k) {
-                                                PluginManager.setPluginState(cid, k, nextVal);
-                                                PluginManager.invokePluginAction(cid, (sectionCard.sec && sectionCard.sec.actionId) ? sectionCard.sec.actionId : (k + "_changed"), { key: k, value: nextVal });
-                                            }
+                                M3Switch {
+                                    checked: Boolean(sectionCard.secVal)
+                                    onToggled: function(c) {
+                                        var cid = root.getCleanId();
+                                        var k = sectionCard.secKey;
+                                        if (k) {
+                                            PluginManager.setPluginState(cid, k, c);
+                                            PluginManager.invokePluginAction(cid, (sectionCard.sec && sectionCard.sec.actionId) ? sectionCard.sec.actionId : (k + "_changed"), { key: k, value: c });
                                         }
                                     }
                                 }
@@ -783,50 +673,24 @@ Item {
                                 spacing: 12
                                 visible: sectionCard.secType === "action" || sectionCard.secType === "button"
 
-                                Rectangle {
+                                M3Button {
                                     id: actionBtn
                                     readonly property bool isEnabled: {
                                         if (sectionCard.sec && sectionCard.sec.enabled !== undefined) return Boolean(sectionCard.sec.enabled);
                                         if (PluginManager.taskModel && PluginManager.taskModel.count > 0) return true;
                                         return true;
                                     }
-                                    implicitWidth: 180
+                                    enabled: isEnabled
+                                    text: sectionCard.sec ? (sectionCard.sec.title || sectionCard.sec.text || qsTr("Execute")) : qsTr("Execute")
+                                    icon: (sectionCard.sec && sectionCard.sec.icon) ? sectionCard.sec.icon : "qrc:/assets/icons/play.svg"
+                                    iconSize: 16
+                                    variant: "filled"
                                     implicitHeight: 40
-                                    radius: 20
-                                    color: isEnabled ? (actionMouse.containsMouse ? Qt.lighter(Theme.primary, 1.1) : Theme.primary) : Theme.surfaceContainerHighest
-                                    opacity: isEnabled ? 1.0 : 0.6
-                                    border.color: isEnabled ? Theme.primary : Theme.borderSubtle
-
-                                    RowLayout {
-                                        anchors.centerIn: parent
-                                        spacing: 8
-
-                                        SvgIcon {
-                                            width: 16
-                                            height: 16
-                                            source: (sectionCard.sec && sectionCard.sec.icon) ? sectionCard.sec.icon : "qrc:/assets/icons/play.svg"
-                                            color: actionBtn.isEnabled ? Theme.colorOnPrimary : Theme.textMuted
-                                        }
-
-                                        Text {
-                                            text: sectionCard.sec ? (sectionCard.sec.title || sectionCard.sec.text || qsTr("Execute")) : qsTr("Execute")
-                                            font.pixelSize: 13
-                                            font.bold: true
-                                            color: actionBtn.isEnabled ? Theme.colorOnPrimary : Theme.textMuted
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: actionMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: actionBtn.isEnabled
-                                        cursorShape: actionBtn.isEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                        onClicked: {
-                                            if (!actionBtn.isEnabled) return;
-                                            var cid = root.getCleanId();
-                                            var actId = (sectionCard.sec && (sectionCard.sec.actionId || sectionCard.sec.action || sectionCard.sec.id)) ? (sectionCard.sec.actionId || sectionCard.sec.action || sectionCard.sec.id) : "start_transcoding";
-                                            PluginManager.invokePluginAction(cid, actId, { section: sectionCard.sec });
-                                        }
+                                    implicitWidth: 180
+                                    onClicked: {
+                                        var cid = root.getCleanId();
+                                        var actId = (sectionCard.sec && (sectionCard.sec.actionId || sectionCard.sec.action || sectionCard.sec.id)) ? (sectionCard.sec.actionId || sectionCard.sec.action || sectionCard.sec.id) : "start_transcoding";
+                                        PluginManager.invokePluginAction(cid, actId, { section: sectionCard.sec });
                                     }
                                 }
                             }

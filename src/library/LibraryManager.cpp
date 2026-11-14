@@ -2207,6 +2207,30 @@ void LibraryManager::removeTracksFromLibrary(const QStringList &trackPaths)
     saveLibraryCache();
 }
 
+bool LibraryManager::updateTrackMetadata(const QString &filePath, const QVariantMap &tags)
+{
+    QString native = QDir::toNativeSeparators(filePath);
+    bool found = false;
+    for (int i = 0; i < m_allTracks.size(); ++i) {
+        if (QString::compare(m_allTracks[i].path, native, Qt::CaseInsensitive) == 0 ||
+            QString::compare(m_allTracks[i].path, filePath, Qt::CaseInsensitive) == 0) {
+            if (tags.contains("title")) m_allTracks[i].title = tags["title"].toString();
+            if (tags.contains("artist")) m_allTracks[i].artist = tags["artist"].toString();
+            if (tags.contains("album")) m_allTracks[i].album = tags["album"].toString();
+            if (tags.contains("albumArtist")) m_allTracks[i].albumArtist = tags["albumArtist"].toString();
+            found = true;
+            break;
+        }
+    }
+    if (found) {
+        rebuildLibraryModels();
+        saveLibraryCache();
+        emit allTracksChanged();
+        return true;
+    }
+    return false;
+}
+
 
 
 

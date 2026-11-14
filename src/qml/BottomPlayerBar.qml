@@ -113,9 +113,8 @@ Rectangle {
 
             Behavior on Layout.preferredWidth {
                 NumberAnimation {
-                    duration: 260
-                    easing.type: playerBar.isNowPlayingOpen ? Easing.OutCubic : Easing.OutBack
-                    easing.overshoot: 1.1
+                    duration: Theme.motionDurationMedium
+                    easing.type: Easing.OutCubic
                 }
             }
 
@@ -474,13 +473,12 @@ Rectangle {
                 Layout.alignment: Qt.AlignVCenter
                 radius: 22
                 color: playMouse.containsMouse ? Qt.lighter(Theme.primary, 1.1) : Theme.primary
-                scale: playMouse.pressed ? 0.95 : (playMouse.containsMouse ? 1.05 : 1.0)
+                scale: playMouse.pressed ? 0.95 : 1.0
 
                 Behavior on scale {
                     NumberAnimation {
-                        duration: playMouse.pressed ? 80 : 240
-                        easing.type: playMouse.pressed ? Easing.OutQuad : Easing.OutBack
-                        easing.overshoot: 1.25
+                        duration: Theme.motionDurationFast
+                        easing.type: Easing.OutCubic
                     }
                 }
 

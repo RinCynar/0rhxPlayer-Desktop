@@ -27,6 +27,7 @@ class ConfigManager : public QObject {
     Q_PROPERTY(int lyricsFontSize READ lyricsFontSize WRITE setLyricsFontSize NOTIFY lyricsFontSizeChanged)
     Q_PROPERTY(bool showTrans READ showTrans WRITE setShowTrans NOTIFY showTransChanged)
     Q_PROPERTY(bool autoCollapseRail READ autoCollapseRail WRITE setAutoCollapseRail NOTIFY autoCollapseRailChanged)
+    Q_PROPERTY(bool reduceMotion READ reduceMotion WRITE setReduceMotion NOTIFY reduceMotionChanged)
 
     // Audio Settings
     Q_PROPERTY(QString audioDriver READ audioDriver WRITE setAudioDriver NOTIFY audioDriverChanged)
@@ -109,6 +110,8 @@ public:
     Q_INVOKABLE void setLyricsFontSize(int size);
     Q_INVOKABLE void setShowTrans(bool show);
     Q_INVOKABLE void setAutoCollapseRail(bool collapse);
+    Q_INVOKABLE void setReduceMotion(bool reduce);
+    bool reduceMotion() const { return m_reduceMotion; }
 
     Q_INVOKABLE void setAudioDriver(const QString &driver);
     Q_INVOKABLE void setResampler(const QString &resampler);
@@ -149,6 +152,7 @@ signals:
     void lyricsFontSizeChanged(int fontSize);
     void showTransChanged(bool showTrans);
     void autoCollapseRailChanged(bool autoCollapse);
+    void reduceMotionChanged(bool reduceMotion);
     void audioDriverChanged(const QString &driver);
     void resamplerChanged(const QString &resampler);
     void replayGainChanged(const QString &replayGain);
@@ -182,6 +186,7 @@ private:
     int m_lyricsFontSize = 30;
     bool m_showTrans = true;
     bool m_autoCollapseRail = true;
+    bool m_reduceMotion = false;
     QString m_audioDriver = "WASAPI Exclusive";
     QString m_resampler = "SoX Resampler High Quality";
     QString m_replayGain = "Track Mode (-18 LUFS)";

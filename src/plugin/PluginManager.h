@@ -35,6 +35,19 @@ struct PluginMetadata {
     QJsonObject hooks;
     QJsonObject entries;
 
+    enum class Status {
+        Ready = 0,
+        Downloading,
+        Installing,
+        MissingDependency,
+        RuntimeError,
+        UpdateAvailable
+    };
+
+    Status status = Status::Ready;
+    QString statusMessage;
+    QString diagnosticDetails;
+
     QVariantMap toMap() const;
     static PluginMetadata fromJson(const QJsonObject &obj);
 
@@ -85,10 +98,33 @@ public:
     Q_INVOKABLE QVariantMap getPluginViewSchema(const QString &pluginId, const QString &schemaPath = QString()) const;
     Q_INVOKABLE QVariantList executeSearchHook(const QString &query);
     Q_INVOKABLE QVariantMap executeLyricsHook(const QString &title, const QString &artist, qint64 durationMs = 0);
+    Q_INVOKABLE QVariantList fetchLyricsCandidates(const QString &title, const QString &artist, qint64 durationMs = 0);
+    Q_INVOKABLE bool applyLyricCandidate(const QVariantMap &candidate);
+    Q_INVOKABLE QVariantMap fetchMetadataCandidates(const QString &filePath, const QVariantMap &currentMeta = QVariantMap());
+    Q_INVOKABLE bool applyTrackMetadata(const QString &filePath, const QVariantMap &tags);
+    Q_INVOKABLE QVariantList searchMediaSource(const QString &query);
+    Q_INVOKABLE QString resolveMediaStream(const QString &pluginId, const QString &mediaId, const QVariantMap &extraParams = QVariantMap());
+    Q_INVOKABLE bool playPluginMedia(const QString &pluginId, const QString &mediaId, const QVariantMap &trackMeta = QVariantMap());
     Q_INVOKABLE QString getPluginAssetPath(const QString &pluginId, const QString &relPath) const;
 
     // Helper for testing and zip extraction
     static bool extractArchive(const QString &archivePath, const QString &destDir);
+
+    // SemVer validation
+    static bool isVersionCompatible(const QString &appVer, const QString &minAppVer);
+    static bool isSemVerNewer(const QString &newVer, const QString &currentVer);
+
+    // Runtime Permission Sandbox
+    Q_INVOKABLE bool hasPermission(const QString &pluginId, const QString &permission) const;
+    Q_INVOKABLE void grantPluginPermission(const QString &pluginId, const QString &permission);
+    Q_INVOKABLE void setPluginHookEnabled(const QString &pluginId, const QString &hookName, bool enabled);
+    void reportSecurityViolation(const QString &pluginId, const QString &permission, const QString &actionName);
+
+    // Precise Status & Diagnostics
+    Q_INVOKABLE int getPluginStatus(const QString &pluginId) const;
+    Q_INVOKABLE QString getPluginStatusMessage(const QString &pluginId) const;
+    Q_INVOKABLE QString getPluginDiagnosticDetails(const QString &pluginId) const;
+    Q_INVOKABLE void retryPluginInstall(const QString &pluginId);
 
     // =========================================================================
     // Category 1: Audio Playback & Transport Control
@@ -207,7 +243,7 @@ public:
     // =========================================================================
     PluginTaskModel* taskModel() const;
     Q_INVOKABLE QString startAsyncTask(const QString &pluginId, const QString &program, const QVariant &arguments = QVariant(), const QString &workingDir = QString(), const QVariantMap &meta = QVariantMap());
-    Q_INVOKABLE void registerPluginObject(const QString &pluginId, const QJSValue &object);
+    Q_INVOKABLE void registerPluginObject(const QString &pluginId, const QJSValue &object, QJSEngine *engine = nullptr);
     Q_INVOKABLE QJSValue getPluginScriptObject(const QString &pluginId) const;
     Q_INVOKABLE QVariant getPluginState(const QString &pluginId, const QString &key, const QVariant &defaultValue = QVariant()) const;
     Q_INVOKABLE void setPluginState(const QString &pluginId, const QString &key, const QVariant &value);
@@ -233,11 +269,13 @@ signals:
     void pluginInstalled(const QString &pluginId);
     void pluginUninstalled(const QString &pluginId);
     void pluginStatusChanged(const QString &pluginId, bool enabled);
+    void pluginStatusUpdated(const QString &pluginId, int status, const QString &message);
     void installProgress(const QString &pluginId, qint64 received, qint64 total);
     void installFinished(const QString &pluginId, bool success, const QString &message);
     void toastRequested(const QString &message);
     void pluginViewUpdated(const QString &pluginId);
     void pluginStateChanged(const QString &pluginId, const QString &key, const QVariant &value);
+    void lyricsCandidatesReady(const QString &title, const QString &artist, const QVariantList &candidates);
 
     // =========================================================================
     // Category 9: Host Full Lifecycle Event Bus

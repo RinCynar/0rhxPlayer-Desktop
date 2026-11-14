@@ -1,5 +1,6 @@
 #include "PluginManager.h"
 #include "PluginTaskModel.h"
+#include "PluginScriptSandboxFacade.h"
 #include "JsTimerBridge.h"
 #include "../core/PathManager.h"
 #include "../config/ConfigManager.h"
@@ -30,6 +31,7 @@
 #include <QJSEngine>
 #include <QJSValue>
 #include <algorithm>
+#include <memory>
 
 QVariantMap PluginMetadata::toMap() const
 {
@@ -51,6 +53,19 @@ QVariantMap PluginMetadata::toMap() const
     map["minAppVersion"] = minAppVersion;
     map["permissions"] = permissions;
     map["entries"] = entries.toVariantMap();
+    map["status"] = static_cast<int>(status);
+    QString stStr = "Ready";
+    switch (status) {
+    case Status::Ready: stStr = "Ready"; break;
+    case Status::Downloading: stStr = "Downloading"; break;
+    case Status::Installing: stStr = "Installing"; break;
+    case Status::MissingDependency: stStr = "MissingDependency"; break;
+    case Status::RuntimeError: stStr = "RuntimeError"; break;
+    case Status::UpdateAvailable: stStr = "UpdateAvailable"; break;
+    }
+    map["statusText"] = stStr;
+    map["statusMessage"] = statusMessage;
+    map["diagnosticDetails"] = diagnosticDetails;
     return map;
 }
 
@@ -353,6 +368,22 @@ void PluginManager::loadInstalledPluginFromDir(const QString &dirPath)
     meta.installed = true;
     meta.localDir = dirPath;
 
+    // SemVer validation guard
+    if (!meta.minAppVersion.isEmpty() && !isVersionCompatible(getAppVersion(), meta.minAppVersion)) {
+        meta.enabled = false;
+        meta.status = PluginMetadata::Status::MissingDependency;
+        meta.statusMessage = QString("Incompatible app version: requires >= %1, current is %2").arg(meta.minAppVersion, getAppVersion());
+        meta.diagnosticDetails = meta.statusMessage;
+        m_installed[meta.id] = meta;
+        removeSidebarItemForPlugin(meta.id);
+        qWarning() << "[PluginManager]" << meta.id << meta.statusMessage;
+        return;
+    }
+
+    meta.status = PluginMetadata::Status::Ready;
+    meta.statusMessage = QStringLiteral("Ready");
+    meta.diagnosticDetails = QString();
+
     // Load persisted enabled state
     if (m_enabledConfig.contains(meta.id)) {
         meta.enabled = m_enabledConfig.value(meta.id);
@@ -496,6 +527,184 @@ bool PluginManager::extractArchive(const QString &archivePath, const QString &de
     return false;
 }
 
+namespace {
+struct SemVer {
+    int major = 0;
+    int minor = 0;
+    int patch = 0;
+    QString prerelease;
+    bool valid = false;
+
+    static SemVer parse(const QString &str) {
+        SemVer v;
+        QString s = str.trimmed();
+        if (s.startsWith('v') || s.startsWith('V')) {
+            s = s.mid(1).trimmed();
+        }
+        if (s.isEmpty()) return v;
+
+        QStringList parts = s.split('-');
+        QString numPart = parts.value(0);
+        if (parts.size() > 1) {
+            v.prerelease = parts.mid(1).join('-');
+        }
+
+        QStringList nums = numPart.split('.');
+        if (nums.isEmpty()) return v;
+
+        bool ok1 = false, ok2 = true, ok3 = true;
+        v.major = nums.value(0).toInt(&ok1);
+        if (nums.size() > 1) v.minor = nums.value(1).toInt(&ok2);
+        if (nums.size() > 2) v.patch = nums.value(2).toInt(&ok3);
+
+        v.valid = ok1 && ok2 && ok3;
+        return v;
+    }
+
+    bool isValid() const { return valid; }
+
+    bool operator<(const SemVer &o) const {
+        if (major != o.major) return major < o.major;
+        if (minor != o.minor) return minor < o.minor;
+        if (patch != o.patch) return patch < o.patch;
+        if (!prerelease.isEmpty() && o.prerelease.isEmpty()) return true;
+        if (prerelease.isEmpty() && !o.prerelease.isEmpty()) return false;
+        return prerelease < o.prerelease;
+    }
+
+    bool operator>(const SemVer &o) const { return o < *this; }
+    bool operator==(const SemVer &o) const {
+        return major == o.major && minor == o.minor && patch == o.patch && prerelease == o.prerelease;
+    }
+};
+}
+
+bool PluginManager::isVersionCompatible(const QString &appVer, const QString &minAppVer)
+{
+    QString minClean = minAppVer.trimmed();
+    if (minClean.isEmpty()) return true;
+
+    SemVer minSem = SemVer::parse(minClean);
+    if (!minSem.isValid()) return true;
+
+    SemVer appSem = SemVer::parse(appVer);
+    if (!appSem.isValid()) return true;
+
+    return !(appSem < minSem);
+}
+
+bool PluginManager::isSemVerNewer(const QString &newVer, const QString &currentVer)
+{
+    SemVer n = SemVer::parse(newVer);
+    SemVer c = SemVer::parse(currentVer);
+    if (!n.isValid() || !c.isValid()) return false;
+    return n > c;
+}
+
+bool PluginManager::hasPermission(const QString &pluginId, const QString &permission) const
+{
+    if (!m_installed.contains(pluginId)) {
+        return false;
+    }
+    const auto &perms = m_installed[pluginId].permissions;
+    if (perms.contains("*") || perms.contains(permission, Qt::CaseInsensitive)) {
+        return true;
+    }
+    if (permission == "system:process:execute") {
+        return perms.contains("system:process", Qt::CaseInsensitive) ||
+               perms.contains("process:execute", Qt::CaseInsensitive) ||
+               perms.contains("process", Qt::CaseInsensitive) ||
+               perms.contains("exec", Qt::CaseInsensitive);
+    } else if (permission == "storage:external:write") {
+        return perms.contains("storage:write", Qt::CaseInsensitive) ||
+               perms.contains("storage", Qt::CaseInsensitive) ||
+               perms.contains("filesystem:write", Qt::CaseInsensitive);
+    } else if (permission == "library:write") {
+        return perms.contains("library:modify", Qt::CaseInsensitive) ||
+               perms.contains("library", Qt::CaseInsensitive);
+    } else if (permission == "audio:control") {
+        return perms.contains("audio:write", Qt::CaseInsensitive) ||
+               perms.contains("audio", Qt::CaseInsensitive);
+    } else if (permission == "lyrics:write") {
+        return perms.contains("lyrics", Qt::CaseInsensitive);
+    }
+    return false;
+}
+
+void PluginManager::grantPluginPermission(const QString &pluginId, const QString &permission)
+{
+    if (m_installed.contains(pluginId)) {
+        if (!m_installed[pluginId].permissions.contains(permission, Qt::CaseInsensitive)) {
+            m_installed[pluginId].permissions.append(permission);
+        }
+    } else {
+        PluginMetadata m;
+        m.id = pluginId;
+        m.name = pluginId;
+        m.enabled = true;
+        m.permissions.append(permission);
+        m_installed[pluginId] = m;
+    }
+}
+
+void PluginManager::setPluginHookEnabled(const QString &pluginId, const QString &hookName, bool enabled)
+{
+    if (m_installed.contains(pluginId)) {
+        m_installed[pluginId].hooks[hookName] = enabled;
+    } else {
+        PluginMetadata m;
+        m.id = pluginId;
+        m.name = pluginId;
+        m.enabled = true;
+        m.hooks[hookName] = enabled;
+        m_installed[pluginId] = m;
+    }
+}
+
+void PluginManager::reportSecurityViolation(const QString &pluginId, const QString &permission, const QString &actionName)
+{
+    QString err = QString("SecurityError: Plugin '%1' denied permission '%2' for action '%3'")
+                      .arg(pluginId, permission, actionName);
+    qWarning() << "[SecuritySandbox]" << err;
+    if (m_installed.contains(pluginId)) {
+        m_installed[pluginId].status = PluginMetadata::Status::RuntimeError;
+        m_installed[pluginId].statusMessage = "Security Violation";
+        m_installed[pluginId].diagnosticDetails = err;
+    }
+    m_lastErrorMessage = err;
+    emit errorOccurred(err);
+    emit pluginStatusUpdated(pluginId, static_cast<int>(PluginMetadata::Status::RuntimeError), err);
+}
+
+int PluginManager::getPluginStatus(const QString &pluginId) const
+{
+    if (m_installed.contains(pluginId)) {
+        return static_cast<int>(m_installed[pluginId].status);
+    }
+    return static_cast<int>(PluginMetadata::Status::Ready);
+}
+
+QString PluginManager::getPluginStatusMessage(const QString &pluginId) const
+{
+    if (m_installed.contains(pluginId)) {
+        return m_installed[pluginId].statusMessage;
+    }
+    return QString();
+}
+
+QString PluginManager::getPluginDiagnosticDetails(const QString &pluginId) const
+{
+    if (m_installed.contains(pluginId)) {
+        return m_installed[pluginId].diagnosticDetails;
+    }
+    return QString();
+}
+
+void PluginManager::retryPluginInstall(const QString &pluginId)
+{
+    installPluginFromMarket(pluginId);
+}
+
 bool PluginManager::installPluginFrom0px(const QString &packagePath)
 {
     if (!QFile::exists(packagePath)) {
@@ -564,16 +773,46 @@ bool PluginManager::installPluginFrom0px(const QString &packagePath)
         return false;
     }
 
-    QString targetDir = PathManager::instance()->pluginsDir() + "/" + meta.id;
-    QDir(targetDir).removeRecursively();
-
-    if (!extractArchive(contentDir, targetDir)) {
-        m_lastErrorMessage = tr("Failed to copy plugin into plugins directory.");
+    // Strict SemVer verification during install/update
+    if (!meta.minAppVersion.isEmpty() && !isVersionCompatible(getAppVersion(), meta.minAppVersion)) {
+        m_lastErrorMessage = tr("Plugin requires app version %1 or higher (current is %2).")
+                                 .arg(meta.minAppVersion, getAppVersion());
         emit errorOccurred(m_lastErrorMessage);
         QDir(stagingDir).removeRecursively();
         return false;
     }
 
+    QString targetDir = PathManager::instance()->pluginsDir() + "/" + meta.id;
+    QString backupDir = PathManager::instance()->pluginsDir() + "/" + meta.id + ".bak_" + QString::number(QDateTime::currentMSecsSinceEpoch());
+
+    bool hasOld = QDir(targetDir).exists();
+    if (hasOld) {
+        // Atomic backup before replacing
+        if (!QDir().rename(targetDir, backupDir)) {
+            m_lastErrorMessage = tr("Failed to create atomic backup of existing plugin directory.");
+            emit errorOccurred(m_lastErrorMessage);
+            QDir(stagingDir).removeRecursively();
+            return false;
+        }
+    }
+
+    // Install content from staging into targetDir
+    if (!extractArchive(contentDir, targetDir)) {
+        // Rollback: restore backup directory if it existed
+        if (hasOld) {
+            QDir(targetDir).removeRecursively();
+            QDir().rename(backupDir, targetDir);
+        }
+        m_lastErrorMessage = tr("Failed to copy plugin into plugins directory. Preserved original version.");
+        emit errorOccurred(m_lastErrorMessage);
+        QDir(stagingDir).removeRecursively();
+        return false;
+    }
+
+    // Success: remove backup if it existed
+    if (hasOld) {
+        QDir(backupDir).removeRecursively();
+    }
     QDir(stagingDir).removeRecursively();
 
     // Reload plugin
@@ -613,10 +852,21 @@ void PluginManager::installPluginFromMarket(const QString &pluginId)
 
     // Local file fallback
     if (!target.packageUrl.startsWith("http://") && !target.packageUrl.startsWith("https://")) {
+        QString taskId = m_taskModel->addTask(pluginId, QString("Install %1").arg(target.name), target.packageUrl, QString(), "0px");
+        m_taskModel->updateTaskProgress(taskId, 50, "running");
         bool ok = installPluginFrom0px(target.packageUrl);
+        m_taskModel->updateTaskProgress(taskId, ok ? 100 : 0, ok ? "completed" : "failed", ok ? QString() : m_lastErrorMessage);
         emit installFinished(pluginId, ok, ok ? tr("Installed successfully.") : m_lastErrorMessage);
         return;
     }
+
+    if (m_installed.contains(pluginId)) {
+        m_installed[pluginId].status = PluginMetadata::Status::Downloading;
+        emit pluginStatusUpdated(pluginId, static_cast<int>(PluginMetadata::Status::Downloading), tr("Downloading package..."));
+    }
+
+    QString taskId = m_taskModel->addTask(pluginId, QString("Download %1").arg(target.name), target.packageUrl, QString(), "0px");
+    m_taskModel->updateTaskProgress(taskId, 0, "running");
 
     QUrl url(target.packageUrl);
     QNetworkRequest request(url);
@@ -624,14 +874,22 @@ void PluginManager::installPluginFromMarket(const QString &pluginId)
 
     QNetworkReply *reply = networkManager()->get(request);
 
-    connect(reply, &QNetworkReply::downloadProgress, this, [this, pluginId](qint64 received, qint64 total) {
+    connect(reply, &QNetworkReply::downloadProgress, this, [this, pluginId, taskId](qint64 received, qint64 total) {
+        int pct = total > 0 ? static_cast<int>(received * 100 / total) : 0;
+        m_taskModel->updateTaskProgress(taskId, pct, "running");
         emit installProgress(pluginId, received, total);
     });
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply, pluginId]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, pluginId, taskId]() {
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
             QString err = reply->errorString();
+            m_taskModel->updateTaskProgress(taskId, 0, "failed", err);
+            if (m_installed.contains(pluginId)) {
+                m_installed[pluginId].status = PluginMetadata::Status::RuntimeError;
+                m_installed[pluginId].diagnosticDetails = err;
+                emit pluginStatusUpdated(pluginId, static_cast<int>(PluginMetadata::Status::RuntimeError), err);
+            }
             emit errorOccurred(err);
             emit installFinished(pluginId, false, err);
             return;
@@ -641,13 +899,27 @@ void PluginManager::installPluginFromMarket(const QString &pluginId)
         QString tempPkg = PathManager::instance()->pluginsCacheDir() + "/" + pluginId + ".0px";
         QFile pkgFile(tempPkg);
         if (!pkgFile.open(QIODevice::WriteOnly)) {
-            emit installFinished(pluginId, false, tr("Cannot write temporary package to disk."));
+            QString err = tr("Cannot write temporary package to disk.");
+            m_taskModel->updateTaskProgress(taskId, 0, "failed", err);
+            emit installFinished(pluginId, false, err);
             return;
         }
         pkgFile.write(data);
         pkgFile.close();
 
+        if (m_installed.contains(pluginId)) {
+            m_installed[pluginId].status = PluginMetadata::Status::Installing;
+            emit pluginStatusUpdated(pluginId, static_cast<int>(PluginMetadata::Status::Installing), tr("Installing package..."));
+        }
+        m_taskModel->updateTaskProgress(taskId, 90, "running");
+
         bool ok = installPluginFrom0px(tempPkg);
+        m_taskModel->updateTaskProgress(taskId, ok ? 100 : 0, ok ? "completed" : "failed", ok ? QString() : m_lastErrorMessage);
+        if (m_installed.contains(pluginId)) {
+            m_installed[pluginId].status = ok ? PluginMetadata::Status::Ready : PluginMetadata::Status::RuntimeError;
+            m_installed[pluginId].statusMessage = ok ? tr("Ready") : m_lastErrorMessage;
+            emit pluginStatusUpdated(pluginId, static_cast<int>(m_installed[pluginId].status), m_installed[pluginId].statusMessage);
+        }
         emit installFinished(pluginId, ok, ok ? tr("Installed successfully.") : m_lastErrorMessage);
     });
 }
@@ -797,7 +1069,11 @@ QVariantList PluginManager::executeSearchHook(const QString &query)
         if (!targetObj.isObject()) continue;
 
         QJSEngine *engine = m_scriptEngines.value(pluginId);
-        if (!engine) continue;
+        std::unique_ptr<QJSEngine> tempEngine;
+        if (!engine) {
+            tempEngine = std::make_unique<QJSEngine>();
+            engine = tempEngine.get();
+        }
 
         QJSValue jsRes;
         if (targetObj.hasProperty("onHook") && targetObj.property("onHook").isCallable()) {
@@ -833,9 +1109,10 @@ QVariantList PluginManager::executeSearchHook(const QString &query)
     return results;
 }
 
-QVariantMap PluginManager::executeLyricsHook(const QString &title, const QString &artist, qint64 durationMs)
+QVariantList PluginManager::fetchLyricsCandidates(const QString &title, const QString &artist, qint64 durationMs)
 {
-    QVariantMap result;
+    QVariantList allCandidates;
+
     for (auto it = m_installed.cbegin(); it != m_installed.cend(); ++it) {
         if (!it->enabled) continue;
         if (!it->hooks.value("lyricsProvider").toBool()) continue;
@@ -845,16 +1122,26 @@ QVariantMap PluginManager::executeLyricsHook(const QString &title, const QString
         if (!targetObj.isObject()) continue;
 
         QJSEngine *engine = m_scriptEngines.value(pluginId);
-        if (!engine) continue;
+        std::unique_ptr<QJSEngine> tempEngine;
+        if (!engine) {
+            tempEngine = std::make_unique<QJSEngine>();
+            engine = tempEngine.get();
+        }
 
         QJSValue jsRes;
-        if (targetObj.hasProperty("onHook") && targetObj.property("onHook").isCallable()) {
+        if (targetObj.hasProperty("fetchLyricsCandidates") && targetObj.property("fetchLyricsCandidates").isCallable()) {
+            QJSValueList args;
+            args << engine->toScriptValue(title);
+            args << engine->toScriptValue(artist);
+            args << engine->toScriptValue(durationMs);
+            jsRes = targetObj.property("fetchLyricsCandidates").callWithInstance(targetObj, args);
+        } else if (targetObj.hasProperty("onHook") && targetObj.property("onHook").isCallable()) {
             QVariantMap params;
             params["title"] = title;
             params["artist"] = artist;
             params["durationMs"] = durationMs;
             QJSValueList args;
-            args << engine->toScriptValue(QString("lyricsProvider"));
+            args << engine->toScriptValue(QStringLiteral("lyricsProvider"));
             args << engine->toScriptValue(params);
             jsRes = targetObj.property("onHook").callWithInstance(targetObj, args);
         } else if (targetObj.hasProperty("lyricsProvider") && targetObj.property("lyricsProvider").isCallable()) {
@@ -865,18 +1152,252 @@ QVariantMap PluginManager::executeLyricsHook(const QString &title, const QString
         }
 
         if (jsRes.isString()) {
-            result["lrc"] = jsRes.toString();
-            result["sourcePlugin"] = it->name;
-            return result;
+            QString lrcStr = jsRes.toString();
+            if (!lrcStr.trimmed().isEmpty()) {
+                QVariantMap cand;
+                cand["id"] = QString("%1_0").arg(pluginId);
+                cand["pluginId"] = pluginId;
+                cand["sourcePlugin"] = it->name;
+                cand["title"] = title;
+                cand["artist"] = artist;
+                cand["lrc"] = lrcStr;
+                allCandidates.append(cand);
+            }
+        } else if (jsRes.isArray()) {
+            int len = jsRes.property("length").toInt();
+            for (int i = 0; i < len; ++i) {
+                QVariant itemVar = jsRes.property(i).toVariant();
+                if (itemVar.canConvert<QVariantMap>()) {
+                    QVariantMap cand = itemVar.toMap();
+                    cand["pluginId"] = pluginId;
+                    cand["sourcePlugin"] = it->name;
+                    if (!cand.contains("id")) cand["id"] = QString("%1_%2").arg(pluginId).arg(i);
+                    if (!cand.contains("title")) cand["title"] = title;
+                    if (!cand.contains("artist")) cand["artist"] = artist;
+                    allCandidates.append(cand);
+                }
+            }
         } else if (jsRes.isObject()) {
-            QVariantMap map = jsRes.toVariant().toMap();
-            if (!map.isEmpty()) {
-                map["sourcePlugin"] = it->name;
-                return map;
+            QVariantMap cand = jsRes.toVariant().toMap();
+            if (!cand.isEmpty() && cand.contains("lrc")) {
+                cand["pluginId"] = pluginId;
+                cand["sourcePlugin"] = it->name;
+                if (!cand.contains("id")) cand["id"] = QString("%1_0").arg(pluginId);
+                if (!cand.contains("title")) cand["title"] = title;
+                if (!cand.contains("artist")) cand["artist"] = artist;
+                allCandidates.append(cand);
+            }
+        }
+    }
+
+    emit lyricsCandidatesReady(title, artist, allCandidates);
+    return allCandidates;
+}
+
+bool PluginManager::applyLyricCandidate(const QVariantMap &candidate)
+{
+    QString lrc = candidate.value("lrc").toString();
+    if (lrc.trimmed().isEmpty()) {
+        return false;
+    }
+    AudioEngine::instance()->lyrics()->loadLrcContent(lrc);
+    bool ok = AudioEngine::instance()->lyrics()->hasLyrics();
+    if (ok) {
+        emit lyricsChanged();
+    }
+    return ok;
+}
+
+QVariantMap PluginManager::executeLyricsHook(const QString &title, const QString &artist, qint64 durationMs)
+{
+    QVariantList candidates = fetchLyricsCandidates(title, artist, durationMs);
+    if (!candidates.isEmpty()) {
+        QVariantMap best = candidates.first().toMap();
+        applyLyricCandidate(best);
+        return best;
+    }
+    return QVariantMap();
+}
+
+QVariantMap PluginManager::fetchMetadataCandidates(const QString &filePath, const QVariantMap &currentMeta)
+{
+    QVariantMap result;
+    QVariantMap orig = currentMeta;
+    if (orig.isEmpty()) {
+        orig = getTrackDetails(filePath);
+    }
+    result["original"] = orig;
+
+    for (auto it = m_installed.cbegin(); it != m_installed.cend(); ++it) {
+        if (!it->enabled) continue;
+        if (!it->hooks.value("metadataProvider").toBool() && !it->hooks.value("metadata").toBool()) continue;
+
+        QJSValue targetObj = getPluginScriptObject(it.key());
+        if (!targetObj.isObject()) continue;
+
+        QJSEngine *engine = m_scriptEngines.value(it.key());
+        std::unique_ptr<QJSEngine> tempEngine;
+        if (!engine) {
+            tempEngine = std::make_unique<QJSEngine>();
+            engine = tempEngine.get();
+        }
+
+        QJSValue jsRes;
+        if (targetObj.hasProperty("fetchMetadata") && targetObj.property("fetchMetadata").isCallable()) {
+            QJSValueList args;
+            args << engine->toScriptValue(orig);
+            jsRes = targetObj.property("fetchMetadata").callWithInstance(targetObj, args);
+        } else if (targetObj.hasProperty("onHook") && targetObj.property("onHook").isCallable()) {
+            QJSValueList args;
+            args << engine->toScriptValue(QStringLiteral("metadataProvider"));
+            args << engine->toScriptValue(orig);
+            jsRes = targetObj.property("onHook").callWithInstance(targetObj, args);
+        }
+
+        if (jsRes.isObject()) {
+            QVariantMap prop = jsRes.toVariant().toMap();
+            if (!prop.isEmpty()) {
+                result["proposed"] = prop;
+                result["pluginId"] = it.key();
+                result["pluginName"] = it->name;
+                return result;
             }
         }
     }
     return result;
+}
+
+bool PluginManager::applyTrackMetadata(const QString &filePath, const QVariantMap &tags)
+{
+    bool ok = LibraryManager::instance()->updateTrackMetadata(filePath, tags);
+    if (ok) {
+        emit libraryChanged();
+    }
+    return ok;
+}
+
+QVariantList PluginManager::searchMediaSource(const QString &query)
+{
+    QVariantList combined;
+    for (auto it = m_installed.cbegin(); it != m_installed.cend(); ++it) {
+        if (!it->enabled) continue;
+        if (!it->hooks.value("mediaSource").toBool() && !it->hooks.value("search").toBool()) continue;
+
+        QJSValue targetObj = getPluginScriptObject(it.key());
+        if (!targetObj.isObject()) continue;
+
+        QJSEngine *engine = m_scriptEngines.value(it.key());
+        std::unique_ptr<QJSEngine> tempEngine;
+        if (!engine) {
+            tempEngine = std::make_unique<QJSEngine>();
+            engine = tempEngine.get();
+        }
+
+        QJSValue jsRes;
+        if (targetObj.hasProperty("searchMediaSource") && targetObj.property("searchMediaSource").isCallable()) {
+            QJSValueList args;
+            args << engine->toScriptValue(query);
+            jsRes = targetObj.property("searchMediaSource").callWithInstance(targetObj, args);
+        } else if (targetObj.hasProperty("onHook") && targetObj.property("onHook").isCallable()) {
+            QVariantMap params;
+            params["action"] = QStringLiteral("search");
+            params["query"] = query;
+            QJSValueList args;
+            args << engine->toScriptValue(QStringLiteral("mediaSource"));
+            args << engine->toScriptValue(params);
+            jsRes = targetObj.property("onHook").callWithInstance(targetObj, args);
+        }
+
+        if (jsRes.isArray()) {
+            int len = jsRes.property("length").toInt();
+            for (int i = 0; i < len; ++i) {
+                QVariant itemVar = jsRes.property(i).toVariant();
+                if (itemVar.canConvert<QVariantMap>()) {
+                    QVariantMap item = itemVar.toMap();
+                    item["pluginId"] = it.key();
+                    item["pluginName"] = it->name;
+                    item["isPluginMedia"] = true;
+                    if (!item.contains("id")) item["id"] = QString("media_%1_%2").arg(it.key()).arg(i);
+                    combined.append(item);
+                }
+            }
+        }
+    }
+    return combined;
+}
+
+QString PluginManager::resolveMediaStream(const QString &pluginId, const QString &mediaId, const QVariantMap &extraParams)
+{
+    if (!m_installed.contains(pluginId) || !m_installed[pluginId].enabled) {
+        QString err = QString("Plugin '%1' is not installed or enabled.").arg(pluginId);
+        emit errorOccurred(err);
+        return QString();
+    }
+
+    QJSValue targetObj = getPluginScriptObject(pluginId);
+    if (!targetObj.isObject()) {
+        QString err = QString("Plugin '%1' script object not found.").arg(pluginId);
+        emit errorOccurred(err);
+        return QString();
+    }
+
+    QJSEngine *engine = m_scriptEngines.value(pluginId);
+    std::unique_ptr<QJSEngine> tempEngine;
+    if (!engine) {
+        tempEngine = std::make_unique<QJSEngine>();
+        engine = tempEngine.get();
+    }
+
+    QJSValue jsRes;
+    if (targetObj.hasProperty("resolveMediaSource") && targetObj.property("resolveMediaSource").isCallable()) {
+        QJSValueList args;
+        args << engine->toScriptValue(mediaId);
+        args << engine->toScriptValue(extraParams);
+        jsRes = targetObj.property("resolveMediaSource").callWithInstance(targetObj, args);
+    } else if (targetObj.hasProperty("onHook") && targetObj.property("onHook").isCallable()) {
+        QVariantMap params = extraParams;
+        params["action"] = QStringLiteral("resolve");
+        params["mediaId"] = mediaId;
+        params["id"] = mediaId;
+        QJSValueList args;
+        args << engine->toScriptValue(QStringLiteral("mediaSource"));
+        args << engine->toScriptValue(params);
+        jsRes = targetObj.property("onHook").callWithInstance(targetObj, args);
+    }
+
+    QString streamUrl;
+    if (jsRes.isString()) {
+        streamUrl = jsRes.toString();
+    } else if (jsRes.isObject()) {
+        QVariantMap resMap = jsRes.toVariant().toMap();
+        streamUrl = resMap.value("url").toString();
+        if (streamUrl.isEmpty()) streamUrl = resMap.value("streamUrl").toString();
+        if (streamUrl.isEmpty()) streamUrl = resMap.value("path").toString();
+    }
+
+    if (streamUrl.isEmpty()) {
+        QString err = QString("Failed to resolve dynamic audio stream for media ID '%1' from plugin '%2'").arg(mediaId, pluginId);
+        qWarning() << "[MediaSourceResolver]" << err;
+        emit errorOccurred(err);
+        return QString();
+    }
+
+    qInfo() << "[MediaSourceResolver] Successfully resolved media stream for" << mediaId << "->" << streamUrl;
+    return streamUrl;
+}
+
+bool PluginManager::playPluginMedia(const QString &pluginId, const QString &mediaId, const QVariantMap &trackMeta)
+{
+    QString streamUrl = resolveMediaStream(pluginId, mediaId, trackMeta);
+    if (streamUrl.isEmpty()) {
+        return false;
+    }
+
+    AudioEngine::instance()->play(streamUrl);
+    if (!trackMeta.isEmpty()) {
+        emit trackChanged(trackMeta);
+    }
+    return true;
 }
 
 void PluginManager::fetchMarketIndex(const QString &customUrl)
@@ -1795,6 +2316,11 @@ PluginTaskModel* PluginManager::taskModel() const
 
 QString PluginManager::startAsyncTask(const QString &pluginId, const QString &program, const QVariant &arguments, const QString &workingDir, const QVariantMap &meta)
 {
+    if (!pluginId.isEmpty() && !hasPermission(pluginId, "system:process:execute")) {
+        reportSecurityViolation(pluginId, "system:process:execute", "startAsyncTask (" + program + ")");
+        return QString();
+    }
+
     QStringList args;
     if (arguments.userType() == qMetaTypeId<QStringList>() || arguments.canConvert<QStringList>()) {
         args = arguments.toStringList();
@@ -1827,20 +2353,23 @@ QString PluginManager::startAsyncTask(const QString &pluginId, const QString &pr
     return taskId;
 }
 
-void PluginManager::registerPluginObject(const QString &pluginId, const QJSValue &object)
+void PluginManager::registerPluginObject(const QString &pluginId, const QJSValue &object, QJSEngine *engine)
 {
     if (object.isObject()) {
         m_pluginObjects[pluginId] = object;
+        if (engine) {
+            m_scriptEngines[pluginId] = engine;
+        }
     }
 }
 
 QJSValue PluginManager::getPluginScriptObject(const QString &pluginId) const
 {
-    if (!m_scriptEngines.contains(pluginId)) {
-        return QJSValue();
-    }
     if (m_pluginObjects.contains(pluginId) && m_pluginObjects.value(pluginId).isObject()) {
         return m_pluginObjects.value(pluginId);
+    }
+    if (!m_scriptEngines.contains(pluginId)) {
+        return QJSValue();
     }
 
     QJSEngine *engine = m_scriptEngines.value(pluginId);
@@ -2033,18 +2562,10 @@ void PluginManager::initPluginScriptEngine(const QString &pluginId)
     globalObj.setProperty("module", moduleObj);
     globalObj.setProperty("exports", exportsObj);
 
-    // Expose Host Singletons with explicit C++ ownership
-    auto exposeHostSingleton = [engine, &globalObj](const QString &name, QObject *obj) {
-        if (!obj) return;
-        QJSEngine::setObjectOwnership(obj, QJSEngine::CppOwnership);
-        globalObj.setProperty(name, engine->newQObject(obj));
-    };
-
-    exposeHostSingleton("PluginManager", this);
-    exposeHostSingleton("AudioEngine", AudioEngine::instance());
-    exposeHostSingleton("LibraryManager", LibraryManager::instance());
-    exposeHostSingleton("ConfigManager", ConfigManager::instance());
-    exposeHostSingleton("PathManager", PathManager::instance());
+    // Instantiate PluginScriptSandboxFacade which enforces runtime permission guards
+    auto *sandboxFacade = new PluginScriptSandboxFacade(pluginId, this, engine);
+    QJSEngine::setObjectOwnership(sandboxFacade, QJSEngine::CppOwnership);
+    globalObj.setProperty("PluginManager", engine->newQObject(sandboxFacade));
 
     // Expose setTimeout / clearTimeout
     auto *timerBridge = new JsTimerBridge(engine, engine);
@@ -2067,11 +2588,12 @@ void PluginManager::initPluginScriptEngine(const QString &pluginId)
         "var op = window.op || {};\n"
         "op.pluginId = '%1';\n"
         "op.state = {\n"
-        "    get: function(key, defVal) { return PluginManager.getPluginState(op.pluginId, key, defVal); },\n"
-        "    set: function(key, val) { PluginManager.setPluginState(op.pluginId, key, val); },\n"
-        "    getAll: function() { return PluginManager.getAllPluginState(op.pluginId); }\n"
+        "    get: function(key, defVal) { return PluginManager.getPluginState(key, defVal); },\n"
+        "    set: function(key, val) { PluginManager.setPluginState(key, val); },\n"
+        "    getAll: function() { return PluginManager.getAllPluginState(); }\n"
         "};\n"
-        "op.registerPlugin = function(obj) { PluginManager.registerPluginObject(op.pluginId, obj); };\n"
+        "op.registerPlugin = function(obj) { PluginManager.registerPluginObject(obj); };\n"
+        "op.host = PluginManager;\n"
         "window.op = op;\n"
         "globalThis.op = op;\n"
     ).arg(pluginId);
@@ -2295,7 +2817,11 @@ QVariantMap PluginManager::executePluginHook(const QString &hookType, const QVar
         if (!targetObj.isObject()) continue;
 
         QJSEngine *engine = m_scriptEngines.value(pluginId);
-        if (!engine) continue;
+        std::unique_ptr<QJSEngine> tempEngine;
+        if (!engine) {
+            tempEngine = std::make_unique<QJSEngine>();
+            engine = tempEngine.get();
+        }
 
         if (targetObj.hasProperty("onHook") && targetObj.property("onHook").isCallable()) {
             QJSValueList args;

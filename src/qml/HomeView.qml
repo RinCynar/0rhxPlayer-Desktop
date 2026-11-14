@@ -174,7 +174,7 @@ ScrollView {
                     scale: themeMouse.pressed ? 0.92 : 1.0
 
                     Behavior on scale {
-                        NumberAnimation { duration: 150; easing.type: Easing.OutBack }
+                        NumberAnimation { duration: Theme.motionDurationFast; easing.type: Easing.OutCubic }
                     }
                     Behavior on color {
                         ColorAnimation { duration: 150 }

@@ -133,6 +133,7 @@ public:
     Q_INVOKABLE void removeTrackFromPlaylist(const QString &playlistId, const QString &trackPath);
     Q_INVOKABLE void removeTracksFromPlaylist(const QString &playlistId, const QStringList &trackPaths);
     Q_INVOKABLE void selectPlaylist(const QString &id);
+    Q_INVOKABLE bool updateTrackMetadata(const QString &filePath, const QVariantMap &tags);
     Q_INVOKABLE void clearSelectedPlaylist();
     Q_INVOKABLE void playPlaylist(const QString &id, bool shuffle = false);
     Q_INVOKABLE void toggleFavorite(const QString &trackPath);

@@ -20,9 +20,8 @@ Rectangle {
 
     Behavior on width {
         NumberAnimation {
-            duration: 260
-            easing.type: root.isCollapsed ? Easing.OutCubic : Easing.OutBack
-            easing.overshoot: 1.12
+            duration: Theme.motionDurationMedium
+            easing.type: Easing.OutCubic
         }
     }
 
@@ -92,9 +91,8 @@ Rectangle {
 
                     Behavior on x {
                         NumberAnimation {
-                            duration: 260
-                            easing.type: root.isCollapsed ? Easing.OutCubic : Easing.OutBack
-                            easing.overshoot: 1.12
+                            duration: Theme.motionDurationMedium
+                            easing.type: Easing.OutCubic
                         }
                     }
 
@@ -123,12 +121,11 @@ Rectangle {
                             NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
                         }
 
-                        scale: toggleMouse.pressed ? 0.86 : 1.0
+                        scale: toggleMouse.pressed ? 0.92 : 1.0
                         Behavior on scale {
                             NumberAnimation {
-                                duration: toggleMouse.pressed ? 90 : 260
-                                easing.type: toggleMouse.pressed ? Easing.OutQuad : Easing.OutBack
-                                easing.overshoot: 1.5
+                                duration: Theme.motionDurationFast
+                                easing.type: Easing.OutCubic
                             }
                         }
                     }
@@ -158,9 +155,8 @@ Rectangle {
 
                     Behavior on width {
                         NumberAnimation {
-                            duration: 260
-                            easing.type: root.isCollapsed ? Easing.OutCubic : Easing.OutBack
-                            easing.overshoot: 1.12
+                            duration: Theme.motionDurationMedium
+                            easing.type: Easing.OutCubic
                         }
                     }
                     Behavior on scale {
@@ -178,15 +174,13 @@ Rectangle {
                         source: "qrc:/assets/icons/pen.svg"
                         color: penMouse.pressed || penMouse.containsMouse ? Theme.colorOnPrimary : Theme.colorOnPrimaryContainer
 
-                        // 核心：Material You 弹性回弹
                         transformOrigin: Item.Center
-                        scale: penMouse.pressed ? 0.86 : 1.0
+                        scale: penMouse.pressed ? 0.92 : 1.0
 
                         Behavior on scale {
                             NumberAnimation {
-                                duration: penMouse.pressed ? 90 : 260
-                                easing.type: penMouse.pressed ? Easing.OutQuad : Easing.OutBack
-                                easing.overshoot: 1.5
+                                duration: Theme.motionDurationFast
+                                easing.type: Easing.OutCubic
                             }
                         }
                     }
@@ -222,9 +216,8 @@ Rectangle {
 
         Behavior on width {
             NumberAnimation {
-                duration: 260
-                easing.type: root.isCollapsed ? Easing.OutCubic : Easing.OutBack
-                easing.overshoot: 1.12
+                duration: Theme.motionDurationMedium
+                easing.type: Easing.OutCubic
             }
         }
 
@@ -238,28 +231,27 @@ Rectangle {
 
             Behavior on width {
                 NumberAnimation {
-                    duration: 260
-                    easing.type: root.isCollapsed ? Easing.OutCubic : Easing.OutBack
-                    easing.overshoot: 1.12
+                    duration: Theme.motionDurationMedium
+                    easing.type: Easing.OutCubic
                 }
             }
             Behavior on height {
-                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic }
             }
             Behavior on radius {
-                NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic }
             }
 
             color: navItem.isSelected ? Theme.primary : (navMouse.containsMouse ? Theme.surfaceContainerHigh : "transparent")
 
             Behavior on color {
-                ColorAnimation { duration: 100 }
+                ColorAnimation { duration: Theme.motionDurationFast }
             }
 
             // 胶囊按压轻量弹性 (Material You Touch Spring Feedback)
             scale: navMouse.pressed ? 0.96 : 1.0
             Behavior on scale {
-                NumberAnimation { duration: 120; easing.type: Easing.OutQuad }
+                NumberAnimation { duration: Theme.motionDurationFast; easing.type: Easing.OutCubic }
             }
 
             // 内部图标与文字排版 (18x18 矢量图标，展开态左间距 16px、图文间距 14px；折叠态 56x32 胶囊内严格居中)
@@ -274,18 +266,16 @@ Rectangle {
                 color: navItem.isSelected ? Theme.colorOnPrimary : (navMouse.containsMouse ? Theme.textPrimary : Theme.iconNeutral)
 
                 Behavior on x {
-                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic }
                 }
 
-                // 核心：Material You 弹性回弹
                 transformOrigin: Item.Center
-                scale: navMouse.pressed ? 0.86 : 1.0
+                scale: navMouse.pressed ? 0.92 : 1.0
 
                 Behavior on scale {
                     NumberAnimation {
-                        duration: navMouse.pressed ? 90 : 260
-                        easing.type: navMouse.pressed ? Easing.OutQuad : Easing.OutBack
-                        easing.overshoot: 1.5
+                        duration: Theme.motionDurationFast
+                        easing.type: Easing.OutCubic
                     }
                 }
             }

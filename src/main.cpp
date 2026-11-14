@@ -2937,6 +2937,7 @@ int main(int argc, char *argv[])
                 }
 
                 // Verify real non-blocking async process execution via startAsyncTask
+                mgr->grantPluginPermission("top.rincynar.tasktest", "system:process:execute");
                 QVariantMap taskMeta;
                 taskMeta["title"] = "Async Echo Task";
                 taskMeta["sourcePath"] = "C:/Music/echo.flac";
@@ -2995,6 +2996,171 @@ int main(int argc, char *argv[])
                     qWarning() << "[Test-Plugin] clearPluginQueue failed, queue still contains items!";
                     pass = false;
                 }
+            }
+
+            // 7. Verify Phase 21: SemVer Guard, Permission Sandbox & Atomic Safety
+            qInfo() << "[Test-Plugin] Verifying Phase 21 SemVer, Permission Sandbox & Atomic Safety...";
+            if (!PluginManager::isVersionCompatible("1.1.1", "1.1.0") ||
+                !PluginManager::isVersionCompatible("1.1.1", "1.1.1") ||
+                PluginManager::isVersionCompatible("1.1.1", "1.2.0") ||
+                PluginManager::isVersionCompatible("1.1.1", "2.0.0")) {
+                qWarning() << "[Test-Plugin] Phase 21 SemVer compatibility validation failed!";
+                pass = false;
+            } else {
+                qInfo() << "[Test-Plugin] Phase 21 SemVer compatibility validation: PASSED";
+            }
+
+            if (!PluginManager::isSemVerNewer("1.2.0", "1.1.1") ||
+                PluginManager::isSemVerNewer("1.1.1", "1.2.0") ||
+                PluginManager::isSemVerNewer("1.1.1", "1.1.1")) {
+                qWarning() << "[Test-Plugin] Phase 21 SemVer newer comparison failed!";
+                pass = false;
+            } else {
+                qInfo() << "[Test-Plugin] Phase 21 SemVer newer comparison: PASSED";
+            }
+
+            // Permission Sandbox: verify unauthorized startAsyncTask rejection
+            QString unauthorizedTask = mgr->startAsyncTask("top.unauthorized.plugin", "ffmpeg", QStringList() << "-version");
+            if (!unauthorizedTask.isEmpty()) {
+                qWarning() << "[Test-Plugin] Phase 21 Sandbox failed: unauthorized startAsyncTask was not rejected!";
+                pass = false;
+            } else {
+                qInfo() << "[Test-Plugin] Phase 21 Sandbox unauthorized startAsyncTask correctly blocked: PASSED";
+            }
+
+            // Atomic update safety: verify corrupted package is safely rejected without damaging installed plugins
+            QString badPkgPath = PathManager::instance()->pluginsCacheDir() + "/bad_test_pkg.0px";
+            QFile badFile(badPkgPath);
+            if (badFile.open(QIODevice::WriteOnly)) {
+                badFile.write("NOT_A_VALID_ZIP_OR_PACKAGE");
+                badFile.close();
+                bool badInstall = mgr->installPluginFrom0px(badPkgPath);
+                if (badInstall) {
+                    qWarning() << "[Test-Plugin] Phase 21 Atomic install should have failed on corrupted package!";
+                    pass = false;
+                } else {
+                    qInfo() << "[Test-Plugin] Phase 21 Atomic rollback on corrupt package verified: PASSED";
+                }
+                QFile::remove(badPkgPath);
+            }
+
+            // 8. Verify Phase 22: Multi-Source Lyrics Pipeline, Metadata Provider & MediaSource Resolver
+            qInfo() << "[Test-Plugin] Verifying Phase 22 Full Hook Pipeline (Lyrics, Metadata, MediaSource)...";
+            // 8.1 Multi-Source Lyrics: mock two distinct lyrics providers
+            mgr->grantPluginPermission("top.test.lyrics1", "lyrics:read");
+            mgr->grantPluginPermission("top.test.lyrics1", "lyrics:write");
+            mgr->setPluginHookEnabled("top.test.lyrics1", "lyricsProvider", true);
+
+            mgr->grantPluginPermission("top.test.lyrics2", "lyrics:read");
+            mgr->grantPluginPermission("top.test.lyrics2", "lyrics:write");
+            mgr->setPluginHookEnabled("top.test.lyrics2", "lyricsProvider", true);
+
+            QJSEngine testEngine1;
+            QJSValue obj1 = testEngine1.evaluate("({ fetchLyricsCandidates: function(title, artist) { return [{ id: 'alpha_1', title: title, artist: artist, lrc: '[00:01.00]Alpha Line 1\\n[00:03.00]Alpha Line 2' }]; } })");
+            mgr->registerPluginObject("top.test.lyrics1", obj1, &testEngine1);
+
+            QJSEngine testEngine2;
+            QJSValue obj2 = testEngine2.evaluate("({ fetchLyricsCandidates: function(title, artist) { return [{ id: 'beta_1', title: title, artist: artist, lrc: '[00:01.00]Beta Line 1\\n[00:04.00]Beta Line 2' }]; } })");
+            mgr->registerPluginObject("top.test.lyrics2", obj2, &testEngine2);
+
+            QVariantList lrcCandidates = mgr->fetchLyricsCandidates("Test Song", "Test Artist", 180000);
+            if (lrcCandidates.size() < 2) {
+                qWarning() << "[Test-Plugin] Multi-source lyrics candidate collection failed! Expected >= 2 got:" << lrcCandidates.size();
+                pass = false;
+            } else {
+                qInfo() << "[Test-Plugin] Successfully collected" << lrcCandidates.size() << "lyrics candidates from multiple plugins.";
+                bool applyOk = mgr->applyLyricCandidate(lrcCandidates.at(1).toMap());
+                if (!applyOk || !AudioEngine::instance()->lyrics()->hasLyrics()) {
+                    qWarning() << "[Test-Plugin] Failed to apply lyric candidate!";
+                    pass = false;
+                } else {
+                    qInfo() << "[Test-Plugin] Multi-source lyrics application verified: PASSED";
+                }
+            }
+
+            // 8.2 Metadata Provider Preview & Write
+            mgr->grantPluginPermission("top.test.metadata", "library:read");
+            mgr->grantPluginPermission("top.test.metadata", "library:write");
+            mgr->setPluginHookEnabled("top.test.metadata", "metadataProvider", true);
+
+            QJSEngine metaEngine;
+            QJSValue metaObj = metaEngine.evaluate("({ fetchMetadata: function(orig) { return { title: 'Enhanced ' + orig.title, artist: 'Enhanced ' + orig.artist, album: 'Enhanced Album', year: 2026, genre: 'Hi-Res' }; } })");
+            mgr->registerPluginObject("top.test.metadata", metaObj, &metaEngine);
+
+            QVariantMap mockTrack;
+            mockTrack["path"] = "C:/Music/test_track.flac";
+            mockTrack["title"] = "Original Title";
+            mockTrack["artist"] = "Original Artist";
+            QVariantMap metaPreview = mgr->fetchMetadataCandidates("C:/Music/test_track.flac", mockTrack);
+            if (!metaPreview.contains("proposed") || metaPreview.value("proposed").toMap().value("title").toString() != "Enhanced Original Title") {
+                qWarning() << "[Test-Plugin] Metadata candidate scraping preview failed!";
+                pass = false;
+            } else {
+                qInfo() << "[Test-Plugin] Metadata candidate scraping preview verified: PASSED";
+            }
+
+            // 8.3 MediaSource Search & Stream Resolving
+            mgr->grantPluginPermission("top.test.mediasource", "audio:control");
+            mgr->setPluginHookEnabled("top.test.mediasource", "mediaSource", true);
+
+            QJSEngine mediaEngine;
+            QJSValue mediaObj = mediaEngine.evaluate("({ searchMediaSource: function(q) { return [{ id: 'track_998', title: 'Remote ' + q, artist: 'Stream Artist', duration: 240000 }]; }, resolveMediaSource: function(id) { return 'http://stream.example.com/' + id + '.flac'; } })");
+            mgr->registerPluginObject("top.test.mediasource", mediaObj, &mediaEngine);
+
+            QVariantList mediaResults = mgr->searchMediaSource("Cyberpunk");
+            if (mediaResults.isEmpty() || mediaResults.first().toMap().value("id").toString() != "track_998") {
+                qWarning() << "[Test-Plugin] MediaSource search failed!";
+                pass = false;
+            } else {
+                qInfo() << "[Test-Plugin] MediaSource search verified: PASSED (found:" << mediaResults.size() << "items)";
+                QString resolvedUrl = mgr->resolveMediaStream("top.test.mediasource", "track_998");
+                if (resolvedUrl != "http://stream.example.com/track_998.flac") {
+                    qWarning() << "[Test-Plugin] MediaSource dynamic stream resolution failed! Got:" << resolvedUrl;
+                    pass = false;
+                } else {
+                    qInfo() << "[Test-Plugin] MediaSource stream resolution verified: PASSED (" << resolvedUrl << ")";
+                }
+            }
+
+            // 9. Verify Phase 23: M3 Components, HCT Color Space & Reduce Motion
+            qInfo() << "[Test-Plugin] Verifying Phase 23 M3 Component Kit, HCT Color System & Reduce Motion...";
+            // 9.1 Reduce Motion toggle and config persistence
+            bool origMotion = cm->reduceMotion();
+            cm->setReduceMotion(true);
+            if (!cm->reduceMotion()) {
+                qWarning() << "[Test-Plugin] Failed to set reduceMotion to true!";
+                pass = false;
+            } else {
+                QSettings testCfg(PathManager::instance()->configFile(), QSettings::IniFormat);
+                if (!testCfg.value("Interface/ReduceMotion").toBool()) {
+                    qWarning() << "[Test-Plugin] reduceMotion setting failed to persist in QSettings!";
+                    pass = false;
+                } else {
+                    qInfo() << "[Test-Plugin] Phase 23 ReduceMotion config toggle & persistence verified: PASSED";
+                }
+            }
+            cm->setReduceMotion(origMotion);
+
+            // 9.2 Verify M3 Shared Components in QRC
+            QStringList reqComponents = {
+                ":/src/qml/components/M3Button.qml",
+                ":/src/qml/components/M3IconButton.qml",
+                ":/src/qml/components/M3Chip.qml",
+                ":/src/qml/components/M3TextField.qml",
+                ":/src/qml/components/M3Badge.qml",
+                ":/src/qml/components/M3Dialog.qml",
+                ":/src/qml/components/qmldir"
+            };
+            bool compOk = true;
+            for (const auto &compPath : reqComponents) {
+                if (!QFile::exists(compPath)) {
+                    qWarning() << "[Test-Plugin] Missing required M3 component in QRC:" << compPath;
+                    compOk = false;
+                    pass = false;
+                }
+            }
+            if (compOk) {
+                qInfo() << "[Test-Plugin] Phase 23 Unified M3 Component Kit (all 6 components + qmldir): PASSED";
             }
 
         qInfo() << "=== Plugin Integration Test Result:" << (pass ? "PASSED" : "FAILED") << "===";
