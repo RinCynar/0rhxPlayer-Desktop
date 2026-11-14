@@ -154,7 +154,8 @@ ApplicationWindow {
             from: 14
             to: 0
             duration: Theme.motionDurationMedium
-            easing.type: Easing.OutCubic
+            easing.type: Theme.reduceMotion ? Easing.Linear : Easing.OutBack
+            easing.overshoot: 1.15
         }
         NumberAnimation {
             target: pageTransitionAnim.outTarget

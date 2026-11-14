@@ -9,6 +9,7 @@
 #include <QJsonArray>
 #include <QMap>
 #include <QPointer>
+#include <QSet>
 #include <QJSValue>
 #include "PluginTaskModel.h"
 
@@ -244,6 +245,7 @@ public:
     PluginTaskModel* taskModel() const;
     Q_INVOKABLE QString startAsyncTask(const QString &pluginId, const QString &program, const QVariant &arguments = QVariant(), const QString &workingDir = QString(), const QVariantMap &meta = QVariantMap());
     Q_INVOKABLE void registerPluginObject(const QString &pluginId, const QJSValue &object, QJSEngine *engine = nullptr);
+    Q_INVOKABLE void unloadPluginScriptEngine(const QString &pluginId);
     Q_INVOKABLE QJSValue getPluginScriptObject(const QString &pluginId) const;
     Q_INVOKABLE QVariant getPluginState(const QString &pluginId, const QString &key, const QVariant &defaultValue = QVariant()) const;
     Q_INVOKABLE void setPluginState(const QString &pluginId, const QString &key, const QVariant &value);
@@ -302,7 +304,6 @@ private:
     void saveEnabledPluginsConfig();
     void loadEnabledPluginsConfig();
     void initPluginScriptEngine(const QString &pluginId);
-    void unloadPluginScriptEngine(const QString &pluginId);
     QNetworkAccessManager *networkManager();
 
     PluginTaskModel *m_taskModel = nullptr;
@@ -311,6 +312,7 @@ private:
     QList<PluginMetadata> m_market;
     QMap<QString, bool> m_enabledConfig;
     QMap<QString, QJSEngine*> m_scriptEngines;
+    QSet<QJSEngine*> m_ownedEngines;
     QMap<QString, QJSValue> m_pluginObjects;
     QMap<QString, QVariantMap> m_pluginStateStore;
     QMap<QString, QVariantList> m_pluginQueues;

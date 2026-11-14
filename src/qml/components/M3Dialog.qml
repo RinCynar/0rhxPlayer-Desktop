@@ -62,7 +62,11 @@ Item {
         opacity: dialogRoot.visible ? 1.0 : 0.0
 
         Behavior on scale {
-            NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: Theme.reduceMotion ? 0 : 250
+                easing.type: Theme.reduceMotion ? Easing.Linear : Easing.OutBack
+                easing.overshoot: 1.15
+            }
         }
         Behavior on opacity {
             NumberAnimation { duration: Theme.motionDurationFast }

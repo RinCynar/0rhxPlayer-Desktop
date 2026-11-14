@@ -27,6 +27,7 @@
 #include <QRegularExpression>
 #include <QUrl>
 #include <QDateTime>
+#include <QDirIterator>
 #include <QDebug>
 #include <QJSEngine>
 #include <QJSValue>
@@ -160,9 +161,10 @@ PluginManager::PluginManager(QObject *parent)
 
 PluginManager::~PluginManager()
 {
-    for (auto *eng : m_scriptEngines) {
+    for (auto *eng : m_ownedEngines) {
         delete eng;
     }
+    m_ownedEngines.clear();
     m_scriptEngines.clear();
 
     if (m_networkManager) {
@@ -242,9 +244,10 @@ void PluginManager::initialize()
 
     if (qApp) {
         connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() {
-            for (auto *eng : m_scriptEngines) {
+            for (auto *eng : m_ownedEngines) {
                 delete eng;
             }
+            m_ownedEngines.clear();
             m_scriptEngines.clear();
         });
     }
@@ -933,12 +936,31 @@ bool PluginManager::uninstallPlugin(const QString &pluginId)
     unloadPluginScriptEngine(pluginId);
     m_pluginQueues.remove(pluginId);
     m_pluginViewData.remove(pluginId);
+    m_pluginStateStore.remove(pluginId);
+    if (m_taskModel) {
+        m_taskModel->clearTasks(pluginId);
+    }
 
     QString dir = m_installed[pluginId].localDir;
     removeSidebarItemForPlugin(pluginId);
 
     if (!dir.isEmpty() && QDir(dir).exists()) {
-        QDir(dir).removeRecursively();
+        bool removed = QDir(dir).removeRecursively();
+        if (!removed) {
+            // Force remove files if any were marked read-only or held
+            QDirIterator it(dir, QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden, QDirIterator::Subdirectories);
+            while (it.hasNext()) {
+                QString path = it.next();
+                QFile::setPermissions(path, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+            }
+            QDir(dir).removeRecursively();
+        }
+    }
+
+    // Also remove any cached package files
+    QString cachedPkg = PathManager::instance()->pluginsCacheDir() + "/" + pluginId + ".0px";
+    if (QFile::exists(cachedPkg)) {
+        QFile::remove(cachedPkg);
     }
 
     m_installed.remove(pluginId);
@@ -949,7 +971,7 @@ bool PluginManager::uninstallPlugin(const QString &pluginId)
     emit pluginsChanged();
     emit categoriesChanged();
     emit pluginUninstalled(pluginId);
-    qInfo() << "[PluginManager] Uninstalled plugin:" << pluginId;
+    qInfo() << "[PluginManager] Uninstalled plugin completely:" << pluginId;
     return true;
 }
 
@@ -2546,7 +2568,8 @@ void PluginManager::initPluginScriptEngine(const QString &pluginId)
 
     unloadPluginScriptEngine(pluginId);
 
-    QJSEngine *engine = new QJSEngine();
+    QJSEngine *engine = new QJSEngine(this);
+    m_ownedEngines.insert(engine);
     engine->installExtensions(QJSEngine::ConsoleExtension);
 
     // Global object aliases
@@ -2639,7 +2662,11 @@ void PluginManager::unloadPluginScriptEngine(const QString &pluginId)
                 unloadFn.callWithInstance(pluginObj);
             }
         }
-        delete eng;
+        if (eng && m_ownedEngines.remove(eng)) {
+            delete eng;
+        }
+    } else {
+        m_pluginObjects.remove(pluginId);
     }
 }
 

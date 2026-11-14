@@ -20,8 +20,9 @@ Rectangle {
 
     Behavior on width {
         NumberAnimation {
-            duration: Theme.motionDurationMedium
-            easing.type: Easing.OutCubic
+            duration: Theme.reduceMotion ? 0 : 250
+            easing.type: Theme.reduceMotion ? Easing.Linear : (root.isCollapsed ? Easing.OutCubic : Easing.OutBack)
+            easing.overshoot: 1.15
         }
     }
 
@@ -91,8 +92,9 @@ Rectangle {
 
                     Behavior on x {
                         NumberAnimation {
-                            duration: Theme.motionDurationMedium
-                            easing.type: Easing.OutCubic
+                            duration: Theme.reduceMotion ? 0 : 250
+                            easing.type: Theme.reduceMotion ? Easing.Linear : (root.isCollapsed ? Easing.OutCubic : Easing.OutBack)
+                            easing.overshoot: 1.15
                         }
                     }
 
@@ -100,7 +102,11 @@ Rectangle {
                     scale: toggleMouse.pressed ? 0.92 : 1.0
 
                     Behavior on scale {
-                        NumberAnimation { duration: 120; easing.type: Easing.OutQuad }
+                        NumberAnimation {
+                            duration: Theme.reduceMotion ? 0 : 120
+                            easing.type: Theme.reduceMotion ? Easing.Linear : (toggleMouse.pressed ? Easing.OutQuad : Easing.OutBack)
+                            easing.overshoot: 1.2
+                        }
                     }
                     Behavior on color {
                         ColorAnimation { duration: 100 }
@@ -155,12 +161,17 @@ Rectangle {
 
                     Behavior on width {
                         NumberAnimation {
-                            duration: Theme.motionDurationMedium
-                            easing.type: Easing.OutCubic
+                            duration: Theme.reduceMotion ? 0 : 250
+                            easing.type: Theme.reduceMotion ? Easing.Linear : (root.isCollapsed ? Easing.OutCubic : Easing.OutBack)
+                            easing.overshoot: 1.15
                         }
                     }
                     Behavior on scale {
-                        NumberAnimation { duration: 120; easing.type: Easing.OutQuad }
+                        NumberAnimation {
+                            duration: Theme.reduceMotion ? 0 : 120
+                            easing.type: Theme.reduceMotion ? Easing.Linear : (penMouse.pressed ? Easing.OutQuad : Easing.OutBack)
+                            easing.overshoot: 1.2
+                        }
                     }
                     Behavior on color {
                         ColorAnimation { duration: 100 }
@@ -216,8 +227,9 @@ Rectangle {
 
         Behavior on width {
             NumberAnimation {
-                duration: Theme.motionDurationMedium
-                easing.type: Easing.OutCubic
+                duration: Theme.reduceMotion ? 0 : 250
+                easing.type: Theme.reduceMotion ? Easing.Linear : (root.isCollapsed ? Easing.OutCubic : Easing.OutBack)
+                easing.overshoot: 1.15
             }
         }
 
@@ -231,15 +243,24 @@ Rectangle {
 
             Behavior on width {
                 NumberAnimation {
-                    duration: Theme.motionDurationMedium
-                    easing.type: Easing.OutCubic
+                    duration: Theme.reduceMotion ? 0 : 250
+                    easing.type: Theme.reduceMotion ? Easing.Linear : (root.isCollapsed ? Easing.OutCubic : Easing.OutBack)
+                    easing.overshoot: 1.15
                 }
             }
             Behavior on height {
-                NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    duration: Theme.reduceMotion ? 0 : 250
+                    easing.type: Theme.reduceMotion ? Easing.Linear : (root.isCollapsed ? Easing.OutCubic : Easing.OutBack)
+                    easing.overshoot: 1.15
+                }
             }
             Behavior on radius {
-                NumberAnimation { duration: Theme.motionDurationMedium; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    duration: Theme.reduceMotion ? 0 : 250
+                    easing.type: Theme.reduceMotion ? Easing.Linear : (root.isCollapsed ? Easing.OutCubic : Easing.OutBack)
+                    easing.overshoot: 1.15
+                }
             }
 
             color: navItem.isSelected ? Theme.primary : (navMouse.containsMouse ? Theme.surfaceContainerHigh : "transparent")
@@ -251,7 +272,11 @@ Rectangle {
             // 胶囊按压轻量弹性 (Material You Touch Spring Feedback)
             scale: navMouse.pressed ? 0.96 : 1.0
             Behavior on scale {
-                NumberAnimation { duration: Theme.motionDurationFast; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    duration: Theme.reduceMotion ? 0 : 200
+                    easing.type: Theme.reduceMotion ? Easing.Linear : (navMouse.pressed ? Easing.OutQuad : Easing.OutBack)
+                    easing.overshoot: 1.25
+                }
             }
 
             // 内部图标与文字排版 (18x18 矢量图标，展开态左间距 16px、图文间距 14px；折叠态 56x32 胶囊内严格居中)

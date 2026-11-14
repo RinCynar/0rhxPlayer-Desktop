@@ -927,7 +927,11 @@ Item {
                                     scale: isSelected ? 1.15 : (dotMouse.containsMouse ? 1.08 : 1.0)
 
                                     Behavior on scale {
-                                        NumberAnimation { duration: Theme.motionDurationFast; easing.type: Easing.OutCubic }
+                                        NumberAnimation {
+                                            duration: Theme.reduceMotion ? 0 : 200
+                                            easing.type: Theme.reduceMotion ? Easing.Linear : Easing.OutBack
+                                            easing.overshoot: 1.25
+                                        }
                                     }
 
                                     SvgIcon {
@@ -2261,7 +2265,13 @@ Item {
         visible: opacity > 0
 
         Behavior on opacity { NumberAnimation { duration: 180 } }
-        Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+        Behavior on scale {
+            NumberAnimation {
+                duration: Theme.reduceMotion ? 0 : 200
+                easing.type: Theme.reduceMotion ? Easing.Linear : Easing.OutBack
+                easing.overshoot: 1.2
+            }
+        }
 
         RowLayout {
             id: toastRow

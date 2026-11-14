@@ -38,7 +38,11 @@ Item {
             ColorAnimation { duration: Theme.motionDurationFast }
         }
         Behavior on scale {
-            NumberAnimation { duration: Theme.motionDurationFast; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: Theme.reduceMotion ? 0 : 200
+                easing.type: Theme.reduceMotion ? Easing.Linear : Easing.OutBack
+                easing.overshoot: 1.25
+            }
         }
         Behavior on opacity {
             NumberAnimation { duration: Theme.motionDurationFast }

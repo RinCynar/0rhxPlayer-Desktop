@@ -67,8 +67,9 @@ Item {
     Behavior on y {
         NumberAnimation {
             id: yAnim
-            duration: Theme.motionDurationSlow
-            easing.type: Easing.OutCubic
+            duration: Theme.reduceMotion ? 0 : (root.isOpen ? 380 : 320)
+            easing.type: (Theme.reduceMotion || !root.isOpen) ? Easing.OutCubic : Easing.OutBack
+            easing.overshoot: 1.12
         }
     }
 

@@ -156,32 +156,42 @@ Item {
 
             // Tab Switcher Pill Bar (Discover, Installed, Tasks)
             Rectangle {
-                height: 38
+                id: tabSwitcherBox
+                implicitHeight: 38
+                implicitWidth: tabSwitcherRow.implicitWidth + 8
+                Layout.preferredHeight: 38
+                Layout.preferredWidth: implicitWidth
                 radius: 19
                 color: Theme.surfaceContainerHigh
                 border.color: Theme.borderSubtle
+                border.width: 1
                 Layout.leftMargin: 12
 
                 RowLayout {
+                    id: tabSwitcherRow
                     anchors.fill: parent
                     anchors.margins: 3
                     spacing: 4
 
                     // Tab: Discover
                     Rectangle {
-                        Layout.preferredWidth: tabDiscoverText.implicitWidth + 24
+                        id: tabDiscoverBtn
+                        Layout.preferredWidth: tabDiscoverRow.implicitWidth + 28
                         Layout.fillHeight: true
                         radius: 16
                         color: root.activeTab === "discover" ? Theme.primary : "transparent"
-                        Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on color { ColorAnimation { duration: Theme.motionDurationFast } }
 
-                        Text {
-                            id: tabDiscoverText
+                        RowLayout {
+                            id: tabDiscoverRow
                             anchors.centerIn: parent
-                            text: qsTr("Discover")
-                            font.pixelSize: 13
-                            font.bold: root.activeTab === "discover"
-                            color: root.activeTab === "discover" ? Theme.colorOnPrimary : Theme.textPrimary
+                            spacing: 6
+                            Text {
+                                text: qsTr("Discover")
+                                font.pixelSize: 13
+                                font.bold: root.activeTab === "discover"
+                                color: root.activeTab === "discover" ? Theme.colorOnPrimary : Theme.textPrimary
+                            }
                         }
                         MouseArea {
                             anchors.fill: parent
@@ -192,13 +202,15 @@ Item {
 
                     // Tab: Installed
                     Rectangle {
-                        Layout.preferredWidth: tabInstalledText.implicitWidth + 24
+                        id: tabInstalledBtn
+                        Layout.preferredWidth: tabInstalledRow.implicitWidth + 28
                         Layout.fillHeight: true
                         radius: 16
                         color: root.activeTab === "installed" ? Theme.primary : "transparent"
-                        Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on color { ColorAnimation { duration: Theme.motionDurationFast } }
 
                         RowLayout {
+                            id: tabInstalledRow
                             anchors.centerIn: parent
                             spacing: 6
                             Text {
@@ -209,11 +221,12 @@ Item {
                                 color: root.activeTab === "installed" ? Theme.colorOnPrimary : Theme.textPrimary
                             }
                             Rectangle {
-                                width: 18
+                                width: Math.max(18, countText.implicitWidth + 8)
                                 height: 18
                                 radius: 9
                                 color: root.activeTab === "installed" ? Theme.colorOnPrimary : Theme.surfaceContainerHighest
                                 Text {
+                                    id: countText
                                     anchors.centerIn: parent
                                     text: PluginManager.installedPlugins.length
                                     font.pixelSize: 10
@@ -231,13 +244,15 @@ Item {
 
                     // Tab: Tasks
                     Rectangle {
-                        Layout.preferredWidth: tabTasksText.implicitWidth + 24
+                        id: tabTasksBtn
+                        Layout.preferredWidth: tabTasksRow.implicitWidth + 28
                         Layout.fillHeight: true
                         radius: 16
                         color: root.activeTab === "tasks" ? Theme.primary : "transparent"
-                        Behavior on color { ColorAnimation { duration: 150 } }
+                        Behavior on color { ColorAnimation { duration: Theme.motionDurationFast } }
 
                         RowLayout {
+                            id: tabTasksRow
                             anchors.centerIn: parent
                             spacing: 6
                             Text {
@@ -249,11 +264,12 @@ Item {
                             }
                             Rectangle {
                                 visible: PluginManager.taskModel.activeCount > 0
-                                width: 18
+                                width: Math.max(18, activeTaskCountText.implicitWidth + 8)
                                 height: 18
                                 radius: 9
                                 color: root.activeTab === "tasks" ? Theme.colorOnPrimary : Theme.primary
                                 Text {
+                                    id: activeTaskCountText
                                     anchors.centerIn: parent
                                     text: PluginManager.taskModel.activeCount
                                     font.pixelSize: 10
@@ -488,21 +504,12 @@ Item {
 
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            spacing: 12
+                                            spacing: 8
 
                                             // Status pill
-                                            Rectangle {
-                                                height: 22
-                                                radius: 11
-                                                width: statusPillText.implicitWidth + 16
-                                                color: isInstalled ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
-                                                Text {
-                                                    id: statusPillText
-                                                    anchors.centerIn: parent
-                                                    text: isInstalled ? qsTr("Installed") : qsTr("Available")
-                                                    font.pixelSize: 11
-                                                    color: isInstalled ? Theme.primary : Theme.textMuted
-                                                }
+                                            M3Badge {
+                                                text: isInstalled ? qsTr("Installed") : qsTr("Available")
+                                                variant: isInstalled ? "primary" : "tonal"
                                             }
 
                                             Item { Layout.fillWidth: true }
@@ -512,8 +519,8 @@ Item {
                                                 visible: isInstalled
                                                 text: qsTr("Open")
                                                 variant: "tonal"
-                                                implicitHeight: 30
-                                                implicitWidth: 72
+                                                implicitHeight: 32
+                                                implicitWidth: 68
                                                 onClicked: {
                                                     if (typeof window !== "undefined") {
                                                         window.currentTab = "plugin:" + modelData.id;
@@ -521,12 +528,25 @@ Item {
                                                 }
                                             }
 
+                                            // Uninstall button if already installed
+                                            M3Button {
+                                                visible: isInstalled
+                                                text: qsTr("Uninstall")
+                                                icon: "qrc:/assets/icons/trash.svg"
+                                                variant: "outlined"
+                                                implicitHeight: 32
+                                                implicitWidth: 96
+                                                onClicked: {
+                                                    PluginManager.uninstallPlugin(modelData.id);
+                                                }
+                                            }
+
                                             // Install / Update button
                                             M3Button {
                                                 text: isInstalled ? qsTr("Reinstall") : qsTr("Install")
-                                                variant: "filled"
-                                                implicitHeight: 30
-                                                implicitWidth: 86
+                                                variant: isInstalled ? "outlined" : "filled"
+                                                implicitHeight: 32
+                                                implicitWidth: isInstalled ? 88 : 80
                                                 onClicked: {
                                                     PluginManager.installPluginFromMarket(modelData.id);
                                                 }
@@ -683,8 +703,9 @@ Item {
                                         text: modelData.description || ""
                                         font.pixelSize: 11
                                         color: Theme.textSecondary
+                                        wrapMode: Text.Wrap
                                         elide: Text.ElideRight
-                                        maximumLineCount: 1
+                                        maximumLineCount: 2
                                     }
                                 }
 
@@ -693,7 +714,7 @@ Item {
                                     text: qsTr("Workbench")
                                     variant: "tonal"
                                     implicitHeight: 32
-                                    implicitWidth: 80
+                                    implicitWidth: 88
                                     onClicked: {
                                         if (typeof window !== "undefined") {
                                             window.currentTab = "plugin:" + modelData.id;
@@ -710,11 +731,13 @@ Item {
                                 }
 
                                 // Uninstall Button
-                                M3IconButton {
+                                M3Button {
+                                    text: qsTr("Uninstall")
                                     icon: "qrc:/assets/icons/trash.svg"
-                                    size: 32
                                     iconSize: 14
-                                    variant: "standard"
+                                    variant: "outlined"
+                                    implicitHeight: 32
+                                    implicitWidth: 96
                                     onClicked: PluginManager.uninstallPlugin(modelData.id)
                                 }
                             }

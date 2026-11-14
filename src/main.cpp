@@ -540,15 +540,6 @@ int main(int argc, char *argv[])
         mainWindow->setProperty("currentTab", "plugins");
     }
 
-    if (mainWindow && app.arguments().contains("--tab-converter")) {
-        mainWindow->setProperty("currentTab", "plugin:top.rincynar.converter");
-        QVariantMap sampleTrack;
-        sampleTrack["filePath"] = "C:/Music/Lossless_Master_Track.flac";
-        sampleTrack["title"] = "Lossless Master Track";
-        sampleTrack["artist"] = "Audiophile Studio";
-        PluginManager::instance()->triggerPluginAction("top.rincynar.converter", "add_to_convert_queue", "track", sampleTrack);
-    }
-
     if (app.arguments().contains("--demo-library")) {
         TrackItem t1;
         t1.path = "C:/Music/Alpha.flac";
@@ -2961,26 +2952,34 @@ int main(int argc, char *argv[])
                 tm->clearTasks("top.rincynar.tasktest");
             }
 
-            // 6. Test QJSEngine script execution and dynamic queue retrieval
+            // 6. Test generic QJSEngine script execution and dynamic queue retrieval
             qInfo() << "[Test-Plugin] Testing JavaScript runtime and transcode queue...";
-            if (mgr->isPluginInstalled("top.rincynar.converter")) {
+            {
+                QJSEngine testEngine;
+                QJSValue testObj = testEngine.evaluate(
+                    "({ queue: [], onAction: function(a, s, p) { if (a === 'add_to_convert_queue') this.queue.push(p); else if (a === 'clear_queue') this.queue = []; }, "
+                    "getQueue: function() { return this.queue; }, clearQueue: function() { this.queue = []; }, "
+                    "setFormat: function(f) { this.format = f; } })"
+                );
+                mgr->registerPluginObject("top.test.actionqueue", testObj, &testEngine);
+
                 QVariantMap trackPayload;
                 trackPayload["filePath"] = "C:/Music/test_audio.flac";
                 trackPayload["path"] = "C:/Music/test_audio.flac";
                 trackPayload["title"] = "Test Audio Track";
                 trackPayload["artist"] = "Test Artist";
 
-                mgr->triggerPluginAction("top.rincynar.converter", "add_to_convert_queue", "track", trackPayload);
-                QVariantList q = mgr->getPluginQueue("top.rincynar.converter");
+                mgr->triggerPluginAction("top.test.actionqueue", "add_to_convert_queue", "track", trackPayload);
+                QVariantList q = mgr->getPluginQueue("top.test.actionqueue");
                 if (q.isEmpty()) {
                     qWarning() << "[Test-Plugin] getPluginQueue returned empty after add_to_convert_queue!";
                     pass = false;
                 } else {
-                    qInfo() << "[Test-Plugin] Successfully verified converter queue count:" << q.size();
+                    qInfo() << "[Test-Plugin] Successfully verified mock action queue count:" << q.size();
                 }
 
                 // Verify setFormat via callPluginMethod
-                mgr->callPluginMethod("top.rincynar.converter", "setFormat", QVariantList() << "wav");
+                mgr->callPluginMethod("top.test.actionqueue", "setFormat", QVariantList() << "wav");
 
                 // Verify runProcess with ffmpeg
                 bool procOk = mgr->runProcess("ffmpeg", QStringList() << "-version");
@@ -2990,8 +2989,8 @@ int main(int argc, char *argv[])
                 }
 
                 // Clear queue
-                mgr->clearPluginQueue("top.rincynar.converter");
-                QVariantList emptyQ = mgr->getPluginQueue("top.rincynar.converter");
+                mgr->clearPluginQueue("top.test.actionqueue");
+                QVariantList emptyQ = mgr->getPluginQueue("top.test.actionqueue");
                 if (!emptyQ.isEmpty()) {
                     qWarning() << "[Test-Plugin] clearPluginQueue failed, queue still contains items!";
                     pass = false;
@@ -3162,6 +3161,13 @@ int main(int argc, char *argv[])
             if (compOk) {
                 qInfo() << "[Test-Plugin] Phase 23 Unified M3 Component Kit (all 6 components + qmldir): PASSED";
             }
+
+            // Cleanup test script engines and mock objects
+            mgr->unloadPluginScriptEngine("top.test.actionqueue");
+            mgr->unloadPluginScriptEngine("top.test.lyrics1");
+            mgr->unloadPluginScriptEngine("top.test.lyrics2");
+            mgr->unloadPluginScriptEngine("top.test.metadata");
+            mgr->unloadPluginScriptEngine("top.test.mediasource");
 
         qInfo() << "=== Plugin Integration Test Result:" << (pass ? "PASSED" : "FAILED") << "===";
         QTimer::singleShot(150, &app, [pass]() {
@@ -3338,9 +3344,6 @@ int main(int argc, char *argv[])
                 }
                 if (app.arguments().contains("--tab-plugins") || app.arguments().contains("--demo-plugins")) {
                     mainWindow->setProperty("currentTab", "plugins");
-                }
-                if (app.arguments().contains("--tab-converter")) {
-                    mainWindow->setProperty("currentTab", "plugin:top.rincynar.converter");
                 }
                 QImage img = mainWindow->grabWindow();
                 QString outPath = QDir::currentPath() + "/build/screenshot_actual.png";

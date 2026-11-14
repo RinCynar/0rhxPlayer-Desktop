@@ -542,8 +542,9 @@ Item {
 
                             Behavior on scale {
                                 NumberAnimation {
-                                    duration: Theme.motionDurationFast
-                                    easing.type: Easing.OutCubic
+                                    duration: Theme.reduceMotion ? 0 : 200
+                                    easing.type: Theme.reduceMotion ? Easing.Linear : (chipMouse.pressed ? Easing.OutQuad : Easing.OutBack)
+                                    easing.overshoot: 1.25
                                 }
                             }
                             Behavior on color { ColorAnimation { duration: 150 } }
@@ -2270,8 +2271,9 @@ Item {
                 y: libraryRoot.selectedGroup != null ? 0 : 16
                 Behavior on y {
                     NumberAnimation {
-                        duration: Theme.motionDurationMedium
-                        easing.type: Easing.OutCubic
+                        duration: Theme.reduceMotion ? 0 : 250
+                        easing.type: Theme.reduceMotion ? Easing.Linear : (libraryRoot.selectedGroup != null ? Easing.OutBack : Easing.OutCubic)
+                        easing.overshoot: 1.15
                     }
                 }
             }
@@ -2299,8 +2301,9 @@ Item {
                 y: libraryRoot.selectedGroup == null ? 0 : -10
                 Behavior on y {
                     NumberAnimation {
-                        duration: Theme.motionDurationMedium
-                        easing.type: Easing.OutCubic
+                        duration: Theme.reduceMotion ? 0 : 250
+                        easing.type: Theme.reduceMotion ? Easing.Linear : (libraryRoot.selectedGroup == null ? Easing.OutBack : Easing.OutCubic)
+                        easing.overshoot: 1.15
                     }
                 }
             }
@@ -2320,8 +2323,9 @@ Item {
                     y: titlesTabItem.isTabActive ? 0 : 12
                     Behavior on y {
                         NumberAnimation {
-                            duration: Theme.motionDurationMedium
-                            easing.type: Easing.OutCubic
+                            duration: Theme.reduceMotion ? 0 : 250
+                            easing.type: Theme.reduceMotion ? Easing.Linear : (titlesTabItem.isTabActive ? Easing.OutBack : Easing.OutCubic)
+                            easing.overshoot: 1.15
                         }
                     }
                 }
@@ -2347,8 +2351,9 @@ Item {
                     y: libraryRoot.currentTab === "albums" ? 0 : 12
                     Behavior on y {
                         NumberAnimation {
-                            duration: Theme.motionDurationMedium
-                            easing.type: Easing.OutCubic
+                            duration: Theme.reduceMotion ? 0 : 250
+                            easing.type: Theme.reduceMotion ? Easing.Linear : (libraryRoot.currentTab === "albums" ? Easing.OutBack : Easing.OutCubic)
+                            easing.overshoot: 1.15
                         }
                     }
                 }
@@ -2374,8 +2379,9 @@ Item {
                     y: libraryRoot.currentTab === "artists" ? 0 : 12
                     Behavior on y {
                         NumberAnimation {
-                            duration: Theme.motionDurationMedium
-                            easing.type: Easing.OutCubic
+                            duration: Theme.reduceMotion ? 0 : 250
+                            easing.type: Theme.reduceMotion ? Easing.Linear : (libraryRoot.currentTab === "artists" ? Easing.OutBack : Easing.OutCubic)
+                            easing.overshoot: 1.15
                         }
                     }
                 }
@@ -2401,8 +2407,9 @@ Item {
                     y: libraryRoot.currentTab === "folders" ? 0 : 12
                     Behavior on y {
                         NumberAnimation {
-                            duration: Theme.motionDurationMedium
-                            easing.type: Easing.OutCubic
+                            duration: Theme.reduceMotion ? 0 : 250
+                            easing.type: Theme.reduceMotion ? Easing.Linear : (libraryRoot.currentTab === "folders" ? Easing.OutBack : Easing.OutCubic)
+                            easing.overshoot: 1.15
                         }
                     }
                 }

@@ -113,8 +113,9 @@ Rectangle {
 
             Behavior on Layout.preferredWidth {
                 NumberAnimation {
-                    duration: Theme.motionDurationMedium
-                    easing.type: Easing.OutCubic
+                    duration: Theme.reduceMotion ? 0 : 250
+                    easing.type: Theme.reduceMotion ? Easing.Linear : (playerBar.isNowPlayingOpen ? Easing.OutCubic : Easing.OutBack)
+                    easing.overshoot: 1.15
                 }
             }
 
@@ -477,8 +478,9 @@ Rectangle {
 
                 Behavior on scale {
                     NumberAnimation {
-                        duration: Theme.motionDurationFast
-                        easing.type: Easing.OutCubic
+                        duration: Theme.reduceMotion ? 0 : 200
+                        easing.type: Theme.reduceMotion ? Easing.Linear : (playMouse.pressed ? Easing.OutQuad : Easing.OutBack)
+                        easing.overshoot: 1.25
                     }
                 }
 
