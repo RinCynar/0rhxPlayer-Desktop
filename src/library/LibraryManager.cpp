@@ -22,6 +22,7 @@
 #include <QProcess>
 #include <QDesktopServices>
 #include <QImage>
+#include <QThreadPool>
 #include <cstdint>
 #include <cstring>
 #include <algorithm>
@@ -86,9 +87,15 @@ LibraryManager::LibraryManager(QObject *parent)
     qRegisterMetaType<PlaylistItem>("PlaylistItem");
     qRegisterMetaType<QList<PlaylistItem>>("QList<PlaylistItem>");
 
-    loadLibraryCache();
-    loadFavorites();
-    loadPlaylists();
+    // Defer synchronous JSON/disk loading to loadDataAsync() / ensureDataLoaded()
+    // eliminating boot path blocking during singleton instantiation
+
+    if (qApp) {
+        connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() {
+            cancelScan();
+            QThreadPool::globalInstance()->waitForDone(1500);
+        });
+    }
 }
 
 LibraryManager::~LibraryManager()
@@ -720,8 +727,10 @@ void LibraryManager::cancelScan()
     if (m_scanWorker) {
         m_scanWorker->requestStop();
     }
-    m_isScanning = false;
-    emit isScanningChanged();
+    if (m_isScanning) {
+        m_isScanning = false;
+        emit isScanningChanged();
+    }
 }
 
 void LibraryManager::onScanBatchReady(const QList<TrackItem> &batch, int totalScanned)
@@ -750,8 +759,136 @@ void LibraryManager::onScanFinished(const QList<TrackItem> &allTracks)
     emit isScanningChanged();
 }
 
+void LibraryManager::ensureDataLoaded()
+{
+    if (m_dataLoaded) return;
+    loadLibraryCache();
+    loadFavorites();
+    loadPlaylists();
+    m_dataLoaded = true;
+    emit dataLoaded();
+}
+
+void LibraryManager::loadDataAsync()
+{
+    if (m_dataLoaded || m_isLoadingData) return;
+    m_isLoadingData = true;
+
+    QString cachePath = PathManager::instance()->libraryCacheFile();
+    QString favPath = PathManager::instance()->favoritesFile();
+    QString plPath = PathManager::instance()->playlistsFile();
+
+    QThreadPool::globalInstance()->start([this, cachePath, favPath, plPath]() {
+        QList<TrackItem> parsedTracks;
+        QStringList parsedFavs;
+        QList<PlaylistItem> parsedPlaylists;
+
+        // 1. Read library cache JSON
+        QFile file(cachePath);
+        if (file.open(QIODevice::ReadOnly)) {
+            QByteArray data = file.readAll();
+            file.close();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                QJsonArray arr = doc.object().value("tracks").toArray();
+                parsedTracks.reserve(arr.size());
+                for (const auto &val : arr) {
+                    QJsonObject obj = val.toObject();
+                    TrackItem item;
+                    item.path = obj.value("path").toString();
+                    item.title = obj.value("title").toString();
+                    item.artist = obj.value("artist").toString();
+                    item.album = obj.value("album").toString();
+                    item.albumArtist = obj.value("albumArtist").toString();
+                    item.durationMs = obj.value("durationMs").toVariant().toLongLong();
+                    item.format = obj.value("format").toString();
+                    item.bitrateKbps = obj.value("bitrateKbps").toInt();
+                    item.fileSizeBytes = obj.value("fileSizeBytes").toVariant().toLongLong();
+                    item.dateAdded = obj.value("dateAdded").toVariant().toLongLong();
+                    item.dateModified = obj.value("dateModified").toVariant().toLongLong();
+                    if (item.dateModified <= 0 && !item.path.isEmpty()) {
+                        QFileInfo fi(item.path);
+                        if (fi.exists()) item.dateModified = fi.lastModified().toMSecsSinceEpoch();
+                    }
+                    if (item.dateAdded <= 0) {
+                        item.dateAdded = item.dateModified > 0 ? item.dateModified : QDateTime::currentMSecsSinceEpoch();
+                    }
+                    item.hasCover = obj.value("hasCover").toBool();
+                    item.coverUrl = obj.value("coverUrl").toString();
+                    item.artists = splitArtists(item.artist);
+                    parsedTracks.append(item);
+                }
+            }
+        }
+
+        // 2. Read favorites
+        QFile favFile(favPath);
+        if (favFile.open(QIODevice::ReadOnly)) {
+            QByteArray data = favFile.readAll();
+            favFile.close();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isArray()) {
+                for (const auto &val : doc.array()) {
+                    parsedFavs.append(val.toString());
+                }
+            }
+        }
+
+        // 3. Read playlists
+        QFile plFile(plPath);
+        if (plFile.open(QIODevice::ReadOnly)) {
+            QByteArray data = plFile.readAll();
+            plFile.close();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isArray()) {
+                for (const auto &val : doc.array()) {
+                    QJsonObject obj = val.toObject();
+                    PlaylistItem item;
+                    item.id = obj.value("id").toString();
+                    item.name = obj.value("name").toString();
+                    item.description = obj.value("description").toString();
+                    item.createdAt = obj.value("createdAt").toVariant().toLongLong();
+                    QJsonArray tracksArr = obj.value("trackPaths").toArray();
+                    for (const auto &tVal : tracksArr) {
+                        item.trackPaths.append(tVal.toString());
+                    }
+                    parsedPlaylists.append(item);
+                }
+            }
+        }
+
+        QPointer<LibraryManager> self(this);
+        QMetaObject::invokeMethod(this, [self, parsedTracks, parsedFavs, parsedPlaylists]() {
+            if (!self) return;
+            if (!self->m_dataLoaded) {
+                if (!parsedTracks.isEmpty() && self->m_allTracks.isEmpty()) {
+                    self->m_allTracks = parsedTracks;
+                    emit self->trackCountChanged();
+                    self->rebuildLibraryModels();
+                    self->generateRecommendations();
+                }
+                if (!parsedFavs.isEmpty() && self->m_favorites.isEmpty()) {
+                    self->m_favorites = parsedFavs;
+                    emit self->favoritesChanged();
+                }
+                if (!parsedPlaylists.isEmpty() && self->m_playlistsModel && self->m_playlistsModel->count() == 0) {
+                    self->m_playlistsModel->setPlaylists(parsedPlaylists);
+                    emit self->playlistsChanged();
+                }
+                self->refreshPlaylistCovers();
+                self->m_dataLoaded = true;
+                self->m_isLoadingData = false;
+                emit self->dataLoaded();
+            } else {
+                self->m_isLoadingData = false;
+            }
+        });
+    });
+}
+
 void LibraryManager::loadLibraryCache()
 {
+    m_dataLoaded = true;
     QString cachePath = PathManager::instance()->libraryCacheFile();
     QFile file(cachePath);
     if (!file.open(QIODevice::ReadOnly)) return;

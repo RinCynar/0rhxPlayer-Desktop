@@ -9,7 +9,7 @@ import rhx.ui 1.0
 
 Item {
     id: settingsRoot
-    objectName: "settingsRoot"
+    objectName: "settingsView"
     clip: true
 
     signal navigateTab(string tabId)

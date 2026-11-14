@@ -11,6 +11,7 @@ import rhx.i18n 1.0
 
 Item {
     id: libraryRoot
+    objectName: "libraryView"
 
     // Navigation and Filtering State
     property string currentTab: "tracks" // "tracks" | "albums" | "artists" | "folders"

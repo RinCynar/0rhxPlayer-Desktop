@@ -64,6 +64,11 @@ public:
 
     static AudioEngine* instance();
 
+    Q_INVOKABLE void prewarm();
+    bool isPrewarmed() const { return m_isPrewarmed; }
+    bool waitForInitialization(int timeoutMs = 2500);
+    bool isEngineInitialized() const { return m_engineInitialized; }
+
     PlaybackState playbackState() const { return m_playbackState; }
     qint64 positionMs() const { return m_positionMs; }
     qint64 durationMs() const { return m_durationMs; }
@@ -211,6 +216,8 @@ private:
 
     bool m_windowActive = true;
     qint64 m_lastLyricUpdatePos = -1;
+    bool m_isPrewarmed = false;
+    bool m_engineInitialized = false;
 
     void loadEqSettings();
     void saveEqSettings();

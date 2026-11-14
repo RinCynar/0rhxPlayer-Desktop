@@ -176,6 +176,9 @@ QNetworkAccessManager *PluginManager::networkManager()
 
 void PluginManager::initialize()
 {
+    if (m_initialized) return;
+    m_initialized = true;
+
     refreshInstalledPlugins();
 
     auto *ae = AudioEngine::instance();
@@ -360,6 +363,8 @@ void PluginManager::loadInstalledPluginFromDir(const QString &dirPath)
         QString localIcon = dirPath + "/" + meta.icon;
         if (QFile::exists(localIcon)) {
             meta.icon = QUrl::fromLocalFile(localIcon).toString();
+        } else {
+            meta.icon = "qrc:/assets/icons/plugin.svg";
         }
     } else if (meta.icon.isEmpty()) {
         meta.icon = "qrc:/assets/icons/plugin.svg";

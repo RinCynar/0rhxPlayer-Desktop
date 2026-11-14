@@ -35,6 +35,37 @@ ApplicationWindow {
     }
 
     property string currentTab: "home"
+    property bool libraryLoaded: false
+    property bool searchLoaded: false
+    property bool queueLoaded: false
+    property bool playlistsLoaded: false
+    property bool eqLoaded: false
+    property bool settingsLoaded: false
+    property bool pluginsLoaded: false
+    property bool pluginSchemaLoaded: false
+
+    function loadAllViews() {
+        libraryLoaded = true;
+        searchLoaded = true;
+        queueLoaded = true;
+        playlistsLoaded = true;
+        eqLoaded = true;
+        settingsLoaded = true;
+        pluginsLoaded = true;
+        pluginSchemaLoaded = true;
+    }
+
+    onCurrentTabChanged: {
+        if (window.currentTab === "library") libraryLoaded = true;
+        else if (window.currentTab === "search") searchLoaded = true;
+        else if (window.currentTab === "queue") queueLoaded = true;
+        else if (window.currentTab === "playlist") playlistsLoaded = true;
+        else if (window.currentTab === "eq") eqLoaded = true;
+        else if (window.currentTab === "settings") settingsLoaded = true;
+        else if (window.currentTab === "plugins") pluginsLoaded = true;
+        else if (window.currentTab.indexOf("plugin:") === 0) pluginSchemaLoaded = true;
+    }
+
     property bool isNowPlayingOpen: false
     property bool showTrans: true
     property var preNowPlayingNavCollapsed: null
@@ -193,119 +224,190 @@ ApplicationWindow {
                         }
                         onNavigateToAlbum: function(albumName, artistName, coverUrl, trackCount) {
                             LibraryManager.filterTracksByAlbum(albumName, artistName);
-                            libraryView.currentTab = "albums";
-                            libraryView.openGroupDetails({
-                                type: "album",
-                                name: albumName,
-                                subTitle: (artistName || "") + " • " + libraryView.formatCount(trackCount),
-                                coverUrl: coverUrl || ""
-                            });
                             window.currentTab = "library";
+                            if (libraryLoader.item) {
+                                libraryLoader.item.currentTab = "albums";
+                                libraryLoader.item.openGroupDetails({
+                                    type: "album",
+                                    name: albumName,
+                                    subTitle: (artistName || "") + " • " + (libraryLoader.item.formatCount ? libraryLoader.item.formatCount(trackCount) : trackCount),
+                                    coverUrl: coverUrl || ""
+                                });
+                            }
                         }
                     }
 
-                    // 1: Library Page View
-                    LibraryView {
-                        id: libraryView
-                        objectName: "libraryView"
+                    // 1: Library Page View (Lazy Loaded)
+                    Loader {
+                        id: libraryLoader
+                        objectName: "libraryLoader"
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                    }
-
-                    // 2: Search Page View
-                    SearchView {
-                        id: searchView
-                        objectName: "searchView"
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-
-                        onNavigateToArtist: function(artistName, coverUrl) {
-                            LibraryManager.filterTracksByArtist(artistName);
-                            libraryView.currentTab = "artists";
-                            libraryView.openGroupDetails({
-                                type: "artist",
-                                name: artistName,
-                                subTitle: qsTr("Artist"),
-                                coverUrl: coverUrl || ""
-                            });
-                            window.currentTab = "library";
+                        active: window.currentTab === "library" || window.libraryLoaded
+                        sourceComponent: Component {
+                            LibraryView {
+                                id: libraryView
+                                objectName: "libraryView"
+                            }
                         }
+                        onLoaded: window.libraryLoaded = true
+                    }
 
-                        onNavigateToAlbum: function(albumName, artistName, coverUrl) {
-                            LibraryManager.filterTracksByAlbum(albumName, artistName);
-                            libraryView.currentTab = "albums";
-                            libraryView.openGroupDetails({
-                                type: "album",
-                                name: albumName,
-                                subTitle: artistName,
-                                coverUrl: coverUrl || ""
-                            });
-                            window.currentTab = "library";
+                    // 2: Search Page View (Lazy Loaded)
+                    Loader {
+                        id: searchLoader
+                        objectName: "searchLoader"
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: window.currentTab === "search" || window.searchLoaded
+                        sourceComponent: Component {
+                            SearchView {
+                                id: searchView
+                                objectName: "searchView"
+                                onNavigateToArtist: function(artistName, coverUrl) {
+                                    LibraryManager.filterTracksByArtist(artistName);
+                                    window.currentTab = "library";
+                                    if (libraryLoader.item) {
+                                        libraryLoader.item.currentTab = "artists";
+                                        libraryLoader.item.openGroupDetails({
+                                            type: "artist",
+                                            name: artistName,
+                                            subTitle: libraryLoader.item.formatCount ? libraryLoader.item.formatCount(LibraryManager.filteredTracks.count) : "",
+                                            coverUrl: coverUrl || ""
+                                        });
+                                    }
+                                }
+                                onNavigateToAlbum: function(albumName, artistName, coverUrl) {
+                                    LibraryManager.filterTracksByAlbum(albumName, artistName);
+                                    window.currentTab = "library";
+                                    if (libraryLoader.item) {
+                                        libraryLoader.item.currentTab = "albums";
+                                        libraryLoader.item.openGroupDetails({
+                                            type: "album",
+                                            name: albumName,
+                                            subTitle: (artistName || "") + " • " + (libraryLoader.item.formatCount ? libraryLoader.item.formatCount(LibraryManager.filteredTracks.count) : ""),
+                                            coverUrl: coverUrl || ""
+                                        });
+                                    }
+                                }
+                                onNavigateToLibraryTab: function(tabId) {
+                                    window.currentTab = "library";
+                                    if (libraryLoader.item) {
+                                        libraryLoader.item.selectedGroup = null;
+                                        libraryLoader.item.currentTab = (tabId === "titles" ? "tracks" : tabId);
+                                    }
+                                }
+                            }
                         }
+                        onLoaded: window.searchLoaded = true
+                    }
 
-                        onNavigateToLibraryTab: function(tabId) {
-                            libraryView.selectedGroup = null;
-                            libraryView.currentTab = (tabId === "titles" ? "tracks" : tabId);
-                            window.currentTab = "library";
+                    // 3: Queue Page View (Lazy Loaded)
+                    Loader {
+                        id: queueLoader
+                        objectName: "queueLoader"
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: window.currentTab === "queue" || window.queueLoaded
+                        sourceComponent: Component {
+                            QueueView {
+                                id: queueView
+                                objectName: "queueView"
+                                onNavigateToLibrary: {
+                                    window.currentTab = "library";
+                                }
+                            }
                         }
+                        onLoaded: window.queueLoaded = true
                     }
 
-                    // 3: Queue Page View (Material 3 Parity)
-                    QueueView {
-                        id: queueView
-                        objectName: "queueView"
+                    // 4: Playlist Page View (Lazy Loaded)
+                    Loader {
+                        id: playlistsLoader
+                        objectName: "playlistsLoader"
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        onNavigateToLibrary: {
-                            window.currentTab = "library";
+                        active: window.currentTab === "playlist" || window.playlistsLoaded
+                        sourceComponent: Component {
+                            PlaylistsView {
+                                id: playlistsView
+                                objectName: "playlistsView"
+                            }
                         }
+                        onLoaded: window.playlistsLoaded = true
                     }
 
-                    // 4: Playlist Page View (Phase 8 Parity)
-                    PlaylistsView {
-                        id: playlistsView
-                        objectName: "playlistsView"
+                    // 5: Equalizer Page View (Lazy Loaded)
+                    Loader {
+                        id: equalizerLoader
+                        objectName: "equalizerLoader"
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                    }
-
-                    // 5: Equalizer Page View (Phase 8 Parity)
-                    EqualizerView {
-                        id: equalizerView
-                        objectName: "equalizerView"
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                    }
-
-                    // 6: Modern Material You Settings Page View
-                    SettingsView {
-                        id: settingsView
-                        objectName: "settingsView"
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        onNavigateTab: function(tabId) {
-                            window.currentTab = tabId;
+                        active: window.currentTab === "eq" || window.eqLoaded
+                        sourceComponent: Component {
+                            EqualizerView {
+                                id: equalizerView
+                                objectName: "equalizerView"
+                            }
                         }
+                        onLoaded: window.eqLoaded = true
                     }
 
-                    // 7: Plugins Marketplace & Local Extension View
-                    PluginsView {
-                        id: pluginsView
-                        objectName: "pluginsView"
+                    // 6: Modern Material You Settings Page View (Lazy Loaded)
+                    Loader {
+                        id: settingsLoader
+                        objectName: "settingsLoader"
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        onNavigateTab: function(tabId) {
-                            window.currentTab = tabId;
+                        active: window.currentTab === "settings" || window.settingsLoaded
+                        sourceComponent: Component {
+                            SettingsView {
+                                id: settingsView
+                                objectName: "settingsView"
+                                onNavigateTab: function(tabId) {
+                                    window.currentTab = tabId;
+                                }
+                            }
                         }
+                        onLoaded: window.settingsLoaded = true
                     }
 
-                    // 8: Dynamic Native M3 Schema View for Plugins (100% Native QML • No WebView)
-                    PluginSchemaView {
-                        id: pluginSchemaView
-                        objectName: "pluginSchemaView"
+                    // 7: Plugins Marketplace & Local Extension View (Lazy Loaded)
+                    Loader {
+                        id: pluginsLoader
+                        objectName: "pluginsLoader"
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        pluginId: window.currentTab
+                        active: window.currentTab === "plugins" || window.pluginsLoaded
+                        sourceComponent: Component {
+                            PluginsView {
+                                id: pluginsView
+                                objectName: "pluginsView"
+                                onNavigateTab: function(tabId) {
+                                    window.currentTab = tabId;
+                                }
+                            }
+                        }
+                        onLoaded: window.pluginsLoaded = true
+                    }
+
+                    // 8: Dynamic Native M3 Schema View for Plugins (Lazy Loaded)
+                    Loader {
+                        id: pluginSchemaLoader
+                        objectName: "pluginSchemaLoader"
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: (window.currentTab.indexOf("plugin:") === 0) || window.pluginSchemaLoaded
+                        sourceComponent: Component {
+                            PluginSchemaView {
+                                id: pluginSchemaView
+                                objectName: "pluginSchemaView"
+                                pluginId: window.currentTab
+                            }
+                        }
+                        onLoaded: {
+                            window.pluginSchemaLoaded = true;
+                        }
                     }
                 }
                 }

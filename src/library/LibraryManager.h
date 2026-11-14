@@ -85,6 +85,9 @@ public:
 
     void loadLibraryCache();
     void saveLibraryCache();
+    Q_INVOKABLE void loadDataAsync();
+    Q_INVOKABLE void ensureDataLoaded();
+    bool isDataLoaded() const { return m_dataLoaded; }
     static void parseMetadataItem(TrackItem &item);
     Q_INVOKABLE static QStringList splitArtists(const QString &artistStr);
 
@@ -161,6 +164,7 @@ signals:
     void playlistTracksChanged();
     void currentPlaylistChanged();
     void favoritesChanged();
+    void dataLoaded();
 
 private slots:
     void onScanBatchReady(const QList<TrackItem> &batch, int totalScanned);
@@ -204,4 +208,6 @@ private:
     class LibraryScanWorker *m_scanWorker{nullptr};
     int m_scannedCount{0};
     bool m_isScanning{false};
+    bool m_dataLoaded{false};
+    bool m_isLoadingData{false};
 };

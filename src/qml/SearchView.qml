@@ -11,6 +11,7 @@ import rhx.i18n 1.0
 
 Item {
     id: searchRoot
+    objectName: "searchView"
 
     signal navigateToArtist(string artistName, string coverUrl)
     signal navigateToAlbum(string albumName, string artistName, string coverUrl)

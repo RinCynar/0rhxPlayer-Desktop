@@ -57,6 +57,7 @@ public:
     ~PluginManager() override;
 
     void initialize();
+    bool isInitialized() const { return m_initialized; }
 
     QVariantList installedPlugins() const;
     QVariantList marketPlugins() const;
@@ -261,6 +262,7 @@ private:
     QMap<QString, QVariantMap> m_pluginViewData;
 
     bool m_isFetchingMarket = false;
+    bool m_initialized = false;
     QString m_marketStatusMessage;
     QString m_lastErrorMessage;
 };

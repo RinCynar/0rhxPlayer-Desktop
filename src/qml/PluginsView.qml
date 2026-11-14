@@ -20,7 +20,9 @@ Item {
 
     Component.onCompleted: {
         PluginManager.refreshInstalledPlugins();
-        PluginManager.fetchMarketIndex();
+        if (PluginManager.marketPlugins.length === 0 && !PluginManager.isFetchingMarket) {
+            PluginManager.fetchMarketIndex();
+        }
     }
 
     // Local file installer dialog

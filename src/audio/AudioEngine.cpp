@@ -9,6 +9,8 @@
 #include <QDir>
 #include <QRandomGenerator>
 #include <QSettings>
+#include <QCoreApplication>
+#include <QElapsedTimer>
 #include <cmath>
 
 // ============================================================================
@@ -99,6 +101,9 @@ bool AudioEngineWorker::initAudioOutput()
 
 void AudioEngineWorker::shutdown()
 {
+    if (!m_initialized) return;
+    m_initialized = false;
+
     stop();
 
     if (m_tickTimer) {
@@ -111,7 +116,6 @@ void AudioEngineWorker::shutdown()
     }
 
     BASS_Free();
-    m_initialized = false;
     qDebug() << "[AudioEngineWorker] Audio engine shutdown complete.";
 }
 
@@ -508,7 +512,9 @@ AudioEngine::AudioEngine(QObject *parent)
 
     // Connect lifecycle signals
     connect(&m_workerThread, &QThread::started, m_worker, &AudioEngineWorker::initialize);
-    connect(&m_workerThread, &QThread::finished, m_worker, &QObject::deleteLater);
+    connect(m_worker, &AudioEngineWorker::initialized, this, [this](bool ok) {
+        m_engineInitialized = ok;
+    }, Qt::QueuedConnection);
 
     // Connect control requests from facade to worker (Queued across threads)
     connect(this, &AudioEngine::requestPlay, m_worker, &AudioEngineWorker::play, Qt::QueuedConnection);
@@ -518,7 +524,17 @@ AudioEngine::AudioEngine(QObject *parent)
     connect(this, &AudioEngine::requestSeek, m_worker, &AudioEngineWorker::seek, Qt::QueuedConnection);
     connect(this, &AudioEngine::requestSetVolume, m_worker, &AudioEngineWorker::setVolume, Qt::QueuedConnection);
     connect(this, &AudioEngine::requestSetExclusive, m_worker, &AudioEngineWorker::setExclusive, Qt::QueuedConnection);
-    connect(this, &AudioEngine::requestShutdown, m_worker, &AudioEngineWorker::shutdown, Qt::BlockingQueuedConnection);
+    connect(this, &AudioEngine::requestShutdown, m_worker, &AudioEngineWorker::shutdown, Qt::QueuedConnection);
+
+    if (qApp) {
+        connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() {
+            if (m_workerThread.isRunning()) {
+                emit requestShutdown();
+                m_workerThread.quit();
+                m_workerThread.wait(2000);
+            }
+        });
+    }
 
     // Connect embedded lyrics found in audio stream
     connect(m_worker, &AudioEngineWorker::embeddedLyricsFound, this, [this](const QString &lrc) {
@@ -606,8 +622,28 @@ AudioEngine::AudioEngine(QObject *parent)
     }
     loadEqSettings();
 
-    // Start native worker thread with TimeCriticalPriority per AGENTS.md
+    // Native worker thread start is deferred to prewarm() or play()
+    // eliminating audio driver enumeration from the cold boot path
+}
+
+void AudioEngine::prewarm()
+{
+    if (m_isPrewarmed || m_workerThread.isRunning()) return;
+    m_isPrewarmed = true;
     m_workerThread.start(QThread::TimeCriticalPriority);
+}
+
+bool AudioEngine::waitForInitialization(int timeoutMs)
+{
+    if (!m_isPrewarmed) prewarm();
+    if (m_engineInitialized) return true;
+    QElapsedTimer timer;
+    timer.start();
+    while (!m_engineInitialized && timer.elapsed() < timeoutMs) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+        QThread::msleep(10);
+    }
+    return m_engineInitialized;
 }
 
 AudioEngine::~AudioEngine()
@@ -615,7 +651,7 @@ AudioEngine::~AudioEngine()
     if (m_workerThread.isRunning()) {
         emit requestShutdown();
         m_workerThread.quit();
-        m_workerThread.wait();
+        m_workerThread.wait(3000);
     }
 }
 
@@ -629,6 +665,9 @@ void AudioEngine::setWindowActive(bool active)
 
 void AudioEngine::play(const QString &filePath)
 {
+    if (!m_isPrewarmed) {
+        prewarm();
+    }
     if (filePath.isEmpty()) return;
 
     m_currentTrack = filePath;
