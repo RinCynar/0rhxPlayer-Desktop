@@ -15,6 +15,7 @@ class LibraryManager : public QObject {
     Q_PROPERTY(int trackCount READ trackCount NOTIFY trackCountChanged)
     Q_PROPERTY(bool isScanning READ isScanning NOTIFY isScanningChanged)
     Q_PROPERTY(int scannedCount READ scannedCount NOTIFY scannedCountChanged)
+    Q_PROPERTY(bool isDataLoaded READ isDataLoaded NOTIFY dataLoaded)
     Q_PROPERTY(TrackModel* recommendedTracks READ recommendedTracks NOTIFY recommendedTracksChanged)
     Q_PROPERTY(AlbumModel* recommendedAlbums READ recommendedAlbums NOTIFY recommendedAlbumsChanged)
     Q_PROPERTY(TrackModel* allTracks READ allTracks NOTIFY allTracksChanged)

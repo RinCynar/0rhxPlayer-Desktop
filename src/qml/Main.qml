@@ -41,6 +41,7 @@ ApplicationWindow {
     property bool keepAllViewsLoaded: false
     property var pendingLibraryAction: null
     property bool isNowPlayingFullyExpanded: false
+    readonly property bool isHomeHydrated: (homeLoader && homeLoader.item && typeof homeLoader.item.isContentHydrated !== "undefined") ? homeLoader.item.isContentHydrated : false
 
     function isTabActive(tabId) {
         if (keepAllViewsLoaded) return true;

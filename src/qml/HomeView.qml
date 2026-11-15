@@ -49,6 +49,32 @@ ScrollView {
 
     property bool isRefreshing: false
     property var selectedTrackPaths: []
+    property bool forceHydrated: false
+
+    Timer {
+        id: hydrationFailsafeTimer
+        interval: 1800
+        running: true
+        repeat: false
+        onTriggered: {
+            homeScroll.forceHydrated = true;
+        }
+    }
+
+    readonly property bool isContentHydrated: {
+        if (forceHydrated) return true;
+        if (!LibraryManager.isDataLoaded || LibraryManager.isScanning) {
+            return false;
+        }
+        if (LibraryManager.trackCount === 0) {
+            return true;
+        }
+        var expectedTracks = LibraryManager.recommendedTracks ? LibraryManager.recommendedTracks.count : 0;
+        var expectedAlbums = LibraryManager.recommendedAlbums ? LibraryManager.recommendedAlbums.count : 0;
+        var tracksReady = (expectedTracks === 0) || (featuredTracksRepeater && featuredTracksRepeater.count >= expectedTracks);
+        var albumsReady = (expectedAlbums === 0) || (featuredAlbumsRepeater && featuredAlbumsRepeater.count >= expectedAlbums);
+        return tracksReady && albumsReady;
+    }
 
     function saveStateSnapshot() {
         return {
@@ -423,6 +449,7 @@ ScrollView {
                     spacing: 16
 
                     Repeater {
+                        id: featuredTracksRepeater
                         model: LibraryManager.recommendedTracks
 
                         Rectangle {
@@ -632,6 +659,7 @@ ScrollView {
                     spacing: 16
 
                     Repeater {
+                        id: featuredAlbumsRepeater
                         model: LibraryManager.recommendedAlbums
 
                         Rectangle {
