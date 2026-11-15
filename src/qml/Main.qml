@@ -751,28 +751,116 @@ ApplicationWindow {
     }
     }
 
-    // Modal Custom Navigation Dialog (Phase 1.5)
-    NavCustomDialog {
+    // ------------------------------------------------------------------------
+    // On-Demand Lazy Loaded Modal Dialogs & Context Menu (Phase 27)
+    // ------------------------------------------------------------------------
+
+    // Modal Custom Navigation Dialog (Phase 1.5, Lazy Loaded)
+    Item {
         id: navCustomDialog
         objectName: "navCustomDialog"
+        anchors.fill: parent
+        z: 999
+        property bool isOpen: false
+
+        onIsOpenChanged: {
+            if (isOpen && !navCustomLoader.active) {
+                navCustomLoader.active = true;
+            }
+            if (navCustomLoader.item) {
+                navCustomLoader.item.isOpen = isOpen;
+            }
+        }
+
+        Loader {
+            id: navCustomLoader
+            anchors.fill: parent
+            active: false
+            source: "NavCustomDialog.qml"
+            onLoaded: {
+                if (item) {
+                    item.isOpenChanged.connect(function() {
+                        navCustomDialog.isOpen = item.isOpen;
+                    });
+                    if (navCustomDialog.isOpen) {
+                        item.isOpen = true;
+                    }
+                }
+            }
+        }
     }
 
-    // Modal Track Details Dialog (Phase 9)
-    TrackInfoDialog {
+    // Modal Track Details Dialog (Phase 9, Lazy Loaded)
+    Item {
         id: trackInfoDialog
         objectName: "trackInfoDialog"
+        anchors.fill: parent
+        z: 15000
+
+        Loader {
+            id: trackInfoLoader
+            anchors.fill: parent
+            active: false
+            source: "TrackInfoDialog.qml"
+        }
+
+        function showTrack(path) {
+            if (!trackInfoLoader.active) {
+                trackInfoLoader.active = true;
+            }
+            if (trackInfoLoader.item) {
+                trackInfoLoader.item.showTrack(path);
+            }
+        }
+
+        function close() {
+            if (trackInfoLoader.item) {
+                trackInfoLoader.item.close();
+            }
+        }
     }
 
-    // Modal Add-to-Playlist Dialog (Phase 9)
-    PlaylistSelectDialog {
+    // Modal Add-to-Playlist Dialog (Phase 9, Lazy Loaded)
+    Item {
         id: playlistSelectDialog
         objectName: "playlistSelectDialog"
+        anchors.fill: parent
+        z: 16000
+
+        Loader {
+            id: playlistSelectLoader
+            anchors.fill: parent
+            active: false
+            source: "PlaylistSelectDialog.qml"
+        }
+
+        function openForTracks(paths) {
+            if (!playlistSelectLoader.active) {
+                playlistSelectLoader.active = true;
+            }
+            if (playlistSelectLoader.item) {
+                playlistSelectLoader.item.openForTracks(paths);
+            }
+        }
+
+        function close() {
+            if (playlistSelectLoader.item) {
+                playlistSelectLoader.item.close();
+            }
+        }
     }
 
-    // Global Desktop Right-Click Context Menu (Phase 9)
-    M3ContextMenu {
+    // Global Desktop Right-Click Context Menu (Phase 9, Lazy Loaded)
+    Item {
         id: m3ContextMenu
         objectName: "m3ContextMenu"
+        anchors.fill: parent
+        z: 14000
+
+        property string contextType: menuLoader.item ? menuLoader.item.contextType : "library"
+
+        signal deleteRequested(var paths)
+
         onDeleteRequested: function(paths) {
             if (m3ContextMenu.contextType === "queue") {
                 for (var k = 0; k < paths.length; ++k) {
@@ -786,6 +874,35 @@ ApplicationWindow {
                 LibraryManager.removeTracksFromPlaylist(LibraryManager.currentPlaylistId, paths);
             } else {
                 LibraryManager.removeTracksFromLibrary(paths);
+            }
+        }
+
+        Loader {
+            id: menuLoader
+            anchors.fill: parent
+            active: false
+            source: "M3ContextMenu.qml"
+            onLoaded: {
+                if (item) {
+                    item.deleteRequested.connect(function(paths) {
+                        m3ContextMenu.deleteRequested(paths);
+                    });
+                }
+            }
+        }
+
+        function show(posX, posY, paths, title, artist, ctx) {
+            if (!menuLoader.active) {
+                menuLoader.active = true;
+            }
+            if (menuLoader.item) {
+                menuLoader.item.show(posX, posY, paths, title, artist, ctx);
+            }
+        }
+
+        function close() {
+            if (menuLoader.item) {
+                menuLoader.item.close();
             }
         }
     }

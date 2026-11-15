@@ -3165,6 +3165,7 @@ int main(int argc, char *argv[])
                 ":/src/qml/components/M3TextField.qml",
                 ":/src/qml/components/M3Badge.qml",
                 ":/src/qml/components/M3Dialog.qml",
+                ":/src/qml/components/M3eMorphingLoader.qml",
                 ":/src/qml/components/qmldir"
             };
             bool compOk = true;
@@ -3176,7 +3177,7 @@ int main(int argc, char *argv[])
                 }
             }
             if (compOk) {
-                qInfo() << "[Test-Plugin] Phase 23 Unified M3 Component Kit (all 6 components + qmldir): PASSED";
+                qInfo() << "[Test-Plugin] Phase 23 Unified M3 Component Kit (all 7 components + qmldir): PASSED";
             }
 
             // Cleanup test script engines and mock objects
