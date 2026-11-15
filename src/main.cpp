@@ -484,38 +484,55 @@ int main(int argc, char *argv[])
         });
     }
 
-    auto trimDeepMemory = [&engine]() {
+    QPixmapCache::setCacheLimit(8192); // 8MB pixmap cache bound
+
+    auto trimDeepMemory = [&engine](bool trimWorkingSet = false) {
         engine.trimComponentCache();
         QPixmapCache::clear();
         RoundedImage::trimCache();
+#if defined(_WIN32)
+        if (trimWorkingSet) {
+            SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
+        }
+#endif
     };
 
+    QObject::connect(ConfigManager::instance(), &ConfigManager::trimMemoryRequested, &app, [&engine]() {
+        engine.trimComponentCache();
+    });
+
     // Settle working set after startup burst (font loading, D3D pipeline, initial QML compilation)
-    QTimer::singleShot(2500, trimDeepMemory);
+    QTimer::singleShot(2500, [trimDeepMemory]() {
+        trimDeepMemory(true);
+    });
 
     // After library scanning finishes, purge compilation and image caches
     QObject::connect(LibraryManager::instance(), &LibraryManager::isScanningChanged, &app, [trimDeepMemory]() {
         if (!LibraryManager::instance()->isScanning()) {
-            QTimer::singleShot(500, trimDeepMemory);
+            QTimer::singleShot(500, [trimDeepMemory]() {
+                trimDeepMemory(true);
+            });
         }
     });
 
     if (mainWindow) {
         QObject::connect(mainWindow, &QWindow::visibilityChanged, &app, [mainWindow, trimDeepMemory](QWindow::Visibility v) {
             if (v == QWindow::Minimized || v == QWindow::Hidden) {
-                trimDeepMemory();
+                mainWindow->releaseResources();
+                trimDeepMemory(true);
             } else if (v == QWindow::Windowed || v == QWindow::Maximized) {
                 mainWindow->requestUpdate();
             }
         });
     }
 
-    // Periodic idle component cache trim every 45 seconds to keep baseline RAM low
+    // Periodic idle component cache trim every 15 seconds to keep baseline RAM low
     QTimer *idleTrimTimer = new QTimer(&app);
-    idleTrimTimer->setInterval(45000);
-    QObject::connect(idleTrimTimer, &QTimer::timeout, [&engine]() {
+    idleTrimTimer->setInterval(15000);
+    QObject::connect(idleTrimTimer, &QTimer::timeout, [&app, mainWindow, trimDeepMemory]() {
         if (!LibraryManager::instance()->isScanning()) {
-            engine.trimComponentCache();
+            bool isBg = !mainWindow || mainWindow->visibility() == QWindow::Minimized || mainWindow->visibility() == QWindow::Hidden;
+            trimDeepMemory(isBg);
         }
     });
     idleTrimTimer->start();

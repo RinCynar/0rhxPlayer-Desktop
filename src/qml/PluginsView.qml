@@ -135,9 +135,28 @@ Item {
         }
     }
 
+    // Top Title Bar Safety Mask (48px height, 100% Theme.surface)
+    Rectangle {
+        id: titleBarMask
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 48
+        color: Theme.surface
+        z: 100
+    }
+
+    // Header and Content Column (Positioned below the 48px titleBarMask with 16px safety buffer: x=32, y=64)
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 28
+        id: pluginsMainContentCol
+        anchors.top: titleBarMask.bottom
+        anchors.topMargin: 16
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: 32
+        anchors.rightMargin: 32
+        anchors.bottomMargin: 24
         spacing: 18
 
         // --------------------------------------------------------------------
@@ -147,11 +166,22 @@ Item {
             Layout.fillWidth: true
             spacing: 16
 
-            Text {
-                text: qsTr("Plugins")
-                font.pixelSize: 26
-                font.bold: true
-                color: Theme.textPrimary
+            ColumnLayout {
+                spacing: 4
+
+                Text {
+                    text: qsTr("Plugins")
+                    font.pixelSize: 28
+                    font.bold: true
+                    color: Theme.textPrimary
+                }
+
+                Text {
+                    text: qsTr("Discover, install, and manage extensions")
+                    font.pixelSize: 13
+                    font.weight: Font.Normal
+                    color: Theme.textMuted
+                }
             }
 
             // Tab Switcher Pill Bar (Discover, Installed, Tasks)

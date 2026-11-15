@@ -40,10 +40,11 @@ ApplicationWindow {
     property var viewSnapshots: ({})
     property bool keepAllViewsLoaded: false
     property var pendingLibraryAction: null
+    property bool isNowPlayingFullyExpanded: false
 
     function isTabActive(tabId) {
         if (keepAllViewsLoaded) return true;
-        if (nowPlayingView && nowPlayingView.isFullyExpanded) return false;
+        if (window.isNowPlayingFullyExpanded) return false;
         if (window.currentTab === tabId || window.exitingTab === tabId) return true;
         if (tabId === "pluginSchema" && ((window.currentTab.indexOf("plugin:") === 0) || (window.exitingTab.indexOf("plugin:") === 0))) {
             return true;
@@ -690,6 +691,7 @@ ApplicationWindow {
                 Connections {
                     target: nowPlayingView
                     function onIsFullyExpandedChanged() {
+                        window.isNowPlayingFullyExpanded = nowPlayingView.isFullyExpanded;
                         if (nowPlayingView.isFullyExpanded) {
                             window.saveSnapshot(window.currentTab);
                             gc();
@@ -700,6 +702,7 @@ ApplicationWindow {
                     }
                     function onIsOpenChanged() {
                         if (!nowPlayingView.isOpen) {
+                            window.isNowPlayingFullyExpanded = false;
                             var curLoader = window.getLoaderForTab(window.currentTab);
                             if (curLoader) {
                                 curLoader.opacity = 1.0;
@@ -710,6 +713,7 @@ ApplicationWindow {
                     }
                     function onIsFullyCollapsedChanged() {
                         if (nowPlayingView.isFullyCollapsed) {
+                            window.isNowPlayingFullyExpanded = false;
                             window.restoreSnapshot(window.currentTab);
                             gc();
                             if (typeof ConfigManager !== "undefined" && ConfigManager.trimMemory) {

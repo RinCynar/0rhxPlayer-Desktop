@@ -14,8 +14,8 @@
 #include <QScreen>
 #include <QQuickWindow>
 
-// Limit image cache memory to 16 MB total cost using sizeInBytes()
-static constexpr int MAX_IMAGE_CACHE_BYTES = 16 * 1024 * 1024;
+// Limit image cache memory to 8 MB total cost using sizeInBytes() (strict 8MB~12MB LRU bound)
+static constexpr int MAX_IMAGE_CACHE_BYTES = 8 * 1024 * 1024;
 static QCache<QString, QImage> s_imageCache(MAX_IMAGE_CACHE_BYTES);
 static QMutex s_cacheMutex;
 

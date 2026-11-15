@@ -142,6 +142,7 @@ public:
     Q_INVOKABLE void trimMemory();
 
 signals:
+    void trimMemoryRequested();
     void navItemsChanged();
     void nicknameChanged(const QString &nickname);
     void avatarChanged(const QString &avatar);

@@ -893,5 +893,9 @@ void ConfigManager::trimMemory()
 {
     QPixmapCache::clear();
     RoundedImage::trimCache();
+    emit trimMemoryRequested();
+#if defined(Q_OS_WIN)
+    SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
+#endif
 }
 
