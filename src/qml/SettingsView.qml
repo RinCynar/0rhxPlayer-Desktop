@@ -886,7 +886,7 @@ Item {
                         ColumnLayout {
                             spacing: 2
                             Text {
-                                text: qsTr("Dynamic Seed Color (Material You)")
+                                text: qsTr("Dynamic Seed Color")
                                 font.pixelSize: 13
                                 font.bold: true
                                 color: Theme.textPrimary

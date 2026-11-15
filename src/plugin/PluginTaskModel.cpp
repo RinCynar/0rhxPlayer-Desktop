@@ -245,7 +245,7 @@ void PluginTaskModel::startTask(const QString &taskId,
     if (!workingDir.isEmpty()) item.workingDir = workingDir;
 
     if (item.program.isEmpty()) {
-        setTaskStatus(taskId, "failed", -1, "No executable program specified");
+        setTaskStatus(taskId, "failed", -1, tr("No executable program specified"));
         return;
     }
 
@@ -360,7 +360,7 @@ void PluginTaskModel::onProcessFinished(const QString &taskId, int exitCode, QPr
         setTaskStatus(taskId, "completed", 100);
     } else {
         qWarning() << "[PluginTaskModel] Task failed:" << taskId << "exit code:" << exitCode;
-        setTaskStatus(taskId, "failed", -1, QString("Process exited with code %1").arg(exitCode));
+        setTaskStatus(taskId, "failed", -1, tr("Process exited with code %1").arg(exitCode));
     }
 
     // Sequentially advance queue

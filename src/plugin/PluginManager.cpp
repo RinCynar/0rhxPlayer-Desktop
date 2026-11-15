@@ -671,7 +671,7 @@ void PluginManager::reportSecurityViolation(const QString &pluginId, const QStri
     qWarning() << "[SecuritySandbox]" << err;
     if (m_installed.contains(pluginId)) {
         m_installed[pluginId].status = PluginMetadata::Status::RuntimeError;
-        m_installed[pluginId].statusMessage = "Security Violation";
+        m_installed[pluginId].statusMessage = tr("Security Violation");
         m_installed[pluginId].diagnosticDetails = err;
     }
     m_lastErrorMessage = err;
@@ -855,7 +855,7 @@ void PluginManager::installPluginFromMarket(const QString &pluginId)
 
     // Local file fallback
     if (!target.packageUrl.startsWith("http://") && !target.packageUrl.startsWith("https://")) {
-        QString taskId = m_taskModel->addTask(pluginId, QString("Install %1").arg(target.name), target.packageUrl, QString(), "0px");
+        QString taskId = m_taskModel->addTask(pluginId, tr("Install %1").arg(target.name), target.packageUrl, QString(), "0px");
         m_taskModel->updateTaskProgress(taskId, 50, "running");
         bool ok = installPluginFrom0px(target.packageUrl);
         m_taskModel->updateTaskProgress(taskId, ok ? 100 : 0, ok ? "completed" : "failed", ok ? QString() : m_lastErrorMessage);
@@ -868,7 +868,7 @@ void PluginManager::installPluginFromMarket(const QString &pluginId)
         emit pluginStatusUpdated(pluginId, static_cast<int>(PluginMetadata::Status::Downloading), tr("Downloading package..."));
     }
 
-    QString taskId = m_taskModel->addTask(pluginId, QString("Download %1").arg(target.name), target.packageUrl, QString(), "0px");
+    QString taskId = m_taskModel->addTask(pluginId, tr("Download %1").arg(target.name), target.packageUrl, QString(), "0px");
     m_taskModel->updateTaskProgress(taskId, 0, "running");
 
     QUrl url(target.packageUrl);
@@ -1351,14 +1351,14 @@ QVariantList PluginManager::searchMediaSource(const QString &query)
 QString PluginManager::resolveMediaStream(const QString &pluginId, const QString &mediaId, const QVariantMap &extraParams)
 {
     if (!m_installed.contains(pluginId) || !m_installed[pluginId].enabled) {
-        QString err = QString("Plugin '%1' is not installed or enabled.").arg(pluginId);
+        QString err = tr("Plugin '%1' is not installed or enabled.").arg(pluginId);
         emit errorOccurred(err);
         return QString();
     }
 
     QJSValue targetObj = getPluginScriptObject(pluginId);
     if (!targetObj.isObject()) {
-        QString err = QString("Plugin '%1' script object not found.").arg(pluginId);
+        QString err = tr("Plugin '%1' script object not found.").arg(pluginId);
         emit errorOccurred(err);
         return QString();
     }
@@ -1398,7 +1398,7 @@ QString PluginManager::resolveMediaStream(const QString &pluginId, const QString
     }
 
     if (streamUrl.isEmpty()) {
-        QString err = QString("Failed to resolve dynamic audio stream for media ID '%1' from plugin '%2'").arg(mediaId, pluginId);
+        QString err = tr("Failed to resolve dynamic audio stream for media ID '%1' from plugin '%2'").arg(mediaId, pluginId);
         qWarning() << "[MediaSourceResolver]" << err;
         emit errorOccurred(err);
         return QString();

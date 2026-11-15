@@ -241,7 +241,7 @@ Item {
                             visible: srText.text.length > 0
                             spacing: 8
                             Text {
-                                text: "Sample rate:"
+                                text: qsTr("Sample rate:")
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 color: Theme.textMuted
@@ -267,7 +267,7 @@ Item {
                             visible: chText.text.length > 0
                             spacing: 8
                             Text {
-                                text: "Channels:"
+                                text: qsTr("Channels:")
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 color: Theme.textMuted
@@ -293,7 +293,7 @@ Item {
                             visible: bdText.text.length > 0
                             spacing: 8
                             Text {
-                                text: "Bits per sample:"
+                                text: qsTr("Bits per sample:")
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 color: Theme.textMuted
@@ -319,7 +319,7 @@ Item {
                             visible: brText.text.length > 0
                             spacing: 8
                             Text {
-                                text: "Bitrate:"
+                                text: qsTr("Bitrate:")
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 color: Theme.textMuted
@@ -345,7 +345,7 @@ Item {
                             visible: codecText.text.length > 0
                             spacing: 8
                             Text {
-                                text: "Codec:"
+                                text: qsTr("Codec:")
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 color: Theme.textMuted
@@ -371,7 +371,7 @@ Item {
                             visible: encText.text.length > 0
                             spacing: 8
                             Text {
-                                text: "Encoding:"
+                                text: qsTr("Encoding:")
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 color: Theme.textMuted
@@ -397,7 +397,7 @@ Item {
                             visible: toolText.text.length > 0
                             spacing: 8
                             Text {
-                                text: "Tool:"
+                                text: qsTr("Tool:")
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 color: Theme.textMuted
@@ -932,7 +932,7 @@ Item {
                     }
 
                     Text {
-                        text: "TECHNICAL SPECIFICATIONS"
+                        text: qsTr("TECHNICAL SPECIFICATIONS")
                         font.pixelSize: 12
                         font.bold: true
                         font.letterSpacing: 1.0
@@ -958,7 +958,7 @@ Item {
                         visible: nlSrText.text.length > 0
                         spacing: 8
                         Text {
-                            text: "Sample rate:"
+                            text: qsTr("Sample rate:")
                             font.pixelSize: 11
                             font.weight: Font.Medium
                             color: Theme.textMuted
@@ -984,7 +984,7 @@ Item {
                         visible: nlChText.text.length > 0
                         spacing: 8
                         Text {
-                            text: "Channels:"
+                            text: qsTr("Channels:")
                             font.pixelSize: 11
                             font.weight: Font.Medium
                             color: Theme.textMuted
@@ -1010,7 +1010,7 @@ Item {
                         visible: nlBdText.text.length > 0
                         spacing: 8
                         Text {
-                            text: "Bits per sample:"
+                            text: qsTr("Bits per sample:")
                             font.pixelSize: 11
                             font.weight: Font.Medium
                             color: Theme.textMuted
@@ -1036,7 +1036,7 @@ Item {
                         visible: nlBrText.text.length > 0
                         spacing: 8
                         Text {
-                            text: "Bitrate:"
+                            text: qsTr("Bitrate:")
                             font.pixelSize: 11
                             font.weight: Font.Medium
                             color: Theme.textMuted
@@ -1062,7 +1062,7 @@ Item {
                         visible: nlCodecText.text.length > 0
                         spacing: 8
                         Text {
-                            text: "Codec:"
+                            text: qsTr("Codec:")
                             font.pixelSize: 11
                             font.weight: Font.Medium
                             color: Theme.textMuted
@@ -1088,7 +1088,7 @@ Item {
                         visible: nlEncText.text.length > 0
                         spacing: 8
                         Text {
-                            text: "Encoding:"
+                            text: qsTr("Encoding:")
                             font.pixelSize: 11
                             font.weight: Font.Medium
                             color: Theme.textMuted
@@ -1114,7 +1114,7 @@ Item {
                         visible: nlToolText.text.length > 0
                         spacing: 8
                         Text {
-                            text: "Tool:"
+                            text: qsTr("Tool:")
                             font.pixelSize: 11
                             font.weight: Font.Medium
                             color: Theme.textMuted

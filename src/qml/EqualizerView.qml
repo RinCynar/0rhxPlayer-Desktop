@@ -26,6 +26,19 @@ Item {
         "Flat", "Rock", "Pop", "Classical", "Bass Boost", "Vocal", "Electronic", "Jazz"
     ]
 
+    function getPresetDisplayName(name) {
+        if (name === "Flat") return qsTr("Flat");
+        if (name === "Rock") return qsTr("Rock");
+        if (name === "Pop") return qsTr("Pop");
+        if (name === "Classical") return qsTr("Classical");
+        if (name === "Bass Boost") return qsTr("Bass Boost");
+        if (name === "Vocal") return qsTr("Vocal");
+        if (name === "Electronic") return qsTr("Electronic");
+        if (name === "Jazz") return qsTr("Jazz");
+        if (name === "Custom") return qsTr("Custom");
+        return name;
+    }
+
     function formatDb(val) {
         if (Math.abs(val) < 0.05) return "0.0 dB";
         return (val > 0 ? "+" : "") + Number(val).toFixed(1) + " dB";
@@ -234,7 +247,7 @@ Item {
                                 Text {
                                     id: chipText
                                     anchors.centerIn: parent
-                                    text: modelData
+                                    text: root.getPresetDisplayName(modelData)
                                     font.pixelSize: 12
                                     font.bold: presetChip.isActive
                                     color: presetChip.isActive ? Theme.onPrimary : Theme.textPrimary

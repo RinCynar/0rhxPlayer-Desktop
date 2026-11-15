@@ -9,8 +9,8 @@ Item {
     z: 9999
 
     property string title: ""
-    property string confirmText: "OK"
-    property string cancelText: "Cancel"
+    property string confirmText: qsTr("OK")
+    property string cancelText: qsTr("Cancel")
     property bool showCancel: true
     property int dialogWidth: 440
     default property alias content: contentContainer.data
