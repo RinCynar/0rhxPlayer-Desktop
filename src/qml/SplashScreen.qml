@@ -27,21 +27,13 @@ Rectangle {
         }
     }
 
-    // Safety timeout to guarantee splash never blocks the UI indefinitely
-    Timer {
-        id: safetyTimeoutTimer
-        interval: 2500
-        running: true
-        repeat: false
-        onTriggered: {
-            splashRoot.forceDismiss();
-        }
-    }
-
-    // Strict readiness condition: true only when HomeView has hydrated its recommended tracks/albums
+    // Strict readiness condition: true only when target view (HomeView or CLI tab) has completed hydration
     readonly property bool isHomeReady: {
         if (typeof window !== "undefined") {
             if (window.isTestRun) return true;
+            if (window.currentTab !== "home") {
+                return LibraryManager.isDataLoaded && !LibraryManager.isScanning;
+            }
             if (window.isHomeHydrated !== undefined) {
                 return window.isHomeHydrated;
             }
@@ -59,17 +51,13 @@ Rectangle {
     }
 
     Component.onCompleted: {
+        console.warn("[SplashScreen] Component.onCompleted, visible=" + splashRoot.visible);
         checkAndFadeOut();
     }
 
     function checkAndFadeOut() {
         if (canDismiss && splashRoot.visible && !fadeOutAnim.running) {
-            fadeOutAnim.start();
-        }
-    }
-
-    function forceDismiss() {
-        if (splashRoot.visible && !fadeOutAnim.running) {
+            console.warn("[SplashScreen] Dismissal gate released (minPeriodElapsed=" + minPeriodElapsed + ", isHomeReady=" + isHomeReady + "). Starting fadeOut.");
             fadeOutAnim.start();
         }
     }

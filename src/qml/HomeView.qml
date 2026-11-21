@@ -28,8 +28,12 @@ ScrollView {
     }
 
     Component.onCompleted: {
+        console.warn("[HomeView] Component.onCompleted! isDataReady=" + isDataReady + ", trackCount=" + LibraryManager.trackCount);
         if (contentItem) {
             contentItem.boundsBehavior = Flickable.StopAtBounds;
+        }
+        if (isDataReady && !isContentHydrated) {
+            evaluateHydration();
         }
     }
 
@@ -49,31 +53,139 @@ ScrollView {
 
     property bool isRefreshing: false
     property var selectedTrackPaths: []
-    property bool forceHydrated: false
+    property bool isContentHydrated: false
+    property bool isAwaitingFrame: false
+    property int frameWitnessCount: 0
 
-    Timer {
-        id: hydrationFailsafeTimer
-        interval: 1800
-        running: true
-        repeat: false
-        onTriggered: {
-            homeScroll.forceHydrated = true;
+    function getExpectedTrackCount() {
+        if (!LibraryManager.recommendedTracks) return 0;
+        if (typeof LibraryManager.recommendedTracks.count === "function") {
+            return LibraryManager.recommendedTracks.count();
         }
+        return LibraryManager.recommendedTracks.count || 0;
     }
 
-    readonly property bool isContentHydrated: {
-        if (forceHydrated) return true;
+    function getExpectedAlbumCount() {
+        if (!LibraryManager.recommendedAlbums) return 0;
+        if (typeof LibraryManager.recommendedAlbums.count === "function") {
+            return LibraryManager.recommendedAlbums.count();
+        }
+        return LibraryManager.recommendedAlbums.count || 0;
+    }
+
+    readonly property bool isDataReady: {
         if (!LibraryManager.isDataLoaded || LibraryManager.isScanning) {
             return false;
         }
         if (LibraryManager.trackCount === 0) {
             return true;
         }
-        var expectedTracks = LibraryManager.recommendedTracks ? LibraryManager.recommendedTracks.count : 0;
-        var expectedAlbums = LibraryManager.recommendedAlbums ? LibraryManager.recommendedAlbums.count : 0;
-        var tracksReady = (expectedTracks === 0) || (featuredTracksRepeater && featuredTracksRepeater.count >= expectedTracks);
-        var albumsReady = (expectedAlbums === 0) || (featuredAlbumsRepeater && featuredAlbumsRepeater.count >= expectedAlbums);
+        var expectedTracks = getExpectedTrackCount();
+        var expectedAlbums = getExpectedAlbumCount();
+        var tracksReady = (expectedTracks > 0) && (featuredTracksRepeater && featuredTracksRepeater.count >= expectedTracks);
+        var albumsReady = (expectedAlbums > 0) && (featuredAlbumsRepeater && featuredAlbumsRepeater.count >= expectedAlbums);
         return tracksReady && albumsReady;
+    }
+
+    function checkForegroundLaidOut() {
+        if (LibraryManager.trackCount === 0) {
+            return (emptyLibraryCard !== null && emptyLibraryCard.width > 0 && emptyLibraryCard.height > 0);
+        }
+        var expectedTracks = getExpectedTrackCount();
+        var expectedAlbums = getExpectedAlbumCount();
+        if (expectedTracks === 0 || expectedAlbums === 0) return false;
+        if (!featuredTracksRepeater || featuredTracksRepeater.count < expectedTracks) return false;
+        if (!featuredAlbumsRepeater || featuredAlbumsRepeater.count < expectedAlbums) return false;
+
+        for (var i = 0; i < expectedTracks; ++i) {
+            var trackItem = featuredTracksRepeater.itemAt(i);
+            if (!trackItem || trackItem.width <= 0 || trackItem.height <= 0) {
+                return false;
+            }
+        }
+        for (var j = 0; j < expectedAlbums; ++j) {
+            var albumItem = featuredAlbumsRepeater.itemAt(j);
+            if (!albumItem || albumItem.width <= 0 || albumItem.height <= 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function evaluateHydration() {
+        if (isContentHydrated || isAwaitingFrame) return;
+        if (!isDataReady) return;
+        console.warn("[HomeHydration] evaluateHydration invoked (tracks=" + getExpectedTrackCount() + ", albums=" + getExpectedAlbumCount() + ", totalTracks=" + LibraryManager.trackCount + ").");
+
+        // Double-nested Qt.callLater per specification:
+        // Round 1: Wait for delegate instantiation and model binding propagation
+        Qt.callLater(function() {
+            if (homeScroll.isContentHydrated || homeScroll.isAwaitingFrame || !homeScroll.isDataReady) return;
+
+            // Round 2: Nested Qt.callLater to wait for geometry layout pass
+            Qt.callLater(function() {
+                if (homeScroll.isContentHydrated || homeScroll.isAwaitingFrame || !homeScroll.isDataReady) return;
+
+                if (!homeScroll.checkForegroundLaidOut()) {
+                    // Geometry not settled yet; retry on subsequent event loop tick
+                    Qt.callLater(homeScroll.evaluateHydration);
+                    return;
+                }
+
+                // Foreground layout confirmed. Arm frame witness gate to wait for submitted render frames
+                console.warn("[HomeHydration] Foreground layout confirmed. Arming frame gate.");
+                homeScroll.frameWitnessCount = 0;
+                homeScroll.isAwaitingFrame = true;
+                if (typeof window !== "undefined" && window) {
+                    window.requestUpdate();
+                }
+            });
+        });
+    }
+
+    onIsDataReadyChanged: {
+        if (isDataReady && !isContentHydrated) {
+            evaluateHydration();
+        }
+    }
+
+    Connections {
+        target: LibraryManager
+        function onDataLoaded() {
+            if (homeScroll.isDataReady && !homeScroll.isContentHydrated) {
+                homeScroll.evaluateHydration();
+            }
+        }
+        function onTrackCountChanged() {
+            if (homeScroll.isDataReady && !homeScroll.isContentHydrated) {
+                homeScroll.evaluateHydration();
+            }
+        }
+        function onRecommendedTracksChanged() {
+            if (homeScroll.isDataReady && !homeScroll.isContentHydrated) {
+                homeScroll.evaluateHydration();
+            }
+        }
+        function onRecommendedAlbumsChanged() {
+            if (homeScroll.isDataReady && !homeScroll.isContentHydrated) {
+                homeScroll.evaluateHydration();
+            }
+        }
+    }
+
+    Connections {
+        target: typeof window !== "undefined" ? window : null
+        enabled: homeScroll.isAwaitingFrame && !homeScroll.isContentHydrated
+        ignoreUnknownSignals: true
+        function onFrameSwapped() {
+            homeScroll.frameWitnessCount++;
+            console.warn("[HomeHydration] Real frame witness " + homeScroll.frameWitnessCount + " swapped.");
+            if (homeScroll.frameWitnessCount >= 2) {
+                homeScroll.isAwaitingFrame = false;
+                homeScroll.isContentHydrated = true;
+                console.warn("[HomeHydration] Gate satisfied: isContentHydrated = true.");
+            }
+        }
     }
 
     function saveStateSnapshot() {
@@ -234,6 +346,7 @@ ScrollView {
             // 2. Empty Library State (当本地曲库为 0 时：仅显示空库状态引导卡片)
             // ================================================================
             Rectangle {
+                id: emptyLibraryCard
                 visible: LibraryManager.trackCount === 0
                 Layout.fillWidth: true
                 Layout.preferredHeight: 320
@@ -451,6 +564,11 @@ ScrollView {
                     Repeater {
                         id: featuredTracksRepeater
                         model: LibraryManager.recommendedTracks
+                        onCountChanged: {
+                            if (homeScroll.isDataReady && !homeScroll.isContentHydrated) {
+                                homeScroll.evaluateHydration();
+                            }
+                        }
 
                         Rectangle {
                             id: trackCard
@@ -661,6 +779,11 @@ ScrollView {
                     Repeater {
                         id: featuredAlbumsRepeater
                         model: LibraryManager.recommendedAlbums
+                        onCountChanged: {
+                            if (homeScroll.isDataReady && !homeScroll.isContentHydrated) {
+                                homeScroll.evaluateHydration();
+                            }
+                        }
 
                         Rectangle {
                             id: albumCard
