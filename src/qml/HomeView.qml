@@ -8,6 +8,7 @@ import rhx.ui 1.0
 import rhx.config 1.0
 import rhx.theme 1.0
 import rhx.i18n 1.0
+import "components"
 
 ScrollView {
     id: homeScroll
@@ -51,11 +52,179 @@ ScrollView {
         return qsTr("Good night, have a nice rest");
     }
 
-    property bool isRefreshing: false
+    property bool isRefreshing: isRefreshingRecommendations
     property var selectedTrackPaths: []
     property bool isContentHydrated: false
     property bool isAwaitingFrame: false
     property int frameWitnessCount: 0
+
+    // Three-stage recommendation refresh state machine
+    readonly property int stageIdle: 0
+    readonly property int stageRetreat: 1
+    readonly property int stageLoading: 2
+    readonly property int stageReveal: 3
+    property int refreshStage: stageIdle
+    readonly property bool isRefreshingRecommendations: refreshStage !== stageIdle
+    property real preservedContentHeight: 360
+    property bool minLoadingElapsed: false
+
+    onIsRefreshingRecommendationsChanged: {
+        if (!isRefreshingRecommendations && typeof refreshIcon !== "undefined" && refreshIcon) {
+            refreshIcon.rotation = 0;
+        }
+    }
+
+    function triggerRecommendationRefresh() {
+        if (isRefreshingRecommendations || refreshStage !== stageIdle) {
+            console.warn("[HomeRefresh] Refresh requested but already active (stage=" + refreshStage + "). Re-entrancy blocked.");
+            return;
+        }
+        console.warn("[HomeRefresh] Stage 1 (Retreat): Fading out old recommendations.");
+        refreshStage = stageRetreat;
+        preservedContentHeight = Math.max(recommendationsContent.implicitHeight, 360);
+        homeScroll.clearSelection();
+
+        if (Theme.reduceMotion) {
+            recommendationsContent.opacity = 0.0;
+            startLoadingStage();
+        } else {
+            retreatAnim.restart();
+        }
+    }
+
+    function startLoadingStage() {
+        if (refreshStage !== stageRetreat && refreshStage !== stageIdle) return;
+        refreshStage = stageLoading;
+        console.warn("[HomeRefresh] Stage 2 (Loading): Centered M3eMorphingLoader active (40x40). Shuffling recommendations.");
+
+        recommendationsContent.opacity = 0.0;
+        homeScroll.clearSelection();
+        minLoadingElapsed = false;
+        loaderWrapper.visible = true;
+        loaderWrapper.opacity = 1.0;
+
+        refreshFailsafeTimer.restart();
+        minLoadingTimer.restart();
+
+        // Shuffling fresh recommendations in background
+        LibraryManager.refreshRecommendations();
+    }
+
+    function checkReadinessAndReveal() {
+        if (refreshStage !== stageLoading) return;
+        if (!minLoadingElapsed) return;
+
+        if (checkForegroundLaidOut()) {
+            console.warn("[HomeRefresh] Stage 2: Layout readiness confirmed. Transitioning to Stage 3 (Reveal).");
+            startRevealStage();
+        } else {
+            console.warn("[HomeRefresh] Stage 2: Foreground layout not settled yet, retrying on next frame.");
+            Qt.callLater(function() {
+                if (refreshStage === stageLoading && minLoadingElapsed) {
+                    checkReadinessAndReveal();
+                }
+            });
+        }
+    }
+
+    function startRevealStage() {
+        if (refreshStage !== stageLoading) return;
+        refreshStage = stageReveal;
+        console.warn("[HomeRefresh] Stage 3 (Reveal): Loader fade out and 180ms ease-out upward reveal initiated.");
+
+        if (Theme.reduceMotion) {
+            loaderWrapper.opacity = 0.0;
+            loaderWrapper.visible = false;
+            recommendationsContent.opacity = 1.0;
+            recommendationsContent.y = 0;
+            finishRefreshCycle();
+        } else {
+            loaderFadeAnim.restart();
+            recommendationsContent.y = 12;
+            recommendationsContent.opacity = 0.0;
+            revealAnim.restart();
+        }
+    }
+
+    function finishRefreshCycle() {
+        refreshFailsafeTimer.stop();
+        minLoadingTimer.stop();
+        refreshStage = stageIdle;
+        loaderWrapper.visible = false;
+        loaderWrapper.opacity = 0.0;
+        recommendationsContent.opacity = 1.0;
+        recommendationsContent.y = 0;
+        preservedContentHeight = recommendationsContent.implicitHeight;
+        console.warn("[HomeRefresh] Refresh cycle complete. Button re-enabled. Idle state restored.");
+    }
+
+    Timer {
+        id: minLoadingTimer
+        interval: 350
+        repeat: false
+        onTriggered: {
+            console.warn("[HomeRefresh] Stage 2: Minimum visible duration elapsed (350ms). Checking readiness.");
+            homeScroll.minLoadingElapsed = true;
+            homeScroll.checkReadinessAndReveal();
+        }
+    }
+
+    Timer {
+        id: refreshFailsafeTimer
+        interval: 2500
+        repeat: false
+        onTriggered: {
+            console.warn("[HomeRefresh] Failsafe timeout reached. Forcing recovery to idle state.");
+            homeScroll.finishRefreshCycle();
+        }
+    }
+
+    NumberAnimation {
+        id: retreatAnim
+        target: recommendationsContent
+        property: "opacity"
+        to: 0.0
+        duration: Theme.reduceMotion ? 0 : 100
+        easing.type: Easing.InQuad
+        onFinished: {
+            homeScroll.startLoadingStage();
+        }
+    }
+
+    NumberAnimation {
+        id: loaderFadeAnim
+        target: loaderWrapper
+        property: "opacity"
+        to: 0.0
+        duration: Theme.reduceMotion ? 0 : 180
+        easing.type: Theme.reduceMotion ? Easing.Linear : Easing.OutCubic
+        onFinished: {
+            loaderWrapper.visible = false;
+        }
+    }
+
+    ParallelAnimation {
+        id: revealAnim
+        NumberAnimation {
+            target: recommendationsContent
+            property: "opacity"
+            from: 0.0
+            to: 1.0
+            duration: Theme.reduceMotion ? 0 : 180
+            easing.type: Theme.reduceMotion ? Easing.Linear : Easing.OutCubic
+        }
+        NumberAnimation {
+            target: recommendationsContent
+            property: "y"
+            from: Theme.reduceMotion ? 0 : 12
+            to: 0
+            duration: Theme.reduceMotion ? 0 : 180
+            easing.type: Theme.reduceMotion ? Easing.Linear : Easing.OutCubic
+        }
+        onFinished: {
+            homeScroll.finishRefreshCycle();
+        }
+    }
 
     function getExpectedTrackCount() {
         if (!LibraryManager.recommendedTracks) return 0;
@@ -451,17 +620,26 @@ ScrollView {
 
                     // Refresh Button
                     Rectangle {
+                        id: refreshBtn
+                        objectName: "homeRefreshButton"
                         Layout.preferredHeight: 28
                         Layout.preferredWidth: refreshRow.implicitWidth + 20
                         radius: 14
-                        color: refreshMouse.pressed ? Theme.surfaceContainerHighest : (refreshMouse.containsMouse ? Theme.surfaceContainerHigh : Theme.surfaceContainer)
-                        scale: refreshMouse.pressed ? 0.94 : 1.0
+                        enabled: !homeScroll.isRefreshingRecommendations
+                        opacity: enabled ? 1.0 : 0.6
+                        color: !enabled ? Theme.surfaceContainer
+                             : (refreshMouse.pressed ? Theme.surfaceContainerHighest
+                             : (refreshMouse.containsMouse ? Theme.surfaceContainerHigh : Theme.surfaceContainer))
+                        scale: enabled && refreshMouse.pressed ? 0.94 : 1.0
 
                         Behavior on scale {
                             NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
                         }
                         Behavior on color {
                             ColorAnimation { duration: 120 }
+                        }
+                        Behavior on opacity {
+                            NumberAnimation { duration: 120 }
                         }
 
                         RowLayout {
@@ -470,14 +648,22 @@ ScrollView {
                             spacing: 6
 
                             SvgIcon {
+                                id: refreshIcon
                                 Layout.preferredWidth: 12
                                 Layout.preferredHeight: 12
                                 source: "qrc:/assets/icons/refresh.svg"
                                 color: Theme.primary
-                                rotation: homeScroll.isRefreshing ? 360 : 0
+                                rotation: 0
 
-                                Behavior on rotation {
-                                    NumberAnimation { duration: 400; easing.type: Easing.OutCubic }
+                                NumberAnimation {
+                                    id: refreshIconSpinAnim
+                                    target: refreshIcon
+                                    property: "rotation"
+                                    from: 0
+                                    to: 360
+                                    duration: Theme.reduceMotion ? 0 : 600
+                                    loops: Animation.Infinite
+                                    running: homeScroll.isRefreshingRecommendations
                                 }
                             }
 
@@ -492,19 +678,12 @@ ScrollView {
                         MouseArea {
                             id: refreshMouse
                             anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
+                            hoverEnabled: refreshBtn.enabled
+                            enabled: refreshBtn.enabled
+                            cursorShape: refreshBtn.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                             onClicked: {
-                                homeScroll.isRefreshing = true;
-                                LibraryManager.refreshRecommendations();
-                                refreshTimer.restart();
+                                homeScroll.triggerRecommendationRefresh();
                             }
-                        }
-
-                        Timer {
-                            id: refreshTimer
-                            interval: 400
-                            onTriggered: homeScroll.isRefreshing = false
                         }
                     }
 
@@ -555,20 +734,39 @@ ScrollView {
                     }
                 }
 
-                // 4 Horizontal Capsule Cards
-                Flow {
+                // Recommendations Area (Host for cards content and centered loader)
+                Item {
+                    id: recommendationsArea
                     Layout.fillWidth: true
-                    width: contentCol.width
-                    spacing: 16
+                    implicitHeight: Math.max(recommendationsContent.implicitHeight, homeScroll.preservedContentHeight)
 
-                    Repeater {
-                        id: featuredTracksRepeater
-                        model: LibraryManager.recommendedTracks
-                        onCountChanged: {
-                            if (homeScroll.isDataReady && !homeScroll.isContentHydrated) {
-                                homeScroll.evaluateHydration();
-                            }
-                        }
+                    // Content to retreat and reveal
+                    ColumnLayout {
+                        id: recommendationsContent
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        spacing: 32
+                        opacity: 1.0
+                        enabled: !homeScroll.isRefreshingRecommendations
+                        y: 0
+
+                        // 4 Horizontal Capsule Cards
+                        Flow {
+                            Layout.fillWidth: true
+                            width: contentCol.width
+                            spacing: 16
+
+                            Repeater {
+                                id: featuredTracksRepeater
+                                model: LibraryManager.recommendedTracks
+                                onCountChanged: {
+                                    if (homeScroll.isDataReady && !homeScroll.isContentHydrated) {
+                                        homeScroll.evaluateHydration();
+                                    }
+                                    if (homeScroll.refreshStage === homeScroll.stageLoading && homeScroll.minLoadingElapsed) {
+                                        homeScroll.checkReadinessAndReveal();
+                                    }
+                                }
 
                         Rectangle {
                             id: trackCard
@@ -700,15 +898,11 @@ ScrollView {
                         }
                     }
                 }
-            }
 
-            // ================================================================
-            // 4. Featured Albums (精选专辑推荐网格：严格最多 11 项，卡片宽 140~160px)
-            // ================================================================
-            ColumnLayout {
-                visible: LibraryManager.trackCount > 0
-                Layout.fillWidth: true
-                spacing: 16
+                // Featured Albums
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 16
 
                 // Section Header
                 RowLayout {
@@ -782,6 +976,9 @@ ScrollView {
                         onCountChanged: {
                             if (homeScroll.isDataReady && !homeScroll.isContentHydrated) {
                                 homeScroll.evaluateHydration();
+                            }
+                            if (homeScroll.refreshStage === homeScroll.stageLoading && homeScroll.minLoadingElapsed) {
+                                homeScroll.checkReadinessAndReveal();
                             }
                         }
 
@@ -944,8 +1141,30 @@ ScrollView {
                     }
                 }
             }
+        }
 
-            Item { height: 24 }
+        // Centered M3e Morphing Loader for Stage 2
+        Item {
+            id: loaderWrapper
+            anchors.fill: parent
+            visible: opacity > 0.0
+            opacity: 0.0
+
+            M3eMorphingLoader {
+                id: refreshLoader
+                size: 40
+                width: 40
+                height: 40
+                color: Theme.primary
+                running: homeScroll.refreshStage === homeScroll.stageLoading
+                reduceMotion: Theme.reduceMotion
+                anchors.centerIn: parent
+            }
+        }
+    }
+}
+
+Item { height: 24 }
         }
     }
 }
