@@ -61,7 +61,7 @@ void RoundedImage::geometryChange(const QRectF &newGeometry, const QRectF &oldGe
 {
     QQuickPaintedItem::geometryChange(newGeometry, oldGeometry);
     if (!m_source.isEmpty() && newGeometry.width() > 0 && newGeometry.height() > 0) {
-        if (!m_imageLoaded || oldGeometry.width() <= 0 || oldGeometry.height() <= 0) {
+        if (!m_imageLoaded) {
             reloadImage();
         } else if (!m_fullResolution && !m_sourceSize.isValid()) {
             qreal dpr = window() ? window()->devicePixelRatio() : (qGuiApp && qGuiApp->primaryScreen() ? qGuiApp->primaryScreen()->devicePixelRatio() : 1.0);

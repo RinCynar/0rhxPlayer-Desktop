@@ -76,6 +76,7 @@ Item {
     onIsOpenChanged: {
         if (isOpen && root.hasLyrics && AudioEngine.lyrics.activeIndex >= 0) {
             lyricsList.userInteracting = false;
+            lyricsList.positionViewAtIndex(AudioEngine.lyrics.activeIndex, ListView.Center);
             lyricsList.currentIndex = AudioEngine.lyrics.activeIndex;
         } else if (!isOpen) {
             scrollResumeTimer.stop();
@@ -603,7 +604,7 @@ Item {
                     preferredHighlightBegin: height * 0.47
                     preferredHighlightEnd: height * 0.47
                     highlightRangeMode: ListView.ApplyRange
-                    highlightMoveDuration: 300
+                    highlightMoveDuration: (root.isOpen && !yAnim.running) ? 300 : 0
 
                     header: Item {
                         width: lyricsList.width

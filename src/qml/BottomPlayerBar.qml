@@ -94,6 +94,16 @@ Rectangle {
         }
     }
 
+    // Background click handler for bottom bar empty areas
+    MouseArea {
+        anchors.fill: parent
+        anchors.topMargin: 3
+        cursorShape: Qt.PointingHandCursor
+        onClicked: {
+            playerBar.toggleNowPlayingRequested();
+        }
+    }
+
     // ------------------------------------------------------------------------
     // Bottom Bar Controls Layout (1:1 原版紧凑排版)
     // ------------------------------------------------------------------------

@@ -261,6 +261,7 @@ ApplicationWindow {
         } else {
             var willExpandRail = (preNowPlayingNavCollapsed === false && ConfigManager.autoCollapseRail);
             viewContainer.frozenWidth = rootContainer.width - (willExpandRail ? 220 : navRail.width);
+            viewContainer.width = viewContainer.frozenWidth;
             if (preNowPlayingNavCollapsed !== null) {
                 navRail.collapsed = preNowPlayingNavCollapsed;
                 preNowPlayingNavCollapsed = null;
@@ -694,6 +695,9 @@ ApplicationWindow {
                     function onIsFullyExpandedChanged() {
                         window.isNowPlayingFullyExpanded = nowPlayingView.isFullyExpanded;
                         if (nowPlayingView.isFullyExpanded) {
+                            if (viewContainer.parent) {
+                                viewContainer.width = viewContainer.parent.width;
+                            }
                             window.saveSnapshot(window.currentTab);
                             gc();
                             if (typeof ConfigManager !== "undefined" && ConfigManager.trimMemory) {
@@ -715,11 +719,10 @@ ApplicationWindow {
                     function onIsFullyCollapsedChanged() {
                         if (nowPlayingView.isFullyCollapsed) {
                             window.isNowPlayingFullyExpanded = false;
-                            window.restoreSnapshot(window.currentTab);
-                            gc();
-                            if (typeof ConfigManager !== "undefined" && ConfigManager.trimMemory) {
-                                ConfigManager.trimMemory();
+                            if (viewContainer.parent) {
+                                viewContainer.width = viewContainer.parent.width;
                             }
+                            window.restoreSnapshot(window.currentTab);
                         }
                     }
                 }
