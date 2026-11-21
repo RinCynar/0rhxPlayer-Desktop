@@ -5,6 +5,7 @@ import rhx.audio 1.0
 import rhx.ui 1.0
 import rhx.config 1.0
 import rhx.theme 1.0
+import rhx.plugin 1.0
 
 Item {
     id: root
@@ -500,21 +501,24 @@ Item {
                     id: lyricsSourceBtn
                     anchors.top: parent.top
                     anchors.right: parent.right
-                    anchors.topMargin: 10
-                    anchors.rightMargin: 14
+                    anchors.topMargin: visible ? 10 : 0
+                    anchors.rightMargin: visible ? 14 : 0
                     z: 60
-                    height: 28
+                    visible: PluginManager.hasLyricsProvider
+                    height: visible ? 28 : 0
                     radius: 14
-                    width: lrcSrcRow.implicitWidth + 16
+                    width: visible ? (lrcSrcRow.implicitWidth + 16) : 0
                     color: lrcSrcM.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
                     border.color: Theme.borderSubtle
-                    opacity: lrcSrcM.containsMouse ? 1.0 : 0.7
+                    opacity: visible ? (lrcSrcM.containsMouse ? 1.0 : 0.7) : 0.0
+                    enabled: visible
                     Behavior on opacity { NumberAnimation { duration: 150 } }
 
                     RowLayout {
                         id: lrcSrcRow
                         anchors.centerIn: parent
                         spacing: 6
+                        visible: lyricsSourceBtn.visible
                         SvgIcon {
                             width: 12
                             height: 12
@@ -533,6 +537,7 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
+                        enabled: lyricsSourceBtn.visible
                         onClicked: lyricsCandidatesPopup.open()
                     }
                 }

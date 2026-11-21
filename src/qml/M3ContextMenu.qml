@@ -203,11 +203,11 @@ Item {
 
             // Injected Context Menu Items from Active Plugins (Phase 17)
             Repeater {
-                model: PluginManager.getInjectedMenuItems(menuRoot.contextType === "playlist" ? "playlist" : "track", {
+                model: (PluginManager.hasContextMenuItems && menuRoot.visible) ? PluginManager.getInjectedMenuItems(menuRoot.contextType === "playlist" ? "playlist" : "track", {
                     paths: menuRoot.selectedTrackPaths,
                     title: menuRoot.singleTrackTitle,
                     artist: menuRoot.singleTrackArtist
-                })
+                }) : []
                 delegate: M3MenuItem {
                     iconSource: modelData.icon || "qrc:/assets/icons/plugin.svg"
                     text: modelData.title

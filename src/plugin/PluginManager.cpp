@@ -340,6 +340,27 @@ void PluginManager::refreshInstalledPlugins()
         loadInstalledPluginFromDir(dir.filePath(sub));
     }
 
+    // Clean up any stale plugin sidebar items from ConfigManager that are not installed or enabled
+    auto *cm = ConfigManager::instance();
+    if (cm) {
+        const auto allItems = cm->allNavItems();
+        for (const auto &itemVal : allItems) {
+            QVariantMap item = itemVal.toMap();
+            if (item.value("isPlugin").toBool() || item.value("id").toString().startsWith("plugin:")) {
+                QString pId = item.value("pluginId").toString();
+                if (pId.isEmpty()) {
+                    QString navId = item.value("id").toString();
+                    if (navId.startsWith("plugin:")) {
+                        pId = navId.mid(7);
+                    }
+                }
+                if (pId.isEmpty() || !m_installed.contains(pId) || !m_installed.value(pId).enabled) {
+                    cm->unregisterPluginNavItem(pId);
+                }
+            }
+        }
+    }
+
     syncMarketInstalledState();
     emit pluginsChanged();
     emit categoriesChanged();
@@ -1007,6 +1028,76 @@ bool PluginManager::isPluginEnabled(const QString &pluginId) const
 bool PluginManager::isPluginInstalled(const QString &pluginId) const
 {
     return m_installed.contains(pluginId);
+}
+
+bool PluginManager::hasCapability(const QString &capability) const
+{
+    QString cap = capability.trimmed().toLower();
+    for (auto it = m_installed.cbegin(); it != m_installed.cend(); ++it) {
+        if (!it->enabled || !it->installed) continue;
+
+        if (cap == "lyrics" || cap == "lyricsprovider") {
+            if (it->hooks.value("lyricsProvider").toBool()) return true;
+        } else if (cap == "playbackcontrol" || cap == "playbackcontrols") {
+            if (it->entries.contains("playbackControl")) {
+                QJsonValue v = it->entries.value("playbackControl");
+                if (v.isArray() && !v.toArray().isEmpty()) return true;
+                if (v.isObject() && v.toObject().value("enabled").toBool(true)) return true;
+            }
+        } else if (cap == "contextmenu" || cap == "contextmenuitems") {
+            if (it->entries.contains("contextMenu")) {
+                QJsonObject ctx = it->entries.value("contextMenu").toObject();
+                if (!ctx.isEmpty()) return true;
+            }
+        } else if (cap == "search" || cap == "globalsearch") {
+            if (it->hooks.value("search").toBool() || it->hooks.value("globalSearch").toBool()) return true;
+        } else if (cap == "mediasource") {
+            if (it->hooks.value("mediaSource").toBool()) return true;
+        } else if (cap == "metadata" || cap == "metadataprovider") {
+            if (it->hooks.value("metadataProvider").toBool() || it->hooks.value("metadata").toBool()) return true;
+        } else if (cap == "sidebar") {
+            if (!it->sidebar.isEmpty()) return true;
+        } else {
+            if (it->hooks.contains(capability) && it->hooks.value(capability).toBool()) return true;
+            if (it->entries.contains(capability)) return true;
+        }
+    }
+    return false;
+}
+
+bool PluginManager::hasMatchingPlugin(const QString &capability) const
+{
+    return hasCapability(capability);
+}
+
+bool PluginManager::hasLyricsProvider() const
+{
+    return hasCapability(QStringLiteral("lyricsProvider"));
+}
+
+bool PluginManager::hasPlaybackControls() const
+{
+    return hasCapability(QStringLiteral("playbackControl"));
+}
+
+bool PluginManager::hasContextMenuItems() const
+{
+    return hasCapability(QStringLiteral("contextMenu"));
+}
+
+bool PluginManager::hasSearchHook() const
+{
+    return hasCapability(QStringLiteral("search"));
+}
+
+bool PluginManager::hasMediaSourceHook() const
+{
+    return hasCapability(QStringLiteral("mediaSource"));
+}
+
+bool PluginManager::hasMetadataProvider() const
+{
+    return hasCapability(QStringLiteral("metadataProvider"));
 }
 
 QVariantMap PluginManager::getPluginInfo(const QString &pluginId) const

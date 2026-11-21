@@ -66,6 +66,13 @@ class PluginManager : public QObject {
     Q_PROPERTY(QString marketStatusMessage READ marketStatusMessage NOTIFY marketStatusMessageChanged)
     Q_PROPERTY(PluginTaskModel* taskModel READ taskModel CONSTANT)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY errorOccurred)
+    Q_PROPERTY(bool hasLyricsProvider READ hasLyricsProvider NOTIFY pluginsChanged)
+    Q_PROPERTY(bool hasPlaybackControls READ hasPlaybackControls NOTIFY pluginsChanged)
+    Q_PROPERTY(bool hasContextMenuItems READ hasContextMenuItems NOTIFY pluginsChanged)
+    Q_PROPERTY(bool hasSearchHook READ hasSearchHook NOTIFY pluginsChanged)
+    Q_PROPERTY(bool hasMediaSourceHook READ hasMediaSourceHook NOTIFY pluginsChanged)
+    Q_PROPERTY(bool hasMetadataProvider READ hasMetadataProvider NOTIFY pluginsChanged)
+    Q_PROPERTY(QVariantList injectedPlaybackControls READ getInjectedPlaybackControls NOTIFY pluginsChanged)
 
 public:
     static PluginManager *instance();
@@ -82,6 +89,16 @@ public:
     bool isFetchingMarket() const { return m_isFetchingMarket; }
     QString marketStatusMessage() const { return m_marketStatusMessage; }
     QString lastErrorMessage() const { return m_lastErrorMessage; }
+
+    bool hasLyricsProvider() const;
+    bool hasPlaybackControls() const;
+    bool hasContextMenuItems() const;
+    bool hasSearchHook() const;
+    bool hasMediaSourceHook() const;
+    bool hasMetadataProvider() const;
+
+    Q_INVOKABLE bool hasCapability(const QString &capability) const;
+    Q_INVOKABLE bool hasMatchingPlugin(const QString &capability) const;
 
     Q_INVOKABLE void refreshInstalledPlugins();
     Q_INVOKABLE void fetchMarketIndex(const QString &customUrl = QString());

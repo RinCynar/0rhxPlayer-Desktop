@@ -599,7 +599,7 @@ Rectangle {
 
             // 6. Injected Playback Controls from Active Plugins (Phase 17)
             Repeater {
-                model: PluginManager.getInjectedPlaybackControls()
+                model: PluginManager.injectedPlaybackControls
                 delegate: Rectangle {
                     Layout.preferredWidth: 36
                     Layout.preferredHeight: 36
