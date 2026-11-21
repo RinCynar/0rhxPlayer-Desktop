@@ -42,6 +42,10 @@ QVariant LyricModel::data(const QModelIndex &index, int role) const
         return item.trans;
     case IsActiveRole:
         return (index.row() == m_activeIndex);
+    case HasWordsRole:
+        return item.hasWords;
+    case WordsRole:
+        return item.words;
     default:
         return QVariant();
     }
@@ -54,6 +58,8 @@ QHash<int, QByteArray> LyricModel::roleNames() const
     roles[TextRole] = "text";
     roles[TransRole] = "trans";
     roles[IsActiveRole] = "isActive";
+    roles[HasWordsRole] = "hasWords";
+    roles[WordsRole] = "words";
     return roles;
 }
 
@@ -65,6 +71,22 @@ qint64 LyricModel::getTimeMs(int index) const
     return 0;
 }
 
+bool LyricModel::hasWords(int index) const
+{
+    if (index >= 0 && index < m_lines.size()) {
+        return m_lines[index].hasWords;
+    }
+    return false;
+}
+
+QVariantList LyricModel::getWords(int index) const
+{
+    if (index >= 0 && index < m_lines.size()) {
+        return m_lines[index].words;
+    }
+    return QVariantList();
+}
+
 void LyricModel::clear()
 {
     if (m_lines.isEmpty()) {
@@ -72,12 +94,17 @@ void LyricModel::clear()
             m_activeIndex = -1;
             emit activeIndexChanged(m_activeIndex);
         }
+        if (m_currentPositionMs != 0) {
+            m_currentPositionMs = 0;
+            emit currentPositionMsChanged(0);
+        }
         return;
     }
 
     beginResetModel();
     m_lines.clear();
     m_activeIndex = -1;
+    m_currentPositionMs = 0;
     endResetModel();
 
     emit countChanged();
@@ -87,6 +114,7 @@ void LyricModel::clear()
         emit hasTranslationChanged();
     }
     emit activeIndexChanged(m_activeIndex);
+    emit currentPositionMsChanged(0);
 }
 
 static QString decodeId3v2Text(const QByteArray &data)
@@ -369,6 +397,11 @@ void LyricModel::loadLrcContent(const QString &content)
 
 void LyricModel::updatePosition(qint64 positionMs)
 {
+    if (m_currentPositionMs != positionMs) {
+        m_currentPositionMs = positionMs;
+        emit currentPositionMsChanged(m_currentPositionMs);
+    }
+
     if (m_lines.isEmpty()) {
         if (m_activeIndex != -1) {
             m_activeIndex = -1;
@@ -402,13 +435,36 @@ void LyricModel::updatePosition(qint64 positionMs)
     }
 }
 
+bool LyricModel::parseInlineTimestamp(const QString &tag, qint64 &timeMs)
+{
+    double sec = 0.0;
+    if (parseTimestamp(tag.trimmed(), sec)) {
+        timeMs = static_cast<qint64>(std::round(sec * 1000.0));
+        return true;
+    }
+    return false;
+}
+
+QString LyricModel::stripInlineTags(const QString &str)
+{
+    static const QRegularExpression stripTagRegex(QStringLiteral("<\\s*\\d+:\\d{1,2}(?:[.:]\\d{1,3})?\\s*>"));
+    QString result = str;
+    result.remove(stripTagRegex);
+    return result.trimmed();
+}
+
 void LyricModel::parseLrcContent(const QString &content)
 {
-    struct RawItem {
-        double timeSec;
-        QString text;
+    struct ParsedRawLine {
+        double timeSec{0.0};
+        QString rawText;
+        bool hasInlineWords{false};
+        QVector<LyricWord> parsedWords;
+        QString cleanText;
     };
-    QVector<RawItem> rawItems;
+    QVector<ParsedRawLine> rawItems;
+
+    static const QRegularExpression inlineTagRegex(QStringLiteral("<\\s*(\\d+:\\d{1,2}(?:[.:]\\d{1,3})?)\\s*>"));
 
     const QStringList lines = content.split(QRegularExpression(QStringLiteral("[\r\n]+")), Qt::SkipEmptyParts);
 
@@ -439,12 +495,93 @@ void LyricModel::parseLrcContent(const QString &content)
 
         QString lyricText = line.mid(textStart).trimmed();
 
-        if (!timestamps.isEmpty()) {
-            for (double t : timestamps) {
-                rawItems.append({t, lyricText});
+        struct TagMatch {
+            qsizetype start;
+            qsizetype end;
+            qint64 timeMs;
+        };
+        QVector<TagMatch> tagMatches;
+        auto it = inlineTagRegex.globalMatch(lyricText);
+        while (it.hasNext()) {
+            auto m = it.next();
+            qint64 tMs = 0;
+            if (parseInlineTimestamp(m.captured(1), tMs)) {
+                tagMatches.append({m.capturedStart(), m.capturedEnd(), tMs});
             }
-        } else if (!line.startsWith(QLatin1Char('['))) {
-            rawItems.append({0.0, line});
+        }
+
+        if (timestamps.isEmpty() && !tagMatches.isEmpty() && tagMatches[0].start == 0) {
+            timestamps.append(static_cast<double>(tagMatches[0].timeMs) / 1000.0);
+        }
+
+        if (timestamps.isEmpty() && !line.startsWith(QLatin1Char('['))) {
+            QString stripped = stripInlineTags(lyricText);
+            if (!stripped.isEmpty()) {
+                ParsedRawLine item;
+                item.timeSec = 0.0;
+                item.rawText = lyricText;
+                item.cleanText = stripped;
+                item.hasInlineWords = false;
+                rawItems.append(item);
+            }
+            continue;
+        }
+
+        for (double t : timestamps) {
+            qint64 lineTimeMs = static_cast<qint64>(std::round(t * 1000.0));
+            ParsedRawLine item;
+            item.timeSec = t;
+            item.rawText = lyricText;
+
+            if (tagMatches.isEmpty()) {
+                item.hasInlineWords = false;
+                item.cleanText = stripInlineTags(lyricText);
+            } else {
+                item.hasInlineWords = true;
+                QVector<LyricWord> words;
+
+                if (tagMatches[0].start > 0) {
+                    QString before = lyricText.mid(0, tagMatches[0].start);
+                    if (!before.isEmpty()) {
+                        LyricWord w;
+                        w.text = before;
+                        w.startMs = lineTimeMs;
+                        w.endMs = tagMatches[0].timeMs;
+                        words.append(w);
+                    }
+                }
+
+                for (int k = 0; k < tagMatches.size(); ++k) {
+                    qsizetype chunkStart = tagMatches[k].end;
+                    qsizetype chunkEnd = (k + 1 < tagMatches.size()) ? tagMatches[k + 1].start : lyricText.length();
+                    QString chunk = lyricText.mid(chunkStart, chunkEnd - chunkStart);
+
+                    if (!chunk.isEmpty()) {
+                        LyricWord w;
+                        w.text = chunk;
+                        w.startMs = tagMatches[k].timeMs;
+                        if (k + 1 < tagMatches.size()) {
+                            w.endMs = tagMatches[k + 1].timeMs;
+                        } else {
+                            w.endMs = w.startMs + 500;
+                        }
+                        words.append(w);
+                    }
+                }
+
+                QString clean;
+                for (const auto &w : words) {
+                    clean += w.text;
+                }
+                clean = stripInlineTags(clean);
+                item.cleanText = clean.trimmed();
+                if (item.cleanText.isEmpty()) {
+                    item.cleanText = stripInlineTags(lyricText);
+                }
+                item.parsedWords = words;
+            }
+
+            rawItems.append(item);
         }
     }
 
@@ -459,40 +596,66 @@ void LyricModel::parseLrcContent(const QString &content)
     QVector<LyricItem> result;
     if (!hasTimestamps) {
         for (const auto &item : rawItems) {
-            if (!item.text.isEmpty()) {
+            if (!item.cleanText.isEmpty()) {
                 LyricItem li;
                 li.timeMs = 0;
-                li.text = item.text;
+                li.text = item.cleanText;
                 li.trans = QString();
+                li.hasWords = false;
                 result.append(li);
             }
         }
     } else {
-        std::stable_sort(rawItems.begin(), rawItems.end(), [](const RawItem &a, const RawItem &b) {
+        std::stable_sort(rawItems.begin(), rawItems.end(), [](const ParsedRawLine &a, const ParsedRawLine &b) {
             return a.timeSec < b.timeSec;
         });
 
         int i = 0;
         while (i < rawItems.size()) {
             double time = rawItems[i].timeSec;
-            QString text = rawItems[i].text;
+            QString text = rawItems[i].cleanText;
+            bool hasWords = rawItems[i].hasInlineWords;
+            QVector<LyricWord> words = rawItems[i].parsedWords;
             QString trans;
 
             int j = i + 1;
             while (j < rawItems.size() && std::abs(rawItems[j].timeSec - time) < 0.05) {
-                const QString &nextText = rawItems[j].text;
-                if (trans.isEmpty() && isLikelyTranslation(nextText)) {
-                    trans = nextText;
+                const QString &nextClean = rawItems[j].cleanText;
+                if (trans.isEmpty() && isLikelyTranslation(nextClean)) {
+                    trans = nextClean;
                     j++;
                     break;
                 }
                 break;
             }
 
+            if (hasWords && !words.isEmpty()) {
+                int nextIndex = (j > i + 1) ? j : (i + 1);
+                if (nextIndex < rawItems.size()) {
+                    qint64 nextTimeMs = static_cast<qint64>(std::round(rawItems[nextIndex].timeSec * 1000.0));
+                    if (words.last().endMs > nextTimeMs && nextTimeMs > words.last().startMs) {
+                        words.last().endMs = nextTimeMs;
+                    }
+                }
+            }
+
             LyricItem item;
             item.timeMs = static_cast<qint64>(std::round(time * 1000.0));
             item.text = text;
-            item.trans = trans;
+            item.trans = stripInlineTags(trans);
+            item.hasWords = hasWords && !words.isEmpty();
+
+            QVariantList vWords;
+            vWords.reserve(words.size());
+            for (const auto &w : words) {
+                QVariantMap wm;
+                wm[QStringLiteral("text")] = w.text;
+                wm[QStringLiteral("startMs")] = w.startMs;
+                wm[QStringLiteral("endMs")] = w.endMs;
+                vWords.append(wm);
+            }
+            item.words = vWords;
+
             result.append(item);
 
             i = (j > i + 1) ? j : (i + 1);

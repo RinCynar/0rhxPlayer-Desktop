@@ -22,6 +22,49 @@ Item {
     readonly property int effectiveLyricsFontSize: (typeof ConfigManager !== "undefined" && ConfigManager && ConfigManager.lyricsFontSize > 0) ? ConfigManager.lyricsFontSize : 30
 
     // ------------------------------------------------------------------------
+    // Enhanced Word-by-Word Lyric Highlight Formatter (Single Text Flow)
+    // ------------------------------------------------------------------------
+    function interpolateHexColor(c1, c2, factor) {
+        var f = Math.min(1.0, Math.max(0.0, factor));
+        var q1 = Qt.color(c1);
+        var q2 = Qt.color(c2);
+        var r = Math.round((q1.r + (q2.r - q1.r) * f) * 255);
+        var g = Math.round((q1.g + (q2.g - q1.g) * f) * 255);
+        var b = Math.round((q1.b + (q2.b - q1.b) * f) * 255);
+        var hexR = (r < 16 ? "0" : "") + r.toString(16);
+        var hexG = (g < 16 ? "0" : "") + g.toString(16);
+        var hexB = (b < 16 ? "0" : "") + b.toString(16);
+        return "#" + hexR + hexG + hexB;
+    }
+
+    function buildEnhancedLyricHtml(words, currentPos) {
+        if (!words || words.length === 0) return "";
+        var html = "";
+        var activeCol = "" + Qt.color(Theme.primary);
+        var inactiveCol = "" + Qt.color(Theme.textMuted);
+
+        for (var i = 0; i < words.length; ++i) {
+            var w = words[i];
+            var rawText = (w && w.text) ? w.text : "";
+            var escaped = rawText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            var sMs = (w && typeof w.startMs !== "undefined") ? w.startMs : 0;
+            var eMs = (w && typeof w.endMs !== "undefined") ? w.endMs : 0;
+
+            if (currentPos >= eMs) {
+                html += "<font color='" + activeCol + "'>" + escaped + "</font>";
+            } else if (currentPos >= sMs) {
+                var span = Math.max(1, eMs - sMs);
+                var prog = Math.min(1.0, Math.max(0.0, (currentPos - sMs) / span));
+                var midCol = root.interpolateHexColor(inactiveCol, activeCol, prog);
+                html += "<font color='" + midCol + "'>" + escaped + "</font>";
+            } else {
+                html += "<font color='" + inactiveCol + "'>" + escaped + "</font>";
+            }
+        }
+        return html;
+    }
+
+    // ------------------------------------------------------------------------
     // Dynamic Audio Specs Formatters (Strictly dynamic data, fallback to "—")
     // ------------------------------------------------------------------------
     function getSampleRateDisplay() {
@@ -633,6 +676,12 @@ Item {
                         height: textWrapper.implicitHeight + 20
 
                         readonly property bool isActive: index === AudioEngine.lyrics.activeIndex
+                        readonly property var currentAudioPos: {
+                            if (AudioEngine.lyrics && typeof AudioEngine.lyrics.currentPositionMs !== "undefined" && AudioEngine.lyrics.currentPositionMs > 0) {
+                                return AudioEngine.lyrics.currentPositionMs;
+                            }
+                            return AudioEngine.positionMs;
+                        }
                         readonly property string alignSetting: (typeof ConfigManager !== "undefined" && ConfigManager && ConfigManager.lyricsAlign) ? ConfigManager.lyricsAlign : "right"
                         readonly property real maxContentWidth: Math.max(10, lineDelegate.width - 44)
                         readonly property real naturalTextWidth: Math.max(mainLyricText.implicitWidth, (transLyricText.visible ? transLyricText.implicitWidth : 0))
@@ -650,26 +699,27 @@ Item {
                             anchors.horizontalCenter: lineDelegate.alignSetting === "center" ? parent.horizontalCenter : undefined
                             spacing: 4
 
-                            // Main lyric text line (Strictly AlignRight by default, matching React original)
+                            // Main lyric text line (Single text flow: word-by-word highlight or whole-line highlight)
                             Text {
                                 id: mainLyricText
                                 objectName: "mainLyricText"
                                 width: textWrapper.width
-                                text: model.text
+                                textFormat: (lineDelegate.isActive && Boolean(model.hasWords)) ? Text.StyledText : Text.PlainText
+                                text: {
+                                    var raw = (typeof model.text !== "undefined" && model.text !== null) ? ("" + model.text) : "";
+                                    if (lineDelegate.isActive && Boolean(model.hasWords)) {
+                                        var h = root.buildEnhancedLyricHtml(model.words, lineDelegate.currentAudioPos);
+                                        if (h && h.length > 0) return h;
+                                    }
+                                    return raw;
+                                }
                                 font.pixelSize: lineDelegate.isActive ? root.effectiveLyricsFontSize : Math.max(13, Math.round(root.effectiveLyricsFontSize * 0.72))
                                 font.bold: lineDelegate.isActive
                                 color: lineDelegate.isActive ? Theme.textPrimary : Theme.textSecondary
                                 opacity: lineDelegate.isActive ? 1.0 : (lineMouse.containsMouse ? 0.75 : 0.35)
                                 wrapMode: Text.WordWrap
-                                horizontalAlignment: {
-                                    if (lineDelegate.alignSetting === "left") return Text.AlignLeft;
-                                    if (lineDelegate.alignSetting === "center") return Text.AlignHCenter;
-                                    return Text.AlignRight;
-                                }
+                                horizontalAlignment: lineDelegate.alignSetting === "left" ? Text.AlignLeft : (lineDelegate.alignSetting === "center" ? Text.AlignHCenter : Text.AlignRight)
 
-                                Behavior on font.pixelSize {
-                                    NumberAnimation { duration: 200 }
-                                }
                                 Behavior on opacity {
                                     NumberAnimation { duration: 250 }
                                 }
@@ -683,18 +733,14 @@ Item {
                                 id: transLyricText
                                 objectName: "transLyricText"
                                 width: textWrapper.width
-                                visible: root.showTrans && model.trans.length > 0
-                                text: model.trans
+                                visible: root.showTrans && Boolean(model.trans && model.trans.length > 0)
+                                text: (typeof model.trans !== "undefined" && model.trans !== null) ? ("" + model.trans) : ""
                                 font.pixelSize: lineDelegate.isActive ? Math.max(12, Math.round(root.effectiveLyricsFontSize * 0.58)) : Math.max(10, Math.round(root.effectiveLyricsFontSize * 0.48))
                                 font.bold: false
                                 color: lineDelegate.isActive ? Theme.textSecondary : Theme.textMuted
                                 opacity: lineDelegate.isActive ? 0.9 : (lineMouse.containsMouse ? 0.65 : 0.35)
                                 wrapMode: Text.WordWrap
-                                horizontalAlignment: {
-                                    if (lineDelegate.alignSetting === "left") return Text.AlignLeft;
-                                    if (lineDelegate.alignSetting === "center") return Text.AlignHCenter;
-                                    return Text.AlignRight;
-                                }
+                                horizontalAlignment: lineDelegate.alignSetting === "left" ? Text.AlignLeft : (lineDelegate.alignSetting === "center" ? Text.AlignHCenter : Text.AlignRight)
 
                                 Behavior on opacity {
                                     NumberAnimation { duration: 250 }
