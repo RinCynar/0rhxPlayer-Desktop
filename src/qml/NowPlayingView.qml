@@ -119,11 +119,61 @@ Item {
     onIsOpenChanged: {
         if (isOpen && root.hasLyrics && AudioEngine.lyrics.activeIndex >= 0) {
             lyricsList.userInteracting = false;
+            lyricSpringAnim.stop();
             lyricsList.positionViewAtIndex(AudioEngine.lyrics.activeIndex, ListView.Center);
             lyricsList.currentIndex = AudioEngine.lyrics.activeIndex;
         } else if (!isOpen) {
+            lyricSpringAnim.stop();
             scrollResumeTimer.stop();
         }
+    }
+
+    function scrollToActiveLine(immediate) {
+        var imm = (typeof immediate !== "undefined") ? Boolean(immediate) : false;
+        if (AudioEngine.lyrics.hasLyrics && AudioEngine.lyrics.activeIndex >= 0) {
+            scrollToIndex(AudioEngine.lyrics.activeIndex, imm);
+        }
+    }
+
+    function scrollToIndex(idx, immediate) {
+        if (!root.hasLyrics || idx < 0 || idx >= AudioEngine.lyrics.count) return;
+        if (!lyricsList || lyricsList.height <= 0) return;
+
+        var imm = (typeof immediate !== "undefined") ? Boolean(immediate) : false;
+
+        var item = lyricsList.itemAtIndex(idx);
+        if (!item) {
+            lyricsList.forceLayout();
+            item = lyricsList.itemAtIndex(idx);
+        }
+
+        var targetY = 0;
+        if (item) {
+            var itemCenter = item.y + item.height * 0.5;
+            targetY = itemCenter - lyricsList.height * 0.47;
+        } else {
+            lyricsList.positionViewAtIndex(idx, ListView.Center);
+            targetY = lyricsList.contentY;
+        }
+
+        var minY = -lyricsList.height * 0.47;
+        var maxY = minY + Math.max(0, lyricsList.contentHeight - lyricsList.height);
+        targetY = Math.max(minY, Math.min(maxY, targetY));
+
+        if (imm || (Theme.reduceMotion && root.isAnimating)) {
+            lyricSpringAnim.stop();
+            lyricsList.contentY = targetY;
+            return;
+        }
+
+        if (Math.abs(targetY - lyricsList.contentY) < 1.0) {
+            return;
+        }
+
+        lyricSpringAnim.stop();
+        lyricSpringAnim.from = lyricsList.contentY;
+        lyricSpringAnim.to = targetY;
+        lyricSpringAnim.start();
     }
 
     // 100% Solid Flat dark background (Strictly Flat M3: no blur, no gradient masks)
@@ -481,7 +531,7 @@ Item {
                     onTriggered: {
                         lyricsList.userInteracting = false;
                         if (AudioEngine.lyrics.hasLyrics && AudioEngine.lyrics.activeIndex >= 0) {
-                            lyricsList.currentIndex = AudioEngine.lyrics.activeIndex;
+                            root.scrollToActiveLine();
                         }
                     }
                 }
@@ -491,7 +541,30 @@ Item {
                     function onActiveIndexChanged(idx) {
                         if (root.isOpen && !lyricsList.userInteracting && idx >= 0) {
                             lyricsList.currentIndex = idx;
+                            root.scrollToIndex(idx);
                         }
+                    }
+                    function onCountChanged() {
+                        if (root.isOpen && !lyricsList.userInteracting && AudioEngine.lyrics.activeIndex >= 0) {
+                            root.scrollToActiveLine(true);
+                        }
+                    }
+                }
+
+                NumberAnimation {
+                    id: lyricSpringAnim
+                    objectName: "lyricSpringAnim"
+                    target: lyricsList
+                    property: "contentY"
+                    alwaysRunToEnd: false
+                    duration: Theme.reduceMotion ? 200 : 460
+                    easing.type: Theme.reduceMotion ? Easing.OutCubic : Easing.OutBack
+                    easing.overshoot: Theme.reduceMotion ? 1.0 : 1.14
+                    onFinished: {
+                        var minY = -lyricsList.height * 0.47;
+                        var maxY = minY + Math.max(0, lyricsList.contentHeight - lyricsList.height);
+                        if (lyricsList.contentY < minY) lyricsList.contentY = minY;
+                        else if (lyricsList.contentY > maxY) lyricsList.contentY = maxY;
                     }
                 }
 
@@ -509,26 +582,39 @@ Item {
                     visible: AudioEngine.lyrics.hasLyrics && AudioEngine.lyrics.count > 0
 
                     property bool userInteracting: false
+                    property alias isSpringAnimating: lyricSpringAnim.running
+                    property alias springTargetY: lyricSpringAnim.to
+                    property alias springOvershoot: lyricSpringAnim.easing.overshoot
+                    cacheBuffer: 50000
 
                     model: AudioEngine.lyrics
 
                     // Centering highlight lock at 47%
                     preferredHighlightBegin: height * 0.47
                     preferredHighlightEnd: height * 0.47
-                    highlightRangeMode: ListView.ApplyRange
-                    highlightMoveDuration: (root.isOpen && !yAnim.running) ? 300 : 0
+                    highlightRangeMode: ListView.NoHighlightRange
+                    highlightMoveDuration: 0
 
                     header: Item {
+                        id: listHeader
                         width: lyricsList.width
                         height: lyricsList.height * 0.47
                     }
 
                     footer: Item {
+                        id: listFooter
                         width: lyricsList.width
                         height: lyricsList.height * 0.53
                     }
 
+                    onHeightChanged: {
+                        if (root.isOpen && !userInteracting && AudioEngine.lyrics.activeIndex >= 0) {
+                            root.scrollToIndex(AudioEngine.lyrics.activeIndex, true);
+                        }
+                    }
+
                     onMovementStarted: {
+                        lyricSpringAnim.stop();
                         userInteracting = true;
                         scrollResumeTimer.restart();
                     }
@@ -536,6 +622,64 @@ Item {
                     onMovementEnded: {
                         userInteracting = true;
                         scrollResumeTimer.restart();
+                    }
+
+                    onDraggingChanged: {
+                        if (dragging) {
+                            lyricSpringAnim.stop();
+                            userInteracting = true;
+                            scrollResumeTimer.stop();
+                        } else if (!flicking) {
+                            scrollResumeTimer.restart();
+                        }
+                    }
+
+                    onFlickingChanged: {
+                        if (flicking) {
+                            lyricSpringAnim.stop();
+                            userInteracting = true;
+                            scrollResumeTimer.stop();
+                        } else if (!dragging) {
+                            scrollResumeTimer.restart();
+                        }
+                    }
+
+                    DragHandler {
+                        id: lyricDragHandler
+                        target: null
+                        xAxis.enabled: false
+                        yAxis.enabled: true
+                        grabPermissions: PointerHandler.CanTakeOverFromItems | PointerHandler.CanTakeOverFromHandlersOfDifferentType | PointerHandler.ApprovesTakeOverByAnything
+                        property real startContentY: 0
+                        onActiveChanged: {
+                            if (active) {
+                                lyricSpringAnim.stop();
+                                lyricsList.userInteracting = true;
+                                scrollResumeTimer.stop();
+                                startContentY = lyricsList.contentY;
+                            } else {
+                                lyricsList.userInteracting = true;
+                                scrollResumeTimer.restart();
+                                var minY = -lyricsList.height * 0.47;
+                                var maxY = minY + Math.max(0, lyricsList.contentHeight - lyricsList.height);
+                                if (lyricsList.contentY < minY || lyricsList.contentY > maxY) {
+                                    lyricsList.returnToBounds();
+                                }
+                            }
+                        }
+                        onTranslationChanged: {
+                            if (active) {
+                                var newY = startContentY - translation.y;
+                                var minY = -lyricsList.height * 0.47;
+                                var maxY = minY + Math.max(0, lyricsList.contentHeight - lyricsList.height);
+                                if (newY < minY) {
+                                    newY = minY + (newY - minY) * 0.3;
+                                } else if (newY > maxY) {
+                                    newY = maxY + (newY - maxY) * 0.3;
+                                }
+                                lyricsList.contentY = newY;
+                            }
+                        }
                     }
 
                     delegate: Item {
@@ -573,7 +717,7 @@ Item {
                                 id: mainLyricText
                                 objectName: "mainLyricText"
                                 width: textWrapper.width
-                                textFormat: (lineDelegate.isActive && Boolean(model.hasWords)) ? Text.StyledText : Text.PlainText
+                                textFormat: Boolean(model.hasWords) ? Text.StyledText : Text.PlainText
                                 text: {
                                     var raw = (typeof model.text !== "undefined" && model.text !== null) ? ("" + model.text) : "";
                                     if (lineDelegate.isActive && Boolean(model.hasWords)) {
@@ -582,18 +726,31 @@ Item {
                                     }
                                     return raw;
                                 }
-                                font.pixelSize: lineDelegate.isActive ? root.effectiveLyricsFontSize : Math.max(13, Math.round(root.effectiveLyricsFontSize * 0.72))
+                                font.pixelSize: root.effectiveLyricsFontSize
                                 font.bold: lineDelegate.isActive
                                 color: lineDelegate.isActive ? Theme.textPrimary : Theme.textSecondary
                                 opacity: lineDelegate.isActive ? 1.0 : (lineMouse.containsMouse ? 0.75 : 0.35)
+                                scale: lineDelegate.isActive ? 1.0 : (root.effectiveLyricsFontSize > 0 ? Math.max(13, Math.round(root.effectiveLyricsFontSize * 0.72)) / root.effectiveLyricsFontSize : 0.72)
+                                transformOrigin: lineDelegate.alignSetting === "left" ? Item.Left : (lineDelegate.alignSetting === "center" ? Item.Center : Item.Right)
                                 wrapMode: Text.WordWrap
                                 horizontalAlignment: lineDelegate.alignSetting === "left" ? Text.AlignLeft : (lineDelegate.alignSetting === "center" ? Text.AlignHCenter : Text.AlignRight)
 
+                                Behavior on scale {
+                                    NumberAnimation {
+                                        duration: Theme.reduceMotion ? 0 : 250
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
                                 Behavior on opacity {
-                                    NumberAnimation { duration: 250 }
+                                    NumberAnimation {
+                                        duration: Theme.reduceMotion ? 0 : 250
+                                        easing.type: Easing.OutCubic
+                                    }
                                 }
                                 Behavior on color {
-                                    ColorAnimation { duration: 200 }
+                                    ColorAnimation {
+                                        duration: Theme.reduceMotion ? 0 : 200
+                                    }
                                 }
                             }
 
@@ -604,18 +761,31 @@ Item {
                                 width: textWrapper.width
                                 visible: root.showTrans && Boolean(model.trans && model.trans.length > 0)
                                 text: (typeof model.trans !== "undefined" && model.trans !== null) ? ("" + model.trans) : ""
-                                font.pixelSize: lineDelegate.isActive ? Math.max(12, Math.round(root.effectiveLyricsFontSize * 0.58)) : Math.max(10, Math.round(root.effectiveLyricsFontSize * 0.48))
+                                font.pixelSize: Math.max(12, Math.round(root.effectiveLyricsFontSize * 0.58))
                                 font.bold: false
                                 color: lineDelegate.isActive ? Theme.textSecondary : Theme.textMuted
                                 opacity: lineDelegate.isActive ? 0.9 : (lineMouse.containsMouse ? 0.65 : 0.35)
+                                scale: lineDelegate.isActive ? 1.0 : (Math.max(10, Math.round(root.effectiveLyricsFontSize * 0.48)) / Math.max(12, Math.round(root.effectiveLyricsFontSize * 0.58)))
+                                transformOrigin: lineDelegate.alignSetting === "left" ? Item.Left : (lineDelegate.alignSetting === "center" ? Item.Center : Item.Right)
                                 wrapMode: Text.WordWrap
                                 horizontalAlignment: lineDelegate.alignSetting === "left" ? Text.AlignLeft : (lineDelegate.alignSetting === "center" ? Text.AlignHCenter : Text.AlignRight)
 
+                                Behavior on scale {
+                                    NumberAnimation {
+                                        duration: Theme.reduceMotion ? 0 : 250
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
                                 Behavior on opacity {
-                                    NumberAnimation { duration: 250 }
+                                    NumberAnimation {
+                                        duration: Theme.reduceMotion ? 0 : 250
+                                        easing.type: Easing.OutCubic
+                                    }
                                 }
                                 Behavior on color {
-                                    ColorAnimation { duration: 200 }
+                                    ColorAnimation {
+                                        duration: Theme.reduceMotion ? 0 : 200
+                                    }
                                 }
                             }
                         }
@@ -633,6 +803,7 @@ Item {
                                 scrollResumeTimer.stop();
                                 AudioEngine.seek(model.timeMs);
                                 lyricsList.currentIndex = index;
+                                root.scrollToIndex(index);
                             }
                         }
                     }
@@ -710,6 +881,8 @@ Item {
                             var targetY = Math.max(0.0, Math.min(maxRange, mouseY - scrollThumb.height / 2));
                             var pct = targetY / maxRange;
                             var targetMs = Math.floor(pct * AudioEngine.durationMs);
+                            lyricsList.userInteracting = false;
+                            scrollResumeTimer.stop();
                             AudioEngine.seek(targetMs);
                         }
 

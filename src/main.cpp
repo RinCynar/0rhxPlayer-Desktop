@@ -3425,6 +3425,261 @@ int main(int argc, char *argv[])
             QThread::msleep(260);
             QCoreApplication::processEvents();
             qInfo() << "[Test-Phase31] UI tree, routing fallback, NowPlaying and Settings verification:" << (pass ? "PASSED" : "FAILED");
+
+            // 3. Phase 31 T2: Now Playing M3 Spring Physics, Drag Ownership, Active Line Scaling, and Reduce Motion Verification
+            qInfo() << "[Test-Phase31] Beginning T2: Now Playing M3 Spring Physics & Motion Verification...";
+            mainWindow->setProperty("isNowPlayingOpen", true);
+            QCoreApplication::processEvents();
+            QThread::msleep(450); // Wait for NowPlaying slide-up animation
+            QCoreApplication::processEvents();
+
+            QObject *lyricsList = mainWindow->findChild<QObject*>("lyricsListView");
+            QObject *nowPlayingView = mainWindow->findChild<QObject*>("nowPlayingView");
+            if (!lyricsList || !nowPlayingView) {
+                qWarning() << "[Test-Phase31] lyricsListView or nowPlayingView not found in mainWindow!";
+                pass = false;
+            } else {
+                QDir().mkpath(QDir::currentPath() + "/build/captures/verify_p31_t2_captures");
+
+                // Synthetic LRC content with line-timed, wrapped, closely timed, and word-timed lyrics
+                QString syntheticLrc =
+                    "[00:00.00]Intro line at first boundary\n"
+                    "[00:02.00]Line 1 standard natural lyric line\n"
+                    "[00:04.00]Line 2 very long wrapped lyric line designed to verify that multi-line text wrapping does not jitter or jump during spring animation\n"
+                    "[00:06.00]Line 3 closely timed A\n"
+                    "[00:06.35]Line 4 closely timed B\n"
+                    "[00:08.00]<00:08.00>Word1 <00:08.30>Word2 <00:08.60>Word3 <00:08.90>Word4\n"
+                    "[00:10.00]Final boundary lyric line at end of track\n";
+
+                auto *audio = AudioEngine::instance();
+                audio->lyrics()->loadLrcContent(syntheticLrc);
+                for (int i = 0; i < 10; ++i) {
+                    QCoreApplication::processEvents();
+                    QThread::msleep(30);
+                }
+
+                int lyricCount = audio->lyrics()->count();
+                qInfo() << "[Test-Phase31] Synthetic lyrics loaded. Total lines:" << lyricCount;
+                if (lyricCount != 7) {
+                    qWarning() << "[Test-Phase31] Expected 7 synthetic lyric lines, got:" << lyricCount;
+                    pass = false;
+                }
+
+                // Initial position at Line 0
+                audio->lyrics()->updatePosition(200);
+                QCoreApplication::processEvents();
+                QMetaObject::invokeMethod(nowPlayingView, "scrollToActiveLine", Q_ARG(QVariant, true));
+                for (int i = 0; i < 5; ++i) {
+                    QCoreApplication::processEvents();
+                    QThread::msleep(20);
+                }
+
+                double initialY = lyricsList->property("contentY").toDouble();
+                qInfo() << "[Test-Phase31] Line 0 initial contentY:" << initialY;
+
+                // Capture initial state
+                QImage img0 = mainWindow->grabWindow();
+                img0.save(QDir::currentPath() + "/build/captures/verify_p31_t2_captures/frame_01_line0_initial.png");
+
+                // --- Test 3A: Natural M3 Spring with overshoot on line transition ---
+                audio->lyrics()->updatePosition(2100); // Advance to Line 1
+                QCoreApplication::processEvents();
+
+                double targetY1 = lyricsList->property("springTargetY").toDouble();
+                double springOvershoot = lyricsList->property("springOvershoot").toDouble();
+                qInfo() << "[Test-Phase31] Line 1 targetContentY:" << targetY1 << "configured overshoot factor:" << springOvershoot;
+
+                if (springOvershoot <= 1.0) {
+                    qWarning() << "[Test-Phase31] Normal mode spring overshoot factor must be > 1.0, got:" << springOvershoot;
+                    pass = false;
+                }
+
+                // Sample trajectory over 550ms to record overshoot and settle
+                QList<QPair<int, double>> samples;
+                double maxSampledY = initialY;
+                for (int t = 0; t <= 550; t += 30) {
+                    QThread::msleep(30);
+                    QCoreApplication::processEvents();
+                    double curY = lyricsList->property("contentY").toDouble();
+                    samples.append({t, curY});
+                    if (curY > maxSampledY) {
+                        maxSampledY = curY;
+                    }
+                }
+
+                double finalY1 = lyricsList->property("contentY").toDouble();
+                double overshootPixels = maxSampledY - targetY1;
+                qInfo() << "[Test-Phase31] Line 1 spring trajectory: max contentY:" << maxSampledY
+                        << "| settled contentY:" << finalY1
+                        << "| peak overshoot pixels:" << overshootPixels;
+
+                if (overshootPixels <= 0.1) {
+                    qWarning() << "[Test-Phase31] Expected subtle spring overshoot (peak > target), got peak:" << maxSampledY << "target:" << targetY1;
+                    pass = false;
+                } else if (qAbs(finalY1 - targetY1) > 1.5) {
+                    qWarning() << "[Test-Phase31] Spring failed to settle at target! settled:" << finalY1 << "target:" << targetY1;
+                    pass = false;
+                } else {
+                    qInfo() << "[Test-Phase31] Natural M3 Spring overshoot and settling verified: PASSED";
+                }
+
+                QImage img1 = mainWindow->grabWindow();
+                img1.save(QDir::currentPath() + "/build/captures/verify_p31_t2_captures/frame_02_line1_settled.png");
+
+                // --- Test 3B: Manual drag ownership & follow restoration ---
+                // User drags away by 150px
+                lyricsList->setProperty("userInteracting", true);
+                lyricsList->setProperty("contentY", finalY1 + 150.0);
+                QCoreApplication::processEvents();
+
+                double draggedY = lyricsList->property("contentY").toDouble();
+                qInfo() << "[Test-Phase31] User manual drag applied. contentY:" << draggedY;
+
+                // Advance playback to Line 2 while userInteracting is true
+                audio->lyrics()->updatePosition(4100);
+                QCoreApplication::processEvents();
+                QThread::msleep(100);
+                QCoreApplication::processEvents();
+
+                double postAdvanceY = lyricsList->property("contentY").toDouble();
+                if (qAbs(postAdvanceY - draggedY) > 0.5) {
+                    qWarning() << "[Test-Phase31] Auto-follow fought manual drag! Expected:" << draggedY << "got:" << postAdvanceY;
+                    pass = false;
+                } else {
+                    qInfo() << "[Test-Phase31] Drag ownership respected (zero fighting from auto-follow): PASSED";
+                }
+
+                QImage imgDrag = mainWindow->grabWindow();
+                imgDrag.save(QDir::currentPath() + "/build/captures/verify_p31_t2_captures/frame_03_drag_held.png");
+
+                // User releases and inactivity timer expires: trigger restoration
+                lyricsList->setProperty("userInteracting", false);
+                QMetaObject::invokeMethod(nowPlayingView, "scrollToActiveLine", Q_ARG(QVariant, false));
+                QCoreApplication::processEvents();
+
+                double targetY2 = lyricsList->property("springTargetY").toDouble();
+                qInfo() << "[Test-Phase31] Follow restoration triggered towards Line 2 targetContentY:" << targetY2;
+
+                // Wait for spring return to settle
+                QThread::msleep(500);
+                QCoreApplication::processEvents();
+
+                double restoredY = lyricsList->property("contentY").toDouble();
+                qInfo() << "[Test-Phase31] Post-drag return settled at:" << restoredY << "(target:" << targetY2 << ")";
+                if (qAbs(restoredY - targetY2) > 1.5) {
+                    qWarning() << "[Test-Phase31] Post-drag follow restoration failed to settle at active line target!";
+                    pass = false;
+                } else {
+                    qInfo() << "[Test-Phase31] Post-drag follow restoration with spring return verified: PASSED";
+                }
+
+                QImage imgRestore = mainWindow->grabWindow();
+                imgRestore.save(QDir::currentPath() + "/build/captures/verify_p31_t2_captures/frame_04_post_drag_settled.png");
+
+                // --- Test 3C: Global Reduce Motion mode (Zero overshoot / No spring oscillation) ---
+                cm->setReduceMotion(true);
+                QCoreApplication::processEvents();
+                QThread::msleep(50);
+                QCoreApplication::processEvents();
+
+                double rmOvershootProp = lyricsList->property("springOvershoot").toDouble();
+                qInfo() << "[Test-Phase31] Reduce Motion enabled. Configured overshoot factor:" << rmOvershootProp;
+                if (rmOvershootProp > 1.0) {
+                    qWarning() << "[Test-Phase31] In Reduce Motion mode, overshoot factor must be <= 1.0, got:" << rmOvershootProp;
+                    pass = false;
+                }
+
+                // Transition from Line 2 to Line 3 under Reduce Motion
+                double preRMY = lyricsList->property("contentY").toDouble();
+                audio->lyrics()->updatePosition(6050); // Line 3
+                QCoreApplication::processEvents();
+
+                double rmTargetY = lyricsList->property("springTargetY").toDouble();
+                double maxRMContentY = preRMY;
+                bool strictlyMonotonic = true;
+                double lastY = preRMY;
+
+                for (int t = 0; t <= 350; t += 25) {
+                    QThread::msleep(25);
+                    QCoreApplication::processEvents();
+                    double curY = lyricsList->property("contentY").toDouble();
+                    if (curY < lastY - 0.5) {
+                        strictlyMonotonic = false; // Reversed direction (oscillated)
+                    }
+                    if (curY > maxRMContentY) maxRMContentY = curY;
+                    lastY = curY;
+                }
+
+                double finalRMY = lyricsList->property("contentY").toDouble();
+                qInfo() << "[Test-Phase31] Reduce Motion transition: target:" << rmTargetY
+                        << "| max observed:" << maxRMContentY << "| settled:" << finalRMY;
+
+                if (maxRMContentY > rmTargetY + 0.5) {
+                    qWarning() << "[Test-Phase31] Overshoot observed in Reduce Motion mode! max:" << maxRMContentY << "target:" << rmTargetY;
+                    pass = false;
+                } else if (!strictlyMonotonic) {
+                    qWarning() << "[Test-Phase31] Oscillation detected in Reduce Motion transition!";
+                    pass = false;
+                } else {
+                    qInfo() << "[Test-Phase31] Reduce Motion zero-overshoot monotonic transition verified: PASSED";
+                }
+
+                QImage imgRM = mainWindow->grabWindow();
+                imgRM.save(QDir::currentPath() + "/build/captures/verify_p31_t2_captures/frame_05_reduce_motion_line3.png");
+
+                // --- Test 3D: Rapid interrupted transitions & boundaries ---
+                // Rapidly switch between closely timed lines 3 and 4
+                audio->lyrics()->updatePosition(6360); // Line 4 (closely timed line)
+                QCoreApplication::processEvents();
+                QThread::msleep(40);
+                QCoreApplication::processEvents();
+                audio->lyrics()->updatePosition(8100); // Line 5 (word-timed line)
+                QCoreApplication::processEvents();
+                QThread::msleep(400);
+                QCoreApplication::processEvents();
+
+                double line5Y = lyricsList->property("contentY").toDouble();
+                double line5Target = lyricsList->property("springTargetY").toDouble();
+                if (qAbs(line5Y - line5Target) > 2.0) {
+                    qWarning() << "[Test-Phase31] Interrupted transition left scrolling stuck! cur:" << line5Y << "target:" << line5Target;
+                    pass = false;
+                } else {
+                    qInfo() << "[Test-Phase31] Closely timed interrupted transitions resolved cleanly: PASSED";
+                }
+
+                // Verify single-source word timing active
+                QVariantList words = audio->lyrics()->getWords(5);
+                if (words.isEmpty() || !audio->lyrics()->hasWords(5)) {
+                    qWarning() << "[Test-Phase31] Word-timed line missing words!";
+                    pass = false;
+                } else {
+                    qInfo() << "[Test-Phase31] Phase 30 Single-source word timing preserved on active line: PASSED";
+                }
+
+                // Test boundary clamping: Last line (Line 6)
+                audio->lyrics()->updatePosition(10500); // Line 6
+                QCoreApplication::processEvents();
+                QThread::msleep(400);
+                QCoreApplication::processEvents();
+
+                double maxAllowedY = lyricsList->property("contentHeight").toDouble() - lyricsList->property("height").toDouble();
+                if (maxAllowedY < 0) maxAllowedY = 0;
+                double line6Y = lyricsList->property("contentY").toDouble();
+                if (line6Y > maxAllowedY + 1.0 || line6Y < 0.0) {
+                    qWarning() << "[Test-Phase31] Boundary clamping violated on last line! contentY:" << line6Y << "maxAllowed:" << maxAllowedY;
+                    pass = false;
+                } else {
+                    qInfo() << "[Test-Phase31] Boundary clamping on last line verified: PASSED";
+                }
+
+                // Restore settings and state
+                cm->setReduceMotion(false);
+                audio->lyrics()->clear();
+                mainWindow->setProperty("isNowPlayingOpen", false);
+                QCoreApplication::processEvents();
+                QThread::msleep(350);
+                QCoreApplication::processEvents();
+            }
         }
 
         qInfo() << "=== Phase 31 Native Functional Purity Test Result:" << (pass ? "PASSED" : "FAILED") << "===";
