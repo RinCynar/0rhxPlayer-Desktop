@@ -23,7 +23,6 @@ Item {
             case "playlist": return qsTr("Playlists");
             case "favorites": return qsTr("Favorites");
             case "eq": return qsTr("Equalizer");
-            case "plugins": return qsTr("Plugins");
             default: return fallback;
         }
     }
@@ -52,6 +51,9 @@ Item {
         dialogModel.clear();
         var items = ConfigManager.allNavItems;
         for (var i = 0; i < items.length; ++i) {
+            if (items[i].id === "plugins" || (typeof items[i].id === "string" && items[i].id.indexOf("plugin:") === 0) || items[i].isPlugin) {
+                continue;
+            }
             dialogModel.append({
                 itemId: items[i].id,
                 title: items[i].title,

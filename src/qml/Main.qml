@@ -6,7 +6,6 @@ import rhx.config 1.0
 import rhx.theme 1.0
 import rhx.library 1.0
 import rhx.ui 1.0
-import rhx.plugin 1.0
 
 ApplicationWindow {
     id: window
@@ -47,9 +46,6 @@ ApplicationWindow {
         if (keepAllViewsLoaded) return true;
         if (window.isNowPlayingFullyExpanded) return false;
         if (window.currentTab === tabId || window.exitingTab === tabId) return true;
-        if (tabId === "pluginSchema" && ((window.currentTab.indexOf("plugin:") === 0) || (window.exitingTab.indexOf("plugin:") === 0))) {
-            return true;
-        }
         return false;
     }
 
@@ -62,8 +58,6 @@ ApplicationWindow {
         if (tabId === "playlist") return playlistsLoader;
         if (tabId === "eq") return equalizerLoader;
         if (tabId === "settings") return settingsLoader;
-        if (tabId === "plugins") return pluginsLoader;
-        if (tabId.indexOf("plugin:") === 0 || tabId === "pluginSchema") return pluginSchemaLoader;
         return null;
     }
 
@@ -191,6 +185,11 @@ ApplicationWindow {
     }
 
     onCurrentTabChanged: {
+        if (window.currentTab === "plugins" || (typeof window.currentTab === "string" && window.currentTab.indexOf("plugin:") === 0) || window.currentTab === "pluginSchema") {
+            window.currentTab = "home";
+            return;
+        }
+
         var newTab = window.currentTab;
         if (newTab === activeTab && exitingTab === "") return;
 
@@ -619,59 +618,6 @@ ApplicationWindow {
                         }
                     }
 
-                    // 7: Plugins Marketplace & Local Extension View (Lazy Loaded & Dynamically Recycled)
-                    Loader {
-                        id: pluginsLoader
-                        objectName: "pluginsLoader"
-                        anchors.fill: parent
-                        active: window.isTabActive("plugins")
-                        visible: active && opacity > 0
-                        opacity: (window.currentTab === "plugins" && window.exitingTab === "") ? 1.0 : 0.0
-                        sourceComponent: Component {
-                            PluginsView {
-                                id: pluginsView
-                                objectName: "pluginsView"
-                                anchors.fill: parent
-                                onNavigateTab: function(tabId) {
-                                    window.currentTab = tabId;
-                                }
-                            }
-                        }
-                        onLoaded: {
-                            if (window.currentTab === "plugins" && window.activeTab === "plugins") {
-                                window.restoreSnapshot("plugins");
-                                if (!window.keepAllViewsLoaded && !pageTransitionAnim.running) {
-                                    window.startTransitionAnimation(window.exitingTab, "plugins");
-                                }
-                            }
-                        }
-                    }
-
-                    // 8: Dynamic Native M3 Schema View for Plugins (Lazy Loaded & Dynamically Recycled)
-                    Loader {
-                        id: pluginSchemaLoader
-                        objectName: "pluginSchemaLoader"
-                        anchors.fill: parent
-                        active: window.isTabActive("pluginSchema")
-                        visible: active && opacity > 0
-                        opacity: ((window.currentTab.indexOf("plugin:") === 0) && window.exitingTab === "") ? 1.0 : 0.0
-                        sourceComponent: Component {
-                            PluginSchemaView {
-                                id: pluginSchemaView
-                                objectName: "pluginSchemaView"
-                                anchors.fill: parent
-                                pluginId: window.currentTab
-                            }
-                        }
-                        onLoaded: {
-                            if (window.currentTab.indexOf("plugin:") === 0 && window.activeTab.indexOf("plugin:") === 0) {
-                                window.restoreSnapshot("pluginSchema");
-                                if (!window.keepAllViewsLoaded && !pageTransitionAnim.running) {
-                                    window.startTransitionAnimation(window.exitingTab, "pluginSchema");
-                                }
-                            }
-                        }
-                    }
                 }
                 }
 
@@ -989,13 +935,6 @@ ApplicationWindow {
         function show(msg) {
             toastText.text = msg || "";
             toastTimer.restart();
-        }
-    }
-
-    Connections {
-        target: PluginManager
-        function onToastRequested(message) {
-            globalToast.show(message);
         }
     }
 }

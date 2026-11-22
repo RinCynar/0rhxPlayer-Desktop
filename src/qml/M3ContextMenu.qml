@@ -4,7 +4,6 @@ import QtQuick.Layouts
 import rhx.ui 1.0
 import rhx.theme 1.0
 import rhx.library 1.0
-import rhx.plugin 1.0
 
 Item {
     id: menuRoot
@@ -197,39 +196,6 @@ Item {
                     menuRoot.close();
                     if (p) {
                         LibraryManager.showInExplorer(p);
-                    }
-                }
-            }
-
-            // Injected Context Menu Items from Active Plugins (Phase 17)
-            Repeater {
-                model: (PluginManager.hasContextMenuItems && menuRoot.visible) ? PluginManager.getInjectedMenuItems(menuRoot.contextType === "playlist" ? "playlist" : "track", {
-                    paths: menuRoot.selectedTrackPaths,
-                    title: menuRoot.singleTrackTitle,
-                    artist: menuRoot.singleTrackArtist
-                }) : []
-                delegate: M3MenuItem {
-                    iconSource: modelData.icon || "qrc:/assets/icons/plugin.svg"
-                    text: modelData.title
-                    isDestructive: Boolean(modelData.isDestructive)
-                    onClicked: {
-                        var p = (menuRoot.selectedTrackPaths && menuRoot.selectedTrackPaths.length > 0) ? menuRoot.selectedTrackPaths[0] : "";
-                        var payload = {
-                            filePath: p,
-                            path: p,
-                            paths: menuRoot.selectedTrackPaths,
-                            title: menuRoot.singleTrackTitle,
-                            artist: menuRoot.singleTrackArtist,
-                            data: {
-                                filePath: p,
-                                path: p,
-                                paths: menuRoot.selectedTrackPaths,
-                                title: menuRoot.singleTrackTitle,
-                                artist: menuRoot.singleTrackArtist
-                            }
-                        };
-                        PluginManager.triggerPluginAction(modelData.pluginId, modelData.id, menuRoot.contextType === "playlist" ? "playlist" : "track", payload);
-                        menuRoot.close();
                     }
                 }
             }

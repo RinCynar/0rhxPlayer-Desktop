@@ -554,7 +554,7 @@ int main(int argc, char *argv[])
     }
 
     if (mainWindow && (app.arguments().contains("--tab-plugins") || app.arguments().contains("--tab-plugin"))) {
-        mainWindow->setProperty("currentTab", "plugins");
+        mainWindow->setProperty("currentTab", "home");
     }
 
     if (app.arguments().contains("--demo-library")) {
@@ -3341,6 +3341,98 @@ int main(int argc, char *argv[])
         });
     }
 
+    if (app.arguments().contains("--test-phase31") || app.arguments().contains("--test-p31")) {
+        qInfo() << "=== Testing Phase 31: Native Functional Purity & Complete Plugin UI Removal ===";
+        bool pass = true;
+
+        auto *cm = ConfigManager::instance();
+        // 1. Navigation items audit in ConfigManager
+        const auto allItems = cm->allNavItems();
+        for (const auto &itemVal : allItems) {
+            QVariantMap item = itemVal.toMap();
+            QString id = item.value("id").toString();
+            if (id == "plugins" || id.startsWith("plugin:") || item.value("isPlugin").toBool()) {
+                qWarning() << "[Test-Phase31] Obsolete plugin item found in allNavItems:" << id;
+                pass = false;
+            }
+        }
+
+        const auto visibleItems = cm->visibleNavItems();
+        for (const auto &itemVal : visibleItems) {
+            QVariantMap item = itemVal.toMap();
+            QString id = item.value("id").toString();
+            if (id == "plugins" || id.startsWith("plugin:") || item.value("isPlugin").toBool()) {
+                qWarning() << "[Test-Phase31] Obsolete plugin item found in visibleNavItems:" << id;
+                pass = false;
+            }
+        }
+        qInfo() << "[Test-Phase31] Nav items audit passed. Total items:" << allItems.size() << "visible:" << visibleItems.size();
+
+        // 2. QML Object Hierarchy and Routing Audit
+        if (mainWindow) {
+            // Verify pluginsLoader and pluginSchemaLoader are completely removed
+            if (mainWindow->findChild<QObject*>("pluginsLoader")) {
+                qWarning() << "[Test-Phase31] pluginsLoader unexpectedly found in mainWindow!";
+                pass = false;
+            }
+            if (mainWindow->findChild<QObject*>("pluginSchemaLoader")) {
+                qWarning() << "[Test-Phase31] pluginSchemaLoader unexpectedly found in mainWindow!";
+                pass = false;
+            }
+
+            // Verify obsolete route fallback
+            mainWindow->setProperty("currentTab", "plugins");
+            QCoreApplication::processEvents();
+            if (mainWindow->property("currentTab").toString() == "plugins") {
+                qWarning() << "[Test-Phase31] Setting currentTab to 'plugins' did not fallback to home!";
+                pass = false;
+            }
+            mainWindow->setProperty("currentTab", "plugin:com.foo.bar");
+            QCoreApplication::processEvents();
+            if (mainWindow->property("currentTab").toString().startsWith("plugin:")) {
+                qWarning() << "[Test-Phase31] Setting currentTab to 'plugin:...' did not fallback to home!";
+                pass = false;
+            }
+            mainWindow->setProperty("currentTab", "home");
+            QCoreApplication::processEvents();
+
+            // Verify NowPlaying lyrics source button is absent
+            if (mainWindow->findChild<QObject*>("lyricsSourceBtn")) {
+                qWarning() << "[Test-Phase31] lyricsSourceBtn unexpectedly found in NowPlayingView!";
+                pass = false;
+            }
+            if (mainWindow->findChild<QObject*>("lyricsCandidatesPopup")) {
+                qWarning() << "[Test-Phase31] lyricsCandidatesPopup unexpectedly found in NowPlayingView!";
+                pass = false;
+            }
+
+            // Verify Settings view has no plugins card
+            mainWindow->setProperty("currentTab", "settings");
+            QCoreApplication::processEvents();
+            QThread::msleep(260);
+            QCoreApplication::processEvents();
+            if (mainWindow->findChild<QObject*>("pluginsCol")) {
+                qWarning() << "[Test-Phase31] pluginsCol unexpectedly found in SettingsView!";
+                pass = false;
+            }
+            if (mainWindow->findChild<QObject*>("pluginSourceInput")) {
+                qWarning() << "[Test-Phase31] pluginSourceInput unexpectedly found in SettingsView!";
+                pass = false;
+            }
+
+            mainWindow->setProperty("currentTab", "home");
+            QCoreApplication::processEvents();
+            QThread::msleep(260);
+            QCoreApplication::processEvents();
+            qInfo() << "[Test-Phase31] UI tree, routing fallback, NowPlaying and Settings verification:" << (pass ? "PASSED" : "FAILED");
+        }
+
+        qInfo() << "=== Phase 31 Native Functional Purity Test Result:" << (pass ? "PASSED" : "FAILED") << "===";
+        QTimer::singleShot(150, &app, [pass]() {
+            QCoreApplication::exit(pass ? 0 : 1);
+        });
+    }
+
     if (app.arguments().contains("--screenshot")) {
         int delay = app.arguments().contains("--screenshot-splash") ? 500 : 2500;
         QTimer::singleShot(delay, [mainWindow, &app]() {
@@ -3361,7 +3453,7 @@ int main(int argc, char *argv[])
                     }
                 }
                 if (app.arguments().contains("--tab-plugins") || app.arguments().contains("--demo-plugins")) {
-                    mainWindow->setProperty("currentTab", "plugins");
+                    mainWindow->setProperty("currentTab", "home");
                 }
                 QImage img = mainWindow->grabWindow();
                 QString outPath = QDir::currentPath() + "/build/screenshot_actual.png";

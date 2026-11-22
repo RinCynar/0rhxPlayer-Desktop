@@ -164,14 +164,6 @@ QVariantList ConfigManager::defaultNavItems() const
     eq["canHide"] = true;
     items.append(eq);
 
-    QVariantMap plugins;
-    plugins["id"] = "plugins";
-    plugins["title"] = "插件";
-    plugins["iconSource"] = "qrc:/assets/icons/plugin.svg";
-    plugins["visible"] = true;
-    plugins["canHide"] = true;
-    items.append(plugins);
-
     return items;
 }
 
@@ -196,21 +188,20 @@ void ConfigManager::loadSettings()
                 defaultsMap[m["id"].toString()] = m;
             }
 
+            bool legacyNavCleaned = false;
             for (const auto &val : arr) {
                 if (!val.isObject()) continue;
                 QJsonObject obj = val.toObject();
                 QString id = obj["id"].toString();
+                if (id == "plugins" || id.startsWith("plugin:") || obj.value("isPlugin").toBool()) {
+                    legacyNavCleaned = true;
+                    continue;
+                }
                 if (defaultsMap.contains(id)) {
                     QVariantMap item = defaultsMap.take(id);
                     if (obj.contains("visible")) {
                         item["visible"] = (id == "home") ? true : obj["visible"].toBool();
                     }
-                    loadedItems.append(item);
-                } else if (id.startsWith("plugin:") || obj.value("isPlugin").toBool()) {
-                    QVariantMap item = obj.toVariantMap();
-                    item["visible"] = obj.value("visible").toBool(true);
-                    item["canHide"] = true;
-                    item["isPlugin"] = true;
                     loadedItems.append(item);
                 }
             }
@@ -221,6 +212,9 @@ void ConfigManager::loadSettings()
             }
 
             m_allNavItems = loadedItems;
+            if (legacyNavCleaned) {
+                saveSettings();
+            }
         }
     }
 
@@ -322,16 +316,13 @@ void ConfigManager::saveSettings()
     QJsonArray arr;
     for (const auto &itemVal : m_allNavItems) {
         QVariantMap m = itemVal.toMap();
-        QJsonObject obj;
-        obj["id"] = m["id"].toString();
-        obj["visible"] = m["visible"].toBool();
-        if (m.value("isPlugin").toBool()) {
-            obj["isPlugin"] = true;
-            obj["title"] = m["title"].toString();
-            obj["iconSource"] = m["iconSource"].toString();
-            obj["pluginId"] = m["pluginId"].toString();
-            obj["route"] = m["route"].toString();
+        QString id = m["id"].toString();
+        if (id == "plugins" || id.startsWith("plugin:") || m.value("isPlugin").toBool()) {
+            continue;
         }
+        QJsonObject obj;
+        obj["id"] = id;
+        obj["visible"] = m["visible"].toBool();
         arr.append(obj);
     }
 
